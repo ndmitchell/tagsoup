@@ -3,7 +3,9 @@ module Data.Html.TagSoup(
     Tag(..), parseTags,
     module Data.Html.Download,
     
-    (~=), isOpenTagName, isCloseTagName,
+    (~==), (~/=),
+    isTagOpen, isTagClose, isTagText, fromTagText,
+    isTagOpenName, isTagCloseName,
     sections
     ) where
 
@@ -76,24 +78,34 @@ parseString (x:xs) = x : parseString xs
 parseString [] = []
 
 
-isCloseTagName name (TagClose n) = n == name
-isCloseTagName _ _ = False
+-- TAG COMBINATORS
+
+isTagOpen  (TagOpen {})  = True; isTagOpen  _ = False
+isTagClose (TagClose {}) = True; isTagClose _ = False
+isTagText  (TagText {})  = True; isTagText  _ = False
+
+fromTagText (TagText x) = x
 
 
-isOpenTagName name (TagOpen n _) = n == name
-isOpenTagName _ _ = False
+isTagOpenName name (TagOpen n _) = n == name
+isTagOpenName _ _ = False
+
+isTagCloseName name (TagClose n) = n == name
+isTagCloseName _ _ = False
 
 
-(~=) :: Tag -> Tag -> Bool
-(TagText y) ~= (TagText x) = null x || x == y
-(TagClose y) ~= (TagClose x) = null x || x == y
-(TagOpen y ys) ~= (TagOpen x xs) = (null x || x == y) && all f xs
+(~==) :: Tag -> Tag -> Bool
+(TagText y) ~== (TagText x) = null x || x == y
+(TagClose y) ~== (TagClose x) = null x || x == y
+(TagOpen y ys) ~== (TagOpen x xs) = (null x || x == y) && all f xs
     where
         f ("",val) = val `elem` map snd ys
         f (name,"") = name `elem` map fst ys
         f nameval = nameval `elem` ys
-_ ~= _ = False
+_ ~== _ = False
 
+(~/=) :: Tag -> Tag -> Bool
+(~/=) a b = not (a ~== b)
 
 sections :: (a -> Bool) -> [a] -> [[a]]
 sections f [] = []

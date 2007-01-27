@@ -17,7 +17,7 @@ import Data.Char
 haskellHitCount :: IO ()
 haskellHitCount = do
         tags <- liftM parseTags $ openURL "http://haskell.org/haskellwiki/Haskell"
-        let count = fromFooter $ head $ sections (~= TagOpen "div" [("class","printfooter")]) tags
+        let count = fromFooter $ head $ sections (~== TagOpen "div" [("class","printfooter")]) tags
         putStrLn $ "haskell.org has been hit " ++ show count ++ " times"
     where
         fromFooter x = read (filter isDigit num) :: Int
