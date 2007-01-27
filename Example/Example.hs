@@ -31,8 +31,7 @@ haskellHitCount = do
 
 msnbcTechNews :: IO ()
 msnbcTechNews = do
-        src <- openURL "http://www.msnbc.msn.com/"
-        let tags = parseTags src
+        tags <- liftM parseTags $ openURL "http://www.msnbc.msn.com/"
         let headlines = concatMap f $ sections (~== TagOpen "table" [("width","420")]) tags
         mapM_ putStrLn $ zipWith (\i s -> show i ++ ") " ++ [' '|i<=9] ++ s) [1..] headlines
     where
