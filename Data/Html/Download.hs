@@ -22,7 +22,10 @@ client :: [Char] -> PortNumber -> [Char] -> IO String
 client server port page = withSocketsDo $ do
     hndl <- connectTo server (PortNumber port)
     hSetBuffering hndl NoBuffering
-    hPutStr hndl $ "GET " ++ page ++ "\r\n\r\n\r\n"
+    hPutStrLn hndl ("GET " ++ page ++ " HTTP/1.1\r")
+    hPutStrLn hndl ("Host: " ++ server ++ "\r")
+    hPutStrLn hndl "\r"
+    hPutStrLn hndl "\r"
     readResponse hndl
 
 
