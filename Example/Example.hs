@@ -62,3 +62,10 @@ spjPapers = do
     where
         f :: [Tag] -> [String]
         f x = error $ show $ take 10 x
+
+
+currentTime :: IO ()
+currentTime = do
+        tags <- liftM parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
+        let time = fromTagText (dropWhile (~/= TagOpen "strong" [("id","ct")]) tags !! 1)
+        putStrLn time
