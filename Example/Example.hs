@@ -65,6 +65,18 @@ spjPapers = do
         dequote x = x
 
 
+ndmPapers :: IO ()
+ndmPapers = do
+        tags <- liftM parseTags $ openURL "http://www-users.cs.york.ac.uk/~ndm/downloads.php"
+        let papers = map f $ sections (isTagOpenName "li") $
+                     takeWhile (not . isTagCloseName "ul") $
+                     dropWhile (~/= TagOpen "ul" [("class","paper")]) tags
+        putStr $ unlines papers
+    where
+        f :: [Tag] -> String
+        f xs = fromTagText (xs !! 2)
+    
+
 currentTime :: IO ()
 currentTime = do
         tags <- liftM parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
