@@ -1,4 +1,5 @@
 -- Original version by Alistair Bayley
+-- Much help from Daniel McAllansmith
 -- Taken from Haskell-Cafe mailing list
 -- "Simple HTTP lib for Windows?", 18 Jan 2007
 
@@ -14,18 +15,21 @@ import Data.List
 --   www.haskell.org/haskellwiki/Haskell
 openURL :: String -> IO String
 openURL url | "http://" `isPrefixOf` url = openURL (drop 7 url)
-openURL url = client server 80 path
+openURL url = client server 80 (if null path then "/" else path)
     where (server,path) = break (== '/') url
 
 
 client :: [Char] -> PortNumber -> [Char] -> IO String
 client server port page = withSocketsDo $ do
     hndl <- connectTo server (PortNumber port)
+    let out x = hPutStrLn hndl (x ++ "\r")
     hSetBuffering hndl NoBuffering
-    hPutStrLn hndl ("GET " ++ page ++ " HTTP/1.1\r")
-    hPutStrLn hndl ("Host: " ++ server ++ "\r")
-    hPutStrLn hndl "\r"
-    hPutStrLn hndl "\r"
+
+    out $ "GET " ++ page ++ " HTTP/1.1"
+    out $ "Host: " ++ server ++ ""
+    out $ "Connection: close"
+    out ""
+    out ""
     readResponse hndl
 
 
