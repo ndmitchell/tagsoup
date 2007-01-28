@@ -49,19 +49,20 @@ msnbcTechNews = do
         h x = fromTagText $ head $ dropWhile (not . isTagText) $ dropWhile (not . isTagOpenName "a") x
 
 
-{-
-Would nearly work if openURL did, from http://research.microsoft.com/~simonpj/
--}
+
 spjPapers :: IO ()
 spjPapers = do
         tags <- liftM parseTags $ openURL "http://research.microsoft.com/~simonpj/"
         let links = concatMap f $ sections (isTagOpenName "a") $
                     takeWhile (~/= TagOpen "a" [("name","haskell")]) $
-                    dropWhile (~/= TagOpen "a" [("name","current")]) tags
-        putStrLn "hello"
+                    drop 5 $ dropWhile (~/= TagOpen "a" [("name","current")]) tags
+        putStr $ unlines links
     where
         f :: [Tag] -> [String]
-        f x = error $ show $ take 10 x
+        f xs = [dequote $ unwords $ words $ fromTagText $ head $ filter isTagText xs]
+        
+        dequote ('\"':xs) | last xs == '\"' = init xs
+        dequote x = x
 
 
 currentTime :: IO ()
