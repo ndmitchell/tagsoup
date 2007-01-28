@@ -1,6 +1,6 @@
 
 module Data.Html.TagSoup(
-    Tag(..), parseTags,
+    Tag(..), Attribute, parseTags,
     module Data.Html.Download,
     
     (~==), (~/=),
@@ -80,16 +80,19 @@ parseString [] = []
 
 -- TAG COMBINATORS
 
+isTagOpen, isTagClose, isTagText :: Tag -> Bool
 isTagOpen  (TagOpen {})  = True; isTagOpen  _ = False
 isTagClose (TagClose {}) = True; isTagClose _ = False
 isTagText  (TagText {})  = True; isTagText  _ = False
 
+fromTagText :: Tag -> String
 fromTagText (TagText x) = x
 
-
+isTagOpenName :: Tag -> Bool
 isTagOpenName name (TagOpen n _) = n == name
 isTagOpenName _ _ = False
 
+isTagCloseName :: Tag -> Bool
 isTagCloseName name (TagClose n) = n == name
 isTagCloseName _ _ = False
 

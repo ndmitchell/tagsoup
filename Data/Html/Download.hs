@@ -11,8 +11,8 @@ import System.IO
 import Network
 import Data.List
 
--- | http:// prefix is ignored
---   www.haskell.org/haskellwiki/Haskell
+-- | http:\/\/ prefix is ignored
+--   www.haskell.org\/haskellwiki\/Haskell
 openURL :: String -> IO String
 openURL url | "http://" `isPrefixOf` url = openURL (drop 7 url)
 openURL url = client server 80 (if null path then "/" else path)
