@@ -53,13 +53,13 @@ msnbcTechNews = do
 spjPapers :: IO ()
 spjPapers = do
         tags <- liftM parseTags $ openURL "http://research.microsoft.com/~simonpj/"
-        let links = concatMap f $ sections (isTagOpenName "a") $
+        let links = map f $ sections (isTagOpenName "a") $
                     takeWhile (~/= TagOpen "a" [("name","haskell")]) $
                     drop 5 $ dropWhile (~/= TagOpen "a" [("name","current")]) tags
         putStr $ unlines links
     where
-        f :: [Tag] -> [String]
-        f xs = [dequote $ unwords $ words $ fromTagText $ head $ filter isTagText xs]
+        f :: [Tag] -> String
+        f xs = dequote $ unwords $ words $ fromTagText $ head $ filter isTagText xs
         
         dequote ('\"':xs) | last xs == '\"' = init xs
         dequote x = x
