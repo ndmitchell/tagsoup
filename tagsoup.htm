@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+        <title>TagSoup: Two Examples</title>
+        <style type="text/css">
+pre {
+    border: 2px solid gray;
+    padding: 1px;
+    padding-left: 5px;
+    margin-left: 10px;
+    background-color: #eee;
+}
+
+pre.define {
+    background-color: #ffb;
+    border-color: #cc0;
+}
+
+body {
+    font-family: sans-serif;
+}
+
+h1, h2, h3 {
+    font-family: serif;
+}
+
+h1 {
+    color: rgb(23,54,93);
+    border-bottom: 1px solid rgb(79,129,189);
+    padding-bottom: 2px;
+    font-variant: small-caps;
+    text-align: center;
+}
+
+a {
+    color: rgb(54,95,145);
+}
+
+h2 {
+    color: rgb(54,95,145);
+}
+
+h3 {
+    color: rgb(79,129,189);
+}
+
+p.rule {
+    background-color: #ffb;
+	padding: 3px;
+	margin-left: 50px;
+	margin-right: 50px;
+}
+        </style>
+    </head>
+    <body>
+
+<h1>TagSoup: Two Examples</h1>
+
+<p style="text-align:right;margin-bottom:25px;">
+    by <a href="http://www.cs.york.ac.uk/~ndm/">Neil Mitchell</a>
+</p>
+
+<p>
+	TagSoup is a library for extracting information out of unstructured HTML code, sometimes known as tag-soup. The HTML does not have to be well formed, or render properly within any particular framework. This library is for situations where the author of the HTML is not cooperating with the person trying to extract the information,
+    but is also not trying to hide the information.
+</p>
+<p>
+	This document gives two particular examples, and two more may be found in the <a href="http://www.cs.york.ac.uk/fp/darcs/tagsoup/Example/Example.hs">Example</a> file from the darcs repository. The examples we give are:
+</p>
+<ol>
+    <li>Obtaining the Hit Count from Haskell.org</li>
+    <li>Obtaining a list of Simon Peyton-Jones' latest papers</li>
+</ol>
+<p>
+	The intial version of this library was written in Javascript and has been used for various commercial projects involving screen scraping. In the examples general hints on screen scraping are included, learnt from bitter experience. It should be noted that if you depend on data which someone else may change at any given time, you may be in for a shock!
+</p>
+
+<h3>Acknowledgements</h3>
+
+<p>
+    Thanks to Mike Dodds for persuading me to write this up as a library.
+</p>
+
+
+<h2>Haskell Hit Count</h2>
+
+Our goal is to develop a program that displays the Haskell.org hit count. This example covers all the basics in designing a basic web-scraping application.
+
+<h3>Finding the Information</h3>
+
+<p>
+	We first need to find where the information is displayed, and in what format. Taking a look at the <a href="http://www.haskell.org/haskellwiki/Haskell">front web page</a>, when not logged in, you may notice that there is no hit count. However, looking at the source shows us:
+</p>
+<pre>
+&lt;div class="printfooter"&gt;
+&lt;p&gt;Retrieved from "&lt;a href="http://www.haskell.org/haskellwiki/Haskell"&gt;
+http://www.haskell.org/haskellwiki/Haskell&lt;/a&gt;"&lt;/p&gt;
+
+&lt;p&gt;This page has been accessed 615,165 times.
+This page was last modified 15:44, 15 March 2007.
+Recent content is available under &lt;a href="/haskellwiki/HaskellWiki:Copyrights"
+title="HaskellWiki:Copyrights"&gt;a simple permissive license&lt;/a&gt;.&lt;/p&gt;
+</pre>
+<p>
+	So we see that the hit count is available, but not shown. This leads us to rule 1:
+</p>
+<p class="rule">
+	<b>Rule 1:</b><br/>
+	Scrape from what the page returns, not what a browser renders, or what view-source gives.
+</p>
+<p>
+	Some web servers will serve different content depending on the user agent, some browsers will have scripting modify their displayed HTML, some pages will display differently depending on your cookies. Before you can start to figure out how to start scraping, first decide what the input to your program will be. The usual step is to write a simple program:
+<p>
+<pre>
+import Data.Html.TagSoup
+
+main = do src <- openURL "http://haskell.org/haskellwiki/Haskell"
+	      writeFile "temp.htm" src
+</pre>
+<p>
+	Now open <tt>temp.htm</tt>, check this fragment of HTML is in it, and see what has been returned. Only now do we consider how to extract the information.
+</p>
+
+<h3>Finding the Information</h3>
+
+<p>
+	Now we examine both the fragment that contains our snippet of information, and the wider page. What does the fragment has that nothing else has? What algorithm would we use to obtain that particular element? How can we still return the element as the content changes? What if the design changes? But wait, before going any further:
+</p>
+<p class="rule">
+	<b>Rule 2:</b><br/>
+	Do not be robust to design changes, do not even consider the possibility when writing the code.
+</p>
+<p>
+	If the user changes their website, they will do so in unpredictable ways. They may move the page, they may put the information somewhere else, they may remove the information entirely. If you want something robust talk to the site owner, or buy the data from someone. If you try and think about design changes, you will complicate your design, and it still won't work. It is better to write an extraction method quickly, and happily rewrite it when things change.
+</p>
+<p>
+	So now, lets consider the fragment from above. It is useful to find a tag which is unique just above your snippet - something with a nice "id" property, or a "class" - something which is unlikely to occur multiple times. In the above example, "printfooter" as the class seems perfect. We decide that to find the snippet, we will start at a "div" tag, with a "class" attribute with the value "printfooter".
+</p>
+<pre>
+haskellHitCount = do
+	tags <- liftM parseTags $ openURL "http://haskell.org/haskellwiki/Haskell"
+	let count = fromFooter $ head $ sections (~== TagOpen "div" [("class","printfooter")]) tags
+	putStrLn $ "haskell.org has been hit " ++ show count ++ " times"
+</pre>
+<p>
+	Now we start writing the code! The first thing to do is open the required URL, then we parse the code into a list of <tt>Tag</tt>s. We then apply the <tt>sections</tt> function, which returns all the lists whose first element matches the query. We use the <tt>(~==)</tt> operator to construct the query - in this case asking for the "div" we mentioned earlier. This <tt>(~==)</tt> operator is very different from standard equality, it allows additional attributes to be present but does not match them. If we just wanted any open tag with the given class we could have written <tt>(~== TagOpen "" [("class","printfooter")])</tt> and this would have matched. Any empty strings in the second element of the match are considered as wildcards.
+</p>
+<p>
+	Once we have a list of all matching prefixes, we take the <tt>head</tt> - assuming that only one will match. Then we apply <tt>fromFooter</tt> which needs to perform the traversal from the "printfooter" attribute onwards to the actual hit count data.
+</p>
+
+<h3>Extracting the Information</h3>
+
+<p>
+	Now we have a stream starting at the right place, we generally mangle the code using standard list operators:
+</p>
+<pre>
+fromFooter x = read (filter isDigit num) :: Int
+	where
+		num = ss !! (i - 1)
+		Just i = findIndex (== "times.") ss
+		ss = words s
+		TagText s = sections (isTagOpenName "p") x !! 1 !! 1
+</pre>
+<p>
+	This code finds <tt>s</tt>, the text inside the appropriate paragraph by knowing that its the second (<tt>!! 1</tt>) paragraph, and within that paragraph, its the second tag - the actual text. We then split up the text using <tt>words</tt>, find the message that comes after hit count, and read all the digits we can find - filtering out the comma. This code may seem slightly messy, and indeed it is - often that is the nature of extracting information from a tag soup.
+</p>
+
+
+<h2>Simon's Papers</h3>
+
+<p>
+	To write.
+</p>
+
+
+    </body>
+</html>
