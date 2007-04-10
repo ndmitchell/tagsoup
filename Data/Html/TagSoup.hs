@@ -58,7 +58,8 @@ parseAttributes (x:xs) | isSpace x = parseAttributes xs
 parseValue :: String -> (String, String)
 parseValue ('\"':xs) = (a, drop 1 b)
     where (a,b) = break (== '\"') xs
-parseValue x = span isAlphaNum x
+parseValue x = span isValid x
+    where isValid x = isAlphaNum x || x `elem` "_-"
 
 
 
