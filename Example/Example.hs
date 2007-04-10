@@ -29,27 +29,6 @@ haskellHitCount = do
 
 
 
-msnbcTechNews :: IO ()
-msnbcTechNews = do
-        tags <- liftM parseTags $ openURL "http://www.msnbc.msn.com/"
-        let headlines = concatMap f $ sections (~== TagOpen "table" [("width","420")]) tags
-        mapM_ putStrLn $ zipWith (\i s -> show i ++ ") " ++ [' '|i<=9] ++ s) [1..] headlines
-    where
-        f :: [Tag] -> [String]
-        f tags = case head (sections (isTagOpenName "b") tags) of
-                    xs@(_:TagText s:_)
-                        | any ("TECH AND SCIENCE" `isPrefixOf`) (tails s)
-                        -> g $ takeWhile (~/= TagOpen "table" [("width","420")]) xs
-                    _ -> []
-
-        g :: [Tag] -> [String]
-        g xs = map h $ sections (~== TagOpen "td" [("valign","top")]) xs
-        
-        h :: [Tag] -> String
-        h x = fromTagText $ head $ dropWhile (not . isTagText) $ dropWhile (not . isTagOpenName "a") x
-
-
-
 spjPapers :: IO ()
 spjPapers = do
         tags <- liftM parseTags $ openURL "http://research.microsoft.com/~simonpj/"
