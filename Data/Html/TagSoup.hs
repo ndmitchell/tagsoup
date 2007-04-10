@@ -70,8 +70,14 @@ escapes = [("gt",">")
           ]
 
 
+parseEscape :: String -> Maybe String
+parseEscape ('#':xs) | all isDigit xs = Just [chr $ read xs]
+parseEscape xs = lookup xs escapes
+
+
+
 parseString :: String -> String
-parseString ('&':xs) = case lookup a escapes of
+parseString ('&':xs) = case parseEscape a of
                             Nothing -> '&' : parseString xs
                             Just x -> x ++ parseString (drop 1 b)
     where (a,b) = break (== ';') xs
