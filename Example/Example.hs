@@ -67,10 +67,8 @@ spjPapers = do
 
 ndmPapers :: IO ()
 ndmPapers = do
-        tags <- liftM parseTags $ openURL "http://www-users.cs.york.ac.uk/~ndm/downloads.php"
-        let papers = map f $ sections (isTagOpenName "li") $
-                     takeWhile (not . isTagCloseName "ul") $
-                     dropWhile (~/= TagOpen "ul" [("class","paper")]) tags
+        tags <- liftM parseTags $ openURL "http://www-users.cs.york.ac.uk/~ndm/downloads/"
+        let papers = map f $ sections (~== TagOpen "li" [("class","paper")]) tags
         putStr $ unlines papers
     where
         f :: [Tag] -> String
