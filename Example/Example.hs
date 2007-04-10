@@ -28,6 +28,24 @@ haskellHitCount = do
                 TagText s = sections (isTagOpenName "p") x !! 1 !! 1
 
 
+{-
+<a href="http://www.cbc.ca/technology/story/2007/04/10/tech-bloggers.html" id=r-5_1115205181>
+<b>Blogger code of conduct proposed</b>
+-}
+googleTechNews :: IO ()
+googleTechNews = do
+        tags <- liftM parseTags $ openURL "http://news.google.com/?ned=us&topic=t"
+        let links = map extract $ sections match tags
+        putStr $ unlines links
+    where
+        extract xs = fromTagText (xs !! 2)
+        
+        match (TagOpen "a" y)
+            = case lookup "id" y of
+                   Just z -> "r" `isPrefixOf` z && 'i' `notElem` z
+                   _ -> False
+        match _ = False
+
 
 spjPapers :: IO ()
 spjPapers = do
