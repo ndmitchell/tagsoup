@@ -138,14 +138,14 @@ isTagCloseName _ _ = False
 
 
 -- | Performs an inexact match, the first item should be the thing to match.
--- If the first item is a blank string, that is considered to match anything.
+-- If the second item is a blank string, that is considered to match anything.
 -- For example:
 --
--- > (TagText ""     ~= TagText "test") == True
--- > (TagText "test" ~= TagText "test") == True
--- > (TagText "soup" ~= TagText "test") == False
+-- > (TagText "test" ~== TagText ""    ) == True
+-- > (TagText "test" ~== TagText "test") == True
+-- > (TagText "test" ~== TagText "soup") == False
 --
--- For 'TagOpen' missing attributes on the left are allowed.
+-- For 'TagOpen' missing attributes on the right are allowed.
 (~==) :: Tag -> Tag -> Bool
 (TagText y) ~== (TagText x) = null x || x == y
 (TagClose y) ~== (TagClose x) = null x || x == y
