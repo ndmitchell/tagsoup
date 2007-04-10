@@ -1,9 +1,21 @@
--- Original version by Alistair Bayley
--- Much help from Daniel McAllansmith
--- Taken from Haskell-Cafe mailing list
--- "Simple HTTP lib for Windows?", 18 Jan 2007
+{-|
+    Module      :  Data.Html.Download
+    Copyright   :  (c) Neil Mitchell 2006-2007
+    License     :  BSD-style
 
--- Does not seem very reliable, does not work for various websites (including Google)
+    Maintainer  :  http://www.cs.york.ac.uk/~ndm/
+    Stability   :  unstable
+    Portability :  portable
+
+    This module simply downloads a page off the internet. It is very restricted,
+    and it not intended for proper use. The primary purpose is to allow more
+    interesting examples for the "Data.Html.TagSoup" module.
+    
+    The original version was by Alistair Bayley, with additional help from
+    Daniel McAllansmith. It is taken from the Haskell-Cafe mailing list
+    \"Simple HTTP lib for Windows?\", 18 Jan 2007.
+    <http://thread.gmane.org/gmane.comp.lang.haskell.cafe/18443/>
+-}
 
 module Data.Html.Download(openURL) where
 
@@ -11,8 +23,21 @@ import System.IO
 import Network
 import Data.List
 
--- | http:\/\/ prefix is ignored
---   www.haskell.org\/haskellwiki\/Haskell
+-- | This function opens a URL on the internet.
+--   Any @http:\/\/@ prefix is ignored.
+--
+-- > openURL "www.haskell.org/haskellwiki/Haskell"
+--
+-- Known Limitations:
+--
+-- * Only HTTP on port 80
+--
+-- * Outputs the HTTP Headers as well
+--
+-- * Does not work with all servers
+--
+-- It is hoped that a more reliable version of this function will be
+-- placed in a new HTTP library at some point!
 openURL :: String -> IO String
 openURL url | "http://" `isPrefixOf` url = openURL (drop 7 url)
 openURL url = client server 80 (if null path then "/" else path)
