@@ -1,8 +1,28 @@
+{-|
+    Module      :  Data.Html.TagSoup
+    Copyright   :  (c) Neil Mitchell 2006-2007
+    License     :  BSD-style
+
+    Maintainer  :  http://www.cs.york.ac.uk/~ndm/
+    Stability   :  moving towards stable
+    Portability :  portable
+
+    This module is for extracting information out of unstructured HTML code,
+    sometimes known as tag-soup. This is for situations where the author of
+    the HTML is not cooperating with the person trying to extract the information,
+    but is also not trying to hide the information.
+    
+    The standard practice is to parse a String to 'Tag's using 'parseTags', then
+    operate upon it to extract the necessary information.
+-}
+
 
 module Data.Html.TagSoup(
+    -- * Data structures and parsing
     Tag(..), Attribute, parseTags,
     module Data.Html.Download,
     
+    -- * Tag Combinators
     (~==), (~/=),
     isTagOpen, isTagClose, isTagText, fromTagText,
     isTagOpenName, isTagCloseName,
@@ -14,14 +34,19 @@ import Data.List
 import Data.Html.Download
 
 
+-- | An HTML attribute @id=\"name\"@ generates @(\"id\",\"name\")@
 type Attribute = (String,String)
 
-data Tag = TagOpen String [Attribute]
-         | TagClose String
-         | TagText String
-           deriving Show
+-- | An HTML element, a document is @[Tag]@.
+--   There is no requirement for 'TagOpen' and 'TagClose' to match
+data Tag = TagOpen String [Attribute]  -- ^ An open tag with 'Attribute's in their original order.
+         | TagClose String             -- ^ A closing tag
+         | TagText String              -- ^ A text node, guranteed not to be the empty string
+           deriving (Show, Eq, Ord)
 
 
+-- | Parse an HTML document to a list of 'Tag'.
+-- Automatically expands out escape characters.
 parseTags :: String -> [Tag]
 parseTags [] = []
 
@@ -85,25 +110,42 @@ parseString (x:xs) = x : parseString xs
 parseString [] = []
 
 
--- TAG COMBINATORS
+-- | Test if a 'Tag' is a 'TagOpen'
+isTagOpen :: Tag -> Bool
+isTagOpen (TagOpen {})  = True; isTagOpen  _ = False
 
-isTagOpen, isTagClose, isTagText :: Tag -> Bool
-isTagOpen  (TagOpen {})  = True; isTagOpen  _ = False
+-- | Test if a 'Tag' is a 'TagClose'
+isTagClose :: Tag -> Bool
 isTagClose (TagClose {}) = True; isTagClose _ = False
-isTagText  (TagText {})  = True; isTagText  _ = False
 
+-- | Test if a 'Tag' is a 'TagText'
+isTagText :: Tag -> Bool
+isTagText (TagText {})  = True; isTagText  _ = False
+
+-- | Extract the string from within 'TagText', crashes if not a 'TagText'
 fromTagText :: Tag -> String
 fromTagText (TagText x) = x
 
+-- | Returns True if the 'Tag' is 'TagOpen' and matches the given name
 isTagOpenName :: String -> Tag -> Bool
 isTagOpenName name (TagOpen n _) = n == name
 isTagOpenName _ _ = False
 
+-- | Returns True if the 'Tag' is 'TagClose' and matches the given name
 isTagCloseName :: String -> Tag -> Bool
 isTagCloseName name (TagClose n) = n == name
 isTagCloseName _ _ = False
 
 
+-- | Performs an inexact match, the first item should be the thing to match.
+-- If the first item is a blank string, that is considered to match anything.
+-- For example:
+--
+-- > (TagText ""     ~= TagText "test") == True
+-- > (TagText "test" ~= TagText "test") == True
+-- > (TagText "soup" ~= TagText "test") == False
+--
+-- For 'TagOpen' missing attributes on the left are allowed.
 (~==) :: Tag -> Tag -> Bool
 (TagText y) ~== (TagText x) = null x || x == y
 (TagClose y) ~== (TagClose x) = null x || x == y
@@ -114,9 +156,13 @@ isTagCloseName _ _ = False
         f nameval = nameval `elem` ys
 _ ~== _ = False
 
+-- | Negation of '~=='
 (~/=) :: Tag -> Tag -> Bool
 (~/=) a b = not (a ~== b)
 
+
+-- | This function takes a list, and returns all initial lists whose
+--   first item matches the function.
 sections :: (a -> Bool) -> [a] -> [[a]]
 sections f [] = []
 sections f (x:xs) = [x:xs | f x] ++ sections f xs
