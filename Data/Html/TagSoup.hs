@@ -88,11 +88,11 @@ isTagText  (TagText {})  = True; isTagText  _ = False
 fromTagText :: Tag -> String
 fromTagText (TagText x) = x
 
-isTagOpenName :: Tag -> Bool
+isTagOpenName :: String -> Tag -> Bool
 isTagOpenName name (TagOpen n _) = n == name
 isTagOpenName _ _ = False
 
-isTagCloseName :: Tag -> Bool
+isTagCloseName :: String -> Tag -> Bool
 isTagCloseName name (TagClose n) = n == name
 isTagCloseName _ _ = False
 
