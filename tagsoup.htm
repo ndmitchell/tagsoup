@@ -87,6 +87,20 @@ p.rule {
     Thanks to Mike Dodds for persuading me to write this up as a library.
 </p>
 
+<h2>Potential Bugs</h2>
+
+<p>
+    There are two things that may go wrong with these examples:
+</p>
+<ul>
+    <li>
+        <i>The Websites being scraped may change.</i> There is nothing I can do about this, but if you suspect this is the case let me know, and I'll update the examples and tutorials. I have already done so once or twice, its only a few minutes work.
+    </li>
+    <li>
+        <i>The <tt>openURL</tt> method may not work.</i> This happens quite regularly, and depending on your server, proxies and direction of the wind, they may not work. The solution is to use <tt>wget</tt> to download the page locally, then use <tt>readFile</tt> instead. Hopefully a decent Haskell HTTP library will emerge, and that can be used instead.
+    </li>
+</ul>
+
 
 <h2>Haskell Hit Count</h2>
 
