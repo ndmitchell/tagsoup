@@ -77,6 +77,9 @@ p.rule {
 <p>
 	The intial version of this library was written in Javascript and has been used for various commercial projects involving screen scraping. In the examples general hints on screen scraping are included, learnt from bitter experience. It should be noted that if you depend on data which someone else may change at any given time, you may be in for a shock!
 </p>
+<p>
+	This library was written without knowledge of the Java version of <a href="http://home.ccil.org/~cowan/XML/tagsoup/">TagSoup</a>. They have made a very different design decision, to ensure default attributes are present and to properly nest parsed tags. We do not do this - tags are merely a list devoid of nesting information.
+</p>
 
 <h3>Acknowledgements</h3>
 
@@ -121,7 +124,7 @@ main = do src <- openURL "http://haskell.org/haskellwiki/Haskell"
 	      writeFile "temp.htm" src
 </pre>
 <p>
-	Now open <tt>temp.htm</tt>, check this fragment of HTML is in it, and see what has been returned. Only now do we consider how to extract the information.
+	The function <tt>openURL</tt> comes from Data.Html.Download, part of the TagSoup library. Now open <tt>temp.htm</tt>, check this fragment of HTML is in it, and see what has been returned. Only now do we consider how to extract the information.
 </p>
 
 <h3>Finding the Information</h3>
