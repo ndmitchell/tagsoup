@@ -56,7 +56,7 @@ spjPapers = do
         putStr $ unlines links
     where
         f :: [Tag] -> String
-        f xs = dequote $ unwords $ words $ fromTagText $ head $ filter isTagText xs
+        f = dequote . unwords . words . fromTagText . head . filter isTagText
         
         dequote ('\"':xs) | last xs == '\"' = init xs
         dequote x = x
