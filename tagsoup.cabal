@@ -3,7 +3,7 @@ Version:        0.1
 License:        BSD3
 Author:         Neil Mitchell
 Homepage:       http://www-users.cs.york.ac.uk/~ndm/projects/libraries.php
-Build-Depends:  base
+Build-Depends:  base, network
 Synopsis:       Parsing and extracting information from (possibly malformed) HTML documents
 Exposed-modules:
         Data.Html.TagSoup
