@@ -24,13 +24,15 @@ module Data.Html.TagSoup(
     
     -- * Tag Combinators
     (~==), (~/=),
-    isTagOpen, isTagClose, isTagText, fromTagText,
+    isTagOpen, isTagClose, isTagText,
+    fromTagText, fromAttrib,
     isTagOpenName, isTagCloseName,
     sections
     ) where
 
 import Data.Char
 import Data.List
+import Data.Maybe
 import Data.Html.Download
 
 
@@ -125,6 +127,11 @@ isTagText (TagText {})  = True; isTagText  _ = False
 -- | Extract the string from within 'TagText', crashes if not a 'TagText'
 fromTagText :: Tag -> String
 fromTagText (TagText x) = x
+
+-- | Extract an attribute, crashes if not a 'TagOpen'.
+--   Returns "" if no attribute present.
+fromAttrib :: String -> Tag -> String
+fromAttrib att (TagOpen _ atts) = fromMaybe "" $ lookup att atts
 
 -- | Returns True if the 'Tag' is 'TagOpen' and matches the given name
 isTagOpenName :: String -> Tag -> Bool
