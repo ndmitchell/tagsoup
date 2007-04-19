@@ -77,3 +77,23 @@ currentTime = do
         tags <- liftM parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
         let time = fromTagText (dropWhile (~/= TagOpen "strong" [("id","ct")]) tags !! 1)
         putStrLn time
+
+
+
+type Section = String
+data Package = Package {name :: String, desc :: String, href :: String}
+               deriving Show
+
+hackage :: IO [(Section,[Package])]
+hackage = do
+    tags <- liftM parseTags $ openURL "http://hackage.haskell.org/packages/archive/pkg-list.html"
+    return $ map parseSect $ partitions (isTagOpenName "h3") tags
+    where
+        parseSect xs = (nam, packs)
+            where
+                nam = fromTagText $ xs !! 2
+                packs = map parsePackage $ partitions (isTagOpenName "li") xs
+
+        parsePackage xs = Package (fromTagText $ xs !! 2)
+                                  (drop 2 $ dropWhile (/= ':') $ fromTagText $ xs !! 4)
+                                  (fromAttrib "href" $ xs !! 1)
