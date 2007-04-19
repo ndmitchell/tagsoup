@@ -27,7 +27,7 @@ module Data.Html.TagSoup(
     isTagOpen, isTagClose, isTagText,
     fromTagText, fromAttrib,
     isTagOpenName, isTagCloseName,
-    sections
+    sections, partitions
     ) where
 
 import Data.Char
@@ -173,3 +173,12 @@ _ ~== _ = False
 sections :: (a -> Bool) -> [a] -> [[a]]
 sections f [] = []
 sections f (x:xs) = [x:xs | f x] ++ sections f xs
+
+-- | This function is similar to 'sections', but splits the list
+--   so no element appears in any two partitions
+partitions :: (a -> Bool) -> [a] -> [[a]]
+partitions f xs = g $ dropWhile (not . f) xs
+    where
+        g [] = []
+        g (x:xs) = (x:a) : g b
+            where (a,b) = break f xs
