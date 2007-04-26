@@ -97,3 +97,9 @@ hackage = do
         parsePackage xs = Package (fromTagText $ xs !! 2)
                                   (drop 2 $ dropWhile (/= ':') $ fromTagText $ xs !! 4)
                                   (fromAttrib "href" $ xs !! 1)
+
+-- getTagContent Example ( prints content of first td as text
+-- should print "header"
+getTagContentExample :: IO ()
+getTagContentExample = print . verbatim . getTagContent "tr" [] $
+  parseTags "<table><tr><td><th>header</th></td><td></tr><tr><td>2</td></tr>...</table>"

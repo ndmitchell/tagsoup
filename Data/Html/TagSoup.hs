@@ -27,7 +27,10 @@ module Data.Html.TagSoup(
     isTagOpen, isTagClose, isTagText,
     fromTagText, fromAttrib,
     isTagOpenName, isTagCloseName,
-    sections, partitions
+    sections, partitions, getTagContent,
+
+    -- * extract all text
+    Verbatim (..)
     ) where
 
 import Data.Char
@@ -111,6 +114,16 @@ parseString ('&':xs) = case parseEscape a of
 parseString (x:xs) = x : parseString xs
 parseString [] = []
 
+-- extract all content from tags (similar to Verbatim found in HaXml)
+
+class Verbatim a where
+  verbatim :: a -> String
+instance Verbatim Tag where
+  verbatim (TagOpen _ _) = ""
+  verbatim (TagText text) = text
+  verbatim (TagClose _) = ""
+instance (Verbatim a) => Verbatim [a] where
+  verbatim = concatMap verbatim
 
 -- | Test if a 'Tag' is a 'TagOpen'
 isTagOpen :: Tag -> Bool
@@ -182,3 +195,7 @@ partitions f xs = g $ dropWhile (not . f) xs
         g [] = []
         g (x:xs) = (x:a) : g b
             where (a,b) = break f xs
+
+getTagContent :: String -> [( String, String )] -> [Tag] -> [Tag]
+getTagContent name attr tagsoup = let start = sections ( ~== TagOpen name attr ) tagsoup !! 0
+				      in takeWhile (/= TagClose name) $ drop 1 start
