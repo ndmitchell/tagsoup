@@ -101,5 +101,5 @@ hackage = do
 -- getTagContent Example ( prints content of first td as text
 -- should print "header"
 getTagContentExample :: IO ()
-getTagContentExample = print . verbatim . getTagContent "tr" [] $
+getTagContentExample = print . innerText . getTagContent "tr" [] $
   parseTags "<table><tr><td><th>header</th></td><td></tr><tr><td>2</td></tr>...</table>"
