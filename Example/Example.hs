@@ -38,7 +38,7 @@ googleTechNews = do
         let links = map extract $ sections match tags
         putStr $ unlines links
     where
-        extract xs = fromTagText (xs !! 2)
+        extract xs = innerText (xs !! 2)
         
         match (TagOpen "a" y)
             = case lookup "id" y of
@@ -56,7 +56,7 @@ spjPapers = do
         putStr $ unlines links
     where
         f :: [Tag] -> String
-        f = dequote . unwords . words . fromTagText . head . filter isTagText
+        f = dequote . unwords . words . innerText . head . filter isTagText
         
         dequote ('\"':xs) | last xs == '\"' = init xs
         dequote x = x
@@ -69,13 +69,13 @@ ndmPapers = do
         putStr $ unlines papers
     where
         f :: [Tag] -> String
-        f xs = fromTagText (xs !! 2)
+        f xs = innerText (xs !! 2)
     
 
 currentTime :: IO ()
 currentTime = do
         tags <- liftM parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
-        let time = fromTagText (dropWhile (~/= TagOpen "strong" [("id","ct")]) tags !! 1)
+        let time = innerText (dropWhile (~/= TagOpen "strong" [("id","ct")]) tags !! 1)
         putStrLn time
 
 
@@ -91,11 +91,11 @@ hackage = do
     where
         parseSect xs = (nam, packs)
             where
-                nam = fromTagText $ xs !! 2
+                nam = innerText $ xs !! 2
                 packs = map parsePackage $ partitions (isTagOpenName "li") xs
 
-        parsePackage xs = Package (fromTagText $ xs !! 2)
-                                  (drop 2 $ dropWhile (/= ':') $ fromTagText $ xs !! 4)
+        parsePackage xs = Package (innerText $ xs !! 2)
+                                  (drop 2 $ dropWhile (/= ':') $ innerText $ xs !! 4)
                                   (fromAttrib "href" $ xs !! 1)
 
 -- getTagContent Example ( prints content of first td as text
