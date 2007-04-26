@@ -140,7 +140,9 @@ isTagClose (TagClose {}) = True; isTagClose _ = False
 isTagText :: Tag -> Bool
 isTagText (TagText {})  = True; isTagText  _ = False
 
+{-# DEPRECIATED fromTagText #-}
 -- | Extract the string from within 'TagText', crashes if not a 'TagText'
+--   (DEPRECIATED, use 'innerText' instead)
 fromTagText :: Tag -> String
 fromTagText (TagText x) = x
 
