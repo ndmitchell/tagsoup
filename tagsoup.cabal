@@ -8,3 +8,7 @@ Synopsis:       Parsing and extracting information from (possibly malformed) HTM
 Exposed-modules:
         Data.Html.TagSoup
         Data.Html.Download
+
+Executable: tagsouptest
+other-modules: Example.Example
+main-is:        test.hs

@@ -16,6 +16,11 @@
     operate upon it to extract the necessary information.
 -}
 
+{-# OPTIONS -fglasgow-exts #-}
+-- fglasgow-exts to make 
+--   instance TagComparison String where
+--   ...
+-- compile
 
 module Data.Html.TagSoup(
     -- * Data structures and parsing
@@ -152,6 +157,8 @@ fromAttrib :: String -> Tag -> String
 fromAttrib att (TagOpen _ atts) = fromMaybe "" $ lookup att atts
 
 -- | Returns True if the 'Tag' is 'TagOpen' and matches the given name
+{-# DEPRECATED isTagOpenName "use ~== \'tagname\" instead" #-}
+-- useg (~== "tagname") instead
 isTagOpenName :: String -> Tag -> Bool
 isTagOpenName name (TagOpen n _) = n == name
 isTagOpenName _ _ = False
@@ -164,26 +171,32 @@ isTagCloseName _ _ = False
 
 -- | Performs an inexact match, the first item should be the thing to match.
 -- If the second item is a blank string, that is considered to match anything.
--- For example:
---
--- > (TagText "test" ~== TagText ""    ) == True
--- > (TagText "test" ~== TagText "test") == True
--- > (TagText "test" ~== TagText "soup") == False
---
--- For 'TagOpen' missing attributes on the right are allowed.
-(~==) :: Tag -> Tag -> Bool
-(TagText y) ~== (TagText x) = null x || x == y
-(TagClose y) ~== (TagClose x) = null x || x == y
-(TagOpen y ys) ~== (TagOpen x xs) = (null x || x == y) && all f xs
-    where
-        f ("",val) = val `elem` map snd ys
-        f (name,"") = name `elem` map fst ys
-        f nameval = nameval `elem` ys
-_ ~== _ = False
+-- ( See Example/Example.hs function tests for some examples
 
--- | Negation of '~=='
-(~/=) :: Tag -> Tag -> Bool
-(~/=) a b = not (a ~== b)
+class TagComparison a where
+  (~==), (~/=) :: Tag -> a -> Bool
+  a ~== b = not (a ~/= b)
+  -- | Negation of '~=='
+  a ~/= b = not (a ~== b)
+
+instance TagComparison Tag where
+  -- For 'TagOpen' missing attributes on the right are allowed.
+  (TagText y)    ~== (TagText x)    = null x || x == y
+  (TagClose y)   ~== (TagClose x)   = null x || x == y
+  (TagOpen y ys) ~== (TagOpen x xs) = (null x || x == y) && all f xs
+      where
+         f ("",val) = val `elem` map snd ys
+         f (name,"") = name `elem` map fst ys
+         f nameval = nameval `elem` ys
+  _ ~== _ = False
+
+instance TagComparison String where
+  a ~== ('/':tagname) = a ~== TagClose tagname
+  a ~== tagname = let (name, attrs) = span (/= ' ') tagname
+		      parsed_attrs = case parseAttributes (attrs ++ ">") of
+                            (parsed_attrs, ">") -> parsed_attrs
+                            (_, trailing) -> error $ "trailing characters " ++ trailing
+                in a ~== TagOpen name parsed_attrs
 
 
 -- | This function takes a list, and returns all initial lists whose
@@ -203,4 +216,4 @@ partitions f xs = g $ dropWhile (not . f) xs
 
 getTagContent :: String -> [( String, String )] -> [Tag] -> [Tag]
 getTagContent name attr tagsoup = let start = sections ( ~== TagOpen name attr ) tagsoup !! 0
-				      in takeWhile (/= TagClose name) $ drop 1 start
+                                  in takeWhile (/= TagClose name) $ drop 1 start

@@ -103,3 +103,21 @@ hackage = do
 getTagContentExample :: IO ()
 getTagContentExample = print . innerText . getTagContent "tr" [] $
   parseTags "<table><tr><td><th>header</th></td><td></tr><tr><td>2</td></tr>...</table>"
+
+tests :: IO ()
+tests = 
+  case all id [ 
+        TagText "test" ~== TagText ""
+      , TagText "test" ~== TagText "test"
+      , TagText "test" ~== TagText "soup" == False
+      , TagOpen "table" [ ("id", "name")] ~== TagOpen "table" []
+      , TagOpen "table" [ ("id", "name")] ~== TagOpen "table"[ ("id", "name")]
+      , TagOpen "table" [ ("id", "name")] ~== TagOpen "table"[ ("id", "")]
+      , TagOpen "table" [ ("id", "other name")] ~== TagOpen "table"[ ("id", "name")] == False
+      , TagOpen "table" [] ~== "table"
+      , TagClose "table"   ~== "/table"
+      , TagOpen "table" [( "id", "frog")] ~== "table id=frog"
+      ] of
+    True -> print "test succesful"
+    False -> print "test failed !!"
+
