@@ -16,12 +16,6 @@
     operate upon it to extract the necessary information.
 -}
 
-{-# OPTIONS -fglasgow-exts #-}
--- fglasgow-exts to make 
---   instance TagComparison String where
---   ...
--- compile
-
 module Data.Html.TagSoup(
     -- * Data structures and parsing
     Tag(..), Attribute, parseTags,
@@ -190,13 +184,23 @@ instance TagComparison Tag where
          f nameval = nameval `elem` ys
   _ ~== _ = False
 
-instance TagComparison String where
-  a ~== ('/':tagname) = a ~== TagClose tagname
-  a ~== tagname = let (name, attrs) = span (/= ' ') tagname
-		      parsed_attrs = case parseAttributes (attrs ++ ">") of
-                            (parsed_attrs, ">") -> parsed_attrs
-                            (_, trailing) -> error $ "trailing characters " ++ trailing
-                in a ~== TagOpen name parsed_attrs
+-- | This is a helper class for instantiating TagComparison for Strings
+
+class TagComparisonElement a where
+  tagEqualElement :: Tag -> [a] -> Bool
+
+instance TagComparisonElement Char where
+  tagEqualElement a ('/':tagname) = a ~== TagClose tagname
+  tagEqualElement a tagname =
+       let (name, attrs) = span (/= ' ') tagname
+           parsed_attrs = case parseAttributes (attrs ++ ">") of
+                 (parsed_attrs, ">") -> parsed_attrs
+                 (_, trailing) -> error $ "trailing characters " ++ trailing
+       in  a ~== TagOpen name parsed_attrs
+
+
+instance TagComparisonElement a => TagComparison [a] where
+  (~==) = tagEqualElement
 
 
 -- | This function takes a list, and returns all initial lists whose
