@@ -78,16 +78,21 @@ parseTags (x:xs) = [TagText $ parseString pre | not $ null pre] ++ parseTags pos
 
 
 parseAttributes :: String -> ([Attribute], String)
-parseAttributes (x:xs) | isSpace x = parseAttributes xs
-                       | not $ isAlpha x = ([], x:xs)
-                       | otherwise = ((parseString lhs, parseString rhs):attrs, over)
+parseAttributes (x:xs)
+  | isSpace x = parseAttributes xs
+  | not $ isAlpha x = ([], x:xs)
+  | otherwise = ((parseString lhs, parseString rhs):attrs, over)
     where
         (attrs,over) = parseAttributes (dropWhile isSpace other)
-    
         (lhs,rest) = span isAlphaNum (x:xs)
         rest2 = dropWhile isSpace rest
-        (rhs,other) = if "=" `isPrefixOf` rest2 then parseValue (dropWhile isSpace $ tail rest2) else ("", rest2)
-        
+        (rhs,other) =
+            if "=" `isPrefixOf` rest2
+              then parseValue (dropWhile isSpace $ tail rest2)
+              else ("", rest2)
+parseAttributes [] = ([],"")
+   -- error "tag must be closed somehow"
+
 
 parseValue :: String -> (String, String)
 parseValue ('\"':xs) = (a, drop 1 b)
