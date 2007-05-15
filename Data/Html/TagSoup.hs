@@ -23,6 +23,7 @@ module Data.Html.TagSoup(
     
     -- * Tag Combinators
     (~==), (~/=),
+    TagComparison, TagComparisonElement, {- Haddock want to refer to then -}
     isTagOpen, isTagClose, isTagText,
     fromTagText, fromAttrib,
     isTagOpenName, isTagCloseName,
@@ -146,7 +147,7 @@ fromTagText :: Tag -> String
 fromTagText (TagText x) = x
 
 -- | Extract an attribute, crashes if not a 'TagOpen'.
---   Returns "" if no attribute present.
+--   Returns @\"\"@ if no attribute present.
 fromAttrib :: String -> Tag -> String
 fromAttrib att (TagOpen _ atts) = fromMaybe "" $ lookup att atts
 
@@ -165,7 +166,7 @@ isTagCloseName _ _ = False
 
 -- | Performs an inexact match, the first item should be the thing to match.
 -- If the second item is a blank string, that is considered to match anything.
--- ( See Example/Example.hs function tests for some examples
+-- ( See "Example\/Example.hs" function tests for some examples
 
 class TagComparison a where
   (~==), (~/=) :: Tag -> a -> Bool
