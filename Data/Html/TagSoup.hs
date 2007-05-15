@@ -11,7 +11,7 @@
     sometimes known as tag-soup. This is for situations where the author of
     the HTML is not cooperating with the person trying to extract the information,
     but is also not trying to hide the information.
-    
+
     The standard practice is to parse a String to 'Tag's using 'parseTags', then
     operate upon it to extract the necessary information.
 -}
@@ -20,7 +20,7 @@ module Data.Html.TagSoup(
     -- * Data structures and parsing
     Tag(..), Attribute, parseTags,
     module Data.Html.Download,
-    
+
     -- * Tag Combinators
     (~==), (~/=),
     TagComparison, TagComparisonElement, {- Haddock want to refer to then -}
@@ -33,7 +33,7 @@ module Data.Html.TagSoup(
     InnerText(..),
 
     -- * QuickCheck properties
-    propSections, propPartitions, 
+    propSections, propPartitions,
     ) where
 
 import Data.Char
@@ -98,10 +98,11 @@ parseValue :: String -> (String, String)
 parseValue ('\"':xs) = (a, drop 1 b)
     where (a,b) = break (== '\"') xs
 parseValue x = span isValid x
-    where isValid x = isAlphaNum x || x `elem` "_-"
+    where isValid c = isAlphaNum c || c `elem` "_-"
 
 
 
+escapes :: [(String,String)]
 escapes = [("gt",">")
           ,("lt","<")
           ,("amp","&")
@@ -154,11 +155,13 @@ isTagText (TagText {})  = True; isTagText  _ = False
 --   (DEPRECIATED, use 'innerText' instead)
 fromTagText :: Tag -> String
 fromTagText (TagText x) = x
+fromTagText x = error ("(" ++ show x ++ ") is not a TagText")
 
 -- | Extract an attribute, crashes if not a 'TagOpen'.
 --   Returns @\"\"@ if no attribute present.
 fromAttrib :: String -> Tag -> String
 fromAttrib att (TagOpen _ atts) = fromMaybe "" $ lookup att atts
+fromAttrib _ x = error ("(" ++ show x ++ ") is not a TagOpen")
 
 -- | Returns True if the 'Tag' is 'TagOpen' and matches the given name
 {-# DEPRECATED isTagOpenName "use ~== \'tagname\" instead" #-}
@@ -204,7 +207,7 @@ instance TagComparisonElement Char where
   tagEqualElement a tagname =
        let (name, attrs) = span (/= ' ') tagname
            parsed_attrs = case parseAttributes (attrs ++ ">") of
-                 (parsed_attrs, ">") -> parsed_attrs
+                 (found_attrs, ">") -> found_attrs
                  (_, trailing) -> error $ "trailing characters " ++ trailing
        in  a ~== TagOpen name parsed_attrs
 
@@ -233,7 +236,7 @@ partitions p =
    in  groupBy (const notp) . dropWhile notp
 
 partitions_rec :: (a -> Bool) -> [a] -> [[a]]
-partitions_rec f xs = g $ dropWhile (not . f) xs
+partitions_rec f = g . dropWhile (not . f)
     where
         g [] = []
         g (x:xs) = (x:a) : g b
@@ -243,5 +246,6 @@ propPartitions :: [Int] -> Bool
 propPartitions xs  =  partitions (<=0) xs == partitions_rec (<=0) xs
 
 getTagContent :: String -> [( String, String )] -> [Tag] -> [Tag]
-getTagContent name attr tagsoup = let start = sections ( ~== TagOpen name attr ) tagsoup !! 0
-                                  in takeWhile (/= TagClose name) $ drop 1 start
+getTagContent name attr tagsoup =
+   let start = sections ( ~== TagOpen name attr ) tagsoup !! 0
+   in takeWhile (/= TagClose name) $ drop 1 start
