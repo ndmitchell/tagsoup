@@ -63,12 +63,13 @@ parseTags ('<':'/':xs) = TagClose tag : parseTags trail
         (tag,rest) = span isAlphaNum xs
         trail = drop 1 $ dropWhile (/= '>') rest
 
-parseTags ('<':xs)
-        | "/>" `isPrefixOf` rest2 = res : TagClose tag : parseTags (drop 2 rest2)
-        | ">" `isPrefixOf` rest2 = res : parseTags (drop 1 rest2)
-        | otherwise = res : parseTags (drop 1 $ dropWhile (/= '>') rest2)
+parseTags ('<':xs) =
+   TagOpen tag attrs :
+   case () of
+      () | "/>" `isPrefixOf` rest2 -> TagClose tag : parseTags (drop 2 rest2)
+         | ">"  `isPrefixOf` rest2 -> parseTags (drop 1 rest2)
+         | otherwise -> parseTags (drop 1 $ dropWhile (/= '>') rest2)
     where
-        res = TagOpen tag attrs
         (tag,rest) = span isAlphaNum xs
         (attrs,rest2) = parseAttributes rest
 
