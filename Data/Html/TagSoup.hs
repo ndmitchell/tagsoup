@@ -30,7 +30,10 @@ module Data.Html.TagSoup(
     sections, partitions, getTagContent,
 
     -- * extract all text
-    InnerText(..)
+    InnerText(..),
+
+    -- * QuickCheck properties
+    propSections, propPartitions, 
     ) where
 
 import Data.Char
@@ -204,20 +207,34 @@ instance TagComparisonElement a => TagComparison [a] where
   (~==) = tagEqualElement
 
 
--- | This function takes a list, and returns all initial lists whose
---   first item matches the function.
+-- | This function takes a list, and returns all suffixes whose
+--   first item matches the predicate.
 sections :: (a -> Bool) -> [a] -> [[a]]
-sections f [] = []
-sections f (x:xs) = [x:xs | f x] ++ sections f xs
+sections p = filter (p . head) . init . tails
+
+sections_rec :: (a -> Bool) -> [a] -> [[a]]
+sections_rec _ [] = []
+sections_rec f (x:xs) = [x:xs | f x] ++ sections f xs
+
+propSections :: [Int] -> Bool
+propSections xs  =  sections (<=0) xs == sections_rec (<=0) xs
 
 -- | This function is similar to 'sections', but splits the list
---   so no element appears in any two partitions
+--   so no element appears in any two partitions.
 partitions :: (a -> Bool) -> [a] -> [[a]]
-partitions f xs = g $ dropWhile (not . f) xs
+partitions p =
+   let notp = not . p
+   in  groupBy (const notp) . dropWhile notp
+
+partitions_rec :: (a -> Bool) -> [a] -> [[a]]
+partitions_rec f xs = g $ dropWhile (not . f) xs
     where
         g [] = []
         g (x:xs) = (x:a) : g b
             where (a,b) = break f xs
+
+propPartitions :: [Int] -> Bool
+propPartitions xs  =  partitions (<=0) xs == partitions_rec (<=0) xs
 
 getTagContent :: String -> [( String, String )] -> [Tag] -> [Tag]
 getTagContent name attr tagsoup = let start = sections ( ~== TagOpen name attr ) tagsoup !! 0
