@@ -50,6 +50,7 @@ type Attribute = (String,String)
 data Tag = TagOpen String [Attribute]  -- ^ An open tag with 'Attribute's in their original order.
          | TagClose String             -- ^ A closing tag
          | TagText String              -- ^ A text node, guranteed not to be the empty string
+         | TagComment String           -- ^ A comment
            deriving (Show, Eq, Ord)
 
 
@@ -63,6 +64,10 @@ parseTags ('<':'/':xs) = TagClose tag : parseTags trail
         (tag,rest) = span isAlphaNum xs
         trail = drop 1 $ dropWhile (/= '>') rest
 
+parseTags ('<':'!':'-':'-':xs) =
+   let (cmt,trail) = searchSplit "-->" xs
+   in  TagComment cmt : parseTags trail
+
 parseTags ('<':xs) =
    TagOpen tag attrs :
    case () of
@@ -75,6 +80,17 @@ parseTags ('<':xs) =
 
 parseTags (x:xs) = [TagText $ parseString pre | not $ null pre] ++ parseTags post
     where (pre,post) = break (== '<') (x:xs)
+
+searchSplit :: (Eq a) => [a] -> [a] -> ([a],[a])
+searchSplit pattern xs =
+   let (suffixes,rest) =
+            break (isPrefixOf pattern) (init $ tails xs)
+       prefix = map head suffixes
+       trail =
+          case rest of
+             [] -> []
+             (rest2:_) -> drop (length pattern) rest2
+   in  (prefix, trail)
 
 
 parseAttributes :: String -> ([Attribute], String)
@@ -133,6 +149,7 @@ instance InnerText Tag where
     innerText (TagOpen _ _) = ""
     innerText (TagText text) = text
     innerText (TagClose _) = ""
+    innerText (TagComment _) = ""
 
 instance (InnerText a) => InnerText [a] where
     innerText = concatMap innerText
