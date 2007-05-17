@@ -58,6 +58,7 @@ data Tag =
    | TagClose String             -- ^ A closing tag
    | TagText String              -- ^ A text node, guranteed not to be the empty string
    | TagComment String           -- ^ A comment
+   | TagSpecial String String    -- ^ A tag like <!DOCTYPE ...>
      deriving (Show, Eq, Ord)
 
 
@@ -79,18 +80,24 @@ parseTagPos :: PosString p -> [PosTag p]
 parseTagPos ((pos,'<'):inner) =
    case inner of
       (_,'/'):xs ->
-         let (tag,rest) = spanStripPos isAlphaNum xs
+         let (name,rest) = spanStripPos isAlphaNum xs
              trail = flushUntilTerm '>' rest
-         in  (pos, TagClose tag) : parseTagPos trail
-      (_,'!'):(_,'-'):(_,'-'):xs ->
-         let (cmt,trail) = searchSplit "-->" xs
-         in  (pos, TagComment cmt) : parseTagPos trail
+         in  (pos, TagClose name) : parseTagPos trail
+      (_,'!'):xs ->
+         case xs of
+            (_,'-'):(_,'-'):xs' ->
+               let (cmt,trail) = searchSplit "-->" xs'
+               in  (pos, TagComment cmt) : parseTagPos trail
+            _ ->
+               let (name,rest) = spanStripPos isAlphaNum xs
+                   (info,trail) = searchSplit ">" $ dropSpaces rest
+               in  (pos, TagSpecial name info) : parseTagPos trail
       xs ->
-         let (tag,rest) = spanStripPos isAlphaNum xs
+         let (name,rest) = spanStripPos isAlphaNum xs
              (attrs,rest2) = parseAttributes (dropSpaces rest)
              maybeProperTrail =
                 mplus
-                   (fmap (((fst (head rest2), TagClose tag) :) . parseTagPos)
+                   (fmap (((fst (head rest2), TagClose name) :) . parseTagPos)
                          (splitPrefix "/>" rest2))
                    (fmap parseTagPos (splitPrefix ">" rest2))
              trail =
@@ -98,7 +105,7 @@ parseTagPos ((pos,'<'):inner) =
                    ({- junk at the end of a tag -}
                     parseTagPos $ flushUntilTerm '>' rest2)
                    maybeProperTrail
-         in  (pos, TagOpen tag attrs) : trail
+         in  (pos, TagOpen name attrs) : trail
 
 parseTagPos [] = []
 parseTagPos xs =
