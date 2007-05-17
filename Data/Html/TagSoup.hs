@@ -12,13 +12,13 @@
     the HTML is not cooperating with the person trying to extract the information,
     but is also not trying to hide the information.
 
-    The standard practice is to parse a String to 'Tag's using 'parseTags', then
-    operate upon it to extract the necessary information.
+    The standard practice is to parse a String to 'Tag's using 'parseTags',
+    then operate upon it to extract the necessary information.
 -}
 
 module Data.Html.TagSoup(
     -- * Data structures and parsing
-    Tag(..), Attribute, parseTags,
+    Tag(..), PosTag, Attribute, parseTags, parseTagsNoPos,
     addSourcePositions,
     module Data.Html.Download,
 
@@ -42,114 +42,167 @@ import Data.List
 import Data.Maybe
 import Data.Html.Download
 
+import Control.Monad (mplus)
+
+import Text.ParserCombinators.Parsec.Pos
+          (SourcePos, initialPos, updatePosChar)
+
 
 -- | An HTML attribute @id=\"name\"@ generates @(\"id\",\"name\")@
 type Attribute = (String,String)
 
 -- | An HTML element, a document is @[Tag]@.
 --   There is no requirement for 'TagOpen' and 'TagClose' to match
-data Tag = TagOpen String [Attribute]  -- ^ An open tag with 'Attribute's in their original order.
-         | TagClose String             -- ^ A closing tag
-         | TagText String              -- ^ A text node, guranteed not to be the empty string
-         | TagComment String           -- ^ A comment
-           deriving (Show, Eq, Ord)
+data Tag =
+     TagOpen String [Attribute]  -- ^ An open tag with 'Attribute's in their original order.
+   | TagClose String             -- ^ A closing tag
+   | TagText String              -- ^ A text node, guranteed not to be the empty string
+   | TagComment String           -- ^ A comment
+     deriving (Show, Eq, Ord)
+
+
+type PosString p = [(p, Char)]
+type PosTag    p = (p,Tag)
 
 
 -- | Parse an HTML document to a list of 'Tag'.
 -- Automatically expands out escape characters.
-parseTags :: String -> [Tag]
-parseTags [] = []
+parseTags :: String -> [PosTag SourcePos]
+parseTags = parseTagPos . addSourcePositions
 
-parseTags ('<':'/':xs) = TagClose tag : parseTags trail
-    where
-        (tag,rest) = span isAlphaNum xs
-        trail = drop 1 $ dropWhile (/= '>') rest
+-- | Like 'parseTags' but hides source file positions.
+parseTagsNoPos :: String -> [Tag]
+parseTagsNoPos = map snd . parseTags
 
-parseTags ('<':'!':'-':'-':xs) =
-   let (cmt,trail) = searchSplit "-->" xs
-   in  TagComment cmt : parseTags trail
+parseTagPos :: PosString p -> [PosTag p]
 
-parseTags ('<':xs) =
-   TagOpen tag attrs :
-   case () of
-      () | "/>" `isPrefixOf` rest2 -> TagClose tag : parseTags (drop 2 rest2)
-         | ">"  `isPrefixOf` rest2 -> parseTags (drop 1 rest2)
-         | otherwise -> parseTags (drop 1 $ dropWhile (/= '>') rest2)
-    where
-        (tag,rest) = span isAlphaNum xs
-        (attrs,rest2) = parseAttributes rest
+parseTagPos ((pos,'<'):inner) =
+   case inner of
+      (_,'/'):xs ->
+         let (tag,rest) = spanStripPos isAlphaNum xs
+             trail = flushUntilTerm '>' rest
+         in  (pos, TagClose tag) : parseTagPos trail
+      (_,'!'):(_,'-'):(_,'-'):xs ->
+         let (cmt,trail) = searchSplit "-->" xs
+         in  (pos, TagComment cmt) : parseTagPos trail
+      xs ->
+         let (tag,rest) = spanStripPos isAlphaNum xs
+             (attrs,rest2) = parseAttributes (dropSpaces rest)
+             maybeProperTrail =
+                mplus
+                   (fmap (((fst (head rest2), TagClose tag) :) . parseTagPos)
+                         (splitPrefix "/>" rest2))
+                   (fmap parseTagPos (splitPrefix ">" rest2))
+             trail =
+                fromMaybe
+                   ({- junk at the end of a tag -}
+                    parseTagPos $ flushUntilTerm '>' rest2)
+                   maybeProperTrail
+         in  (pos, TagOpen tag attrs) : trail
 
-parseTags (x:xs) = [TagText $ parseString pre | not $ null pre] ++ parseTags post
-    where (pre,post) = break (== '<') (x:xs)
-
-searchSplit :: (Eq a) => [a] -> [a] -> ([a],[a])
-searchSplit pattern xs =
-   let (suffixes,rest) =
-            break (isPrefixOf pattern) (init $ tails xs)
-       prefix = map head suffixes
-       trail =
-          case rest of
-             [] -> []
-             (rest2:_) -> drop (length pattern) rest2
-   in  (prefix, trail)
+parseTagPos [] = []
+parseTagPos xs =
+   [(fst (head xs), TagText $ parseString pre) | not $ null pre] ++
+       parseTagPos post
+    where (pre,post) = spanStripPos ('<'/=) xs
 
 
-parseAttributes :: String -> ([Attribute], String)
-parseAttributes (x:xs)
-  | isSpace x = parseAttributes xs
-  | not $ isAlpha x = ([], x:xs)
+parseAttributes :: PosString p -> ([Attribute], PosString p)
+parseAttributes xt@((_,x):_)
+  | not $ isAlpha x = ([], xt)
   | otherwise = ((parseString lhs, parseString rhs):attrs, over)
     where
-        (attrs,over) = parseAttributes (dropWhile isSpace other)
-        (lhs,rest) = span isAlphaNum (x:xs)
-        rest2 = dropWhile isSpace rest
+        (lhs,rest) = spanStripPos isAlphaNum xt
+        rest2 = dropSpaces rest
         (rhs,other) =
-            if "=" `isPrefixOf` rest2
-              then parseValue (dropWhile isSpace $ tail rest2)
-              else ("", rest2)
-parseAttributes [] = ([],"")
+            maybe
+              ("", rest2)
+              (parseValue . dropSpaces)
+              (splitPrefix "=" rest2)
+        (attrs,over) = parseAttributes (dropSpaces other)
+parseAttributes [] = ([],[])
    -- error "tag must be closed somehow"
 
 
-parseValue :: String -> (String, String)
-parseValue ('\"':xs) = (a, drop 1 b)
-    where (a,b) = break (== '\"') xs
-parseValue x = span isValid x
+parseValue :: PosString p -> (String, PosString p)
+parseValue ((_,'\"'):xs) = searchSplit "\"" xs
+parseValue x = spanStripPos isValid x
     where isValid c = isAlphaNum c || c `elem` "_-"
 
 
 
-escapes :: [(String,String)]
-escapes = [("gt",">")
-          ,("lt","<")
-          ,("amp","&")
-          ,("quot","\"")
+escapes :: [(String,Char)]
+escapes = [("gt",'>')
+          ,("lt",'<')
+          ,("amp",'&')
+          ,("quot",'\"')
           ]
 
 
-parseEscape :: String -> Maybe String
-parseEscape ('#':xs) | all isDigit xs = Just [chr $ read xs]
+parseEscape :: String -> Maybe Char
+parseEscape ('#':xs) = toMaybe (all isDigit xs) (chr $ read xs)
 parseEscape xs = lookup xs escapes
 
 
 
 parseString :: String -> String
-parseString ('&':xs) = case parseEscape a of
-                            Nothing -> '&' : parseString xs
-                            Just x -> x ++ parseString (drop 1 b)
+parseString ('&':xs) =
+     case parseEscape a of
+        Nothing -> '&' : parseString xs
+        Just x -> x : parseString (drop 1 b)
     where (a,b) = break (== ';') xs
 parseString (x:xs) = x : parseString xs
 parseString [] = []
 
 
 -- cf. Text.ParserCombinators.Parsec.Pos.SourcePos
-addSourcePositions :: String -> [((Int,Int),Char)]
+addSourcePositions :: String -> [(SourcePos,Char)]
 addSourcePositions str =
-   let poss =
-          scanl
-             (\(r,c) ch ->
-                 if ch=='\n' then (succ r, 0) else (r, succ c)) (0,0) str
-   in  zip poss str
+   zip (scanl updatePosChar (initialPos "anonymous input") str) str
+
+dropSpaces :: PosString p -> PosString p
+dropSpaces = dropWhile (isSpace . snd)
+
+-- | like 'Data.List.span' but it ignores source positions
+spanPos :: (a -> Bool) -> [(i,a)] -> ([(i,a)],[(i,a)])
+spanPos p = span (p . snd)
+
+spanStripPos :: (a -> Bool) -> [(i,a)] -> ([a],[(i,a)])
+spanStripPos p xs =
+   let (ys,zs) = spanPos p xs
+   in  (map snd ys, zs)
+
+flushUntilTerm :: (Eq a) => a -> [(i,a)] -> [(i,a)]
+flushUntilTerm c = drop 1 . dropWhile ((c/=) . snd)
+
+splitPrefix :: (Eq a) => [a] -> [(i,a)] -> Maybe [(i,a)]
+splitPrefix pattern str =
+   toMaybe
+      (isPrefixOf pattern (map snd str))
+      (dropMatch pattern str)
+
+
+toMaybe :: Bool -> a -> Maybe a
+toMaybe False _ = Nothing
+toMaybe True  x = Just x
+
+dropMatch :: [b] -> [a] -> [a]
+dropMatch (_:_) [] = []
+dropMatch (_:xs) (_:ys) = dropMatch xs ys
+dropMatch [] ys = ys
+
+searchSplit :: (Eq a) => [a] -> [(i,a)] -> ([a],[(i,a)])
+searchSplit pattern xs =
+   {- We take care that the input characters can be garbaged collected
+      immediately after they are read. -}
+   let (suffixes,rest) =
+            break (isPrefixOf pattern . map snd) (init $ tails $ xs)
+       prefix = map (snd . head) suffixes
+       trail =
+          case rest of
+             (rest2:_) -> dropMatch pattern $ rest2
+             _ -> []
+   in  (prefix, trail)
 
 
 
@@ -235,9 +288,10 @@ instance TagComparisonElement Char where
   tagEqualElement a ('/':tagname) = a ~== TagClose tagname
   tagEqualElement a tagname =
        let (name, attrs) = span (/= ' ') tagname
-           parsed_attrs = case parseAttributes (attrs ++ ">") of
-                 (found_attrs, ">") -> found_attrs
-                 (_, trailing) -> error $ "trailing characters " ++ trailing
+           parsed_attrs =
+              case parseAttributes (map ((,) ()) (attrs ++ ">")) of
+                 (found_attrs, [(_,'>')]) -> found_attrs
+                 (_, trailing) -> error $ "trailing characters " ++ map snd trailing
        in  a ~== TagOpen name parsed_attrs
 
 

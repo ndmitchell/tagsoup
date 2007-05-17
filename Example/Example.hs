@@ -16,7 +16,7 @@ import Data.Char
 -}
 haskellHitCount :: IO ()
 haskellHitCount = do
-        tags <- liftM parseTags $ openURL "http://haskell.org/haskellwiki/Haskell"
+        tags <- liftM parseTagsNoPos $ openURL "http://haskell.org/haskellwiki/Haskell"
         let count = fromFooter $ head $ sections (~== TagOpen "div" [("class","printfooter")]) tags
         putStrLn $ "haskell.org has been hit " ++ show count ++ " times"
     where
@@ -34,12 +34,12 @@ haskellHitCount = do
 -}
 googleTechNews :: IO ()
 googleTechNews = do
-        tags <- liftM parseTags $ openURL "http://news.google.com/?ned=us&topic=t"
+        tags <- liftM parseTagsNoPos $ openURL "http://news.google.com/?ned=us&topic=t"
         let links = map extract $ sections match tags
         putStr $ unlines links
     where
         extract xs = innerText (xs !! 2)
-        
+
         match (TagOpen "a" y)
             = case lookup "id" y of
                    Just z -> "r" `isPrefixOf` z && 'i' `notElem` z
@@ -49,7 +49,7 @@ googleTechNews = do
 
 spjPapers :: IO ()
 spjPapers = do
-        tags <- liftM parseTags $ openURL "http://research.microsoft.com/~simonpj/"
+        tags <- liftM parseTagsNoPos $ openURL "http://research.microsoft.com/~simonpj/"
         let links = map f $ sections (isTagOpenName "a") $
                     takeWhile (~/= TagOpen "a" [("name","haskell")]) $
                     drop 5 $ dropWhile (~/= TagOpen "a" [("name","current")]) tags
@@ -57,24 +57,24 @@ spjPapers = do
     where
         f :: [Tag] -> String
         f = dequote . unwords . words . innerText . head . filter isTagText
-        
+
         dequote ('\"':xs) | last xs == '\"' = init xs
         dequote x = x
 
 
 ndmPapers :: IO ()
 ndmPapers = do
-        tags <- liftM parseTags $ openURL "http://www-users.cs.york.ac.uk/~ndm/downloads/"
+        tags <- liftM parseTagsNoPos $ openURL "http://www-users.cs.york.ac.uk/~ndm/downloads/"
         let papers = map f $ sections (~== TagOpen "li" [("class","paper")]) tags
         putStr $ unlines papers
     where
         f :: [Tag] -> String
         f xs = innerText (xs !! 2)
-    
+
 
 currentTime :: IO ()
 currentTime = do
-        tags <- liftM parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
+        tags <- liftM parseTagsNoPos $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
         let time = innerText (dropWhile (~/= TagOpen "strong" [("id","ct")]) tags !! 1)
         putStrLn time
 
@@ -86,7 +86,7 @@ data Package = Package {name :: String, desc :: String, href :: String}
 
 hackage :: IO [(Section,[Package])]
 hackage = do
-    tags <- liftM parseTags $ openURL "http://hackage.haskell.org/packages/archive/pkg-list.html"
+    tags <- liftM parseTagsNoPos $ openURL "http://hackage.haskell.org/packages/archive/pkg-list.html"
     return $ map parseSect $ partitions (isTagOpenName "h3") tags
     where
         parseSect xs = (nam, packs)
@@ -102,11 +102,11 @@ hackage = do
 -- should print "header"
 getTagContentExample :: IO ()
 getTagContentExample = print . innerText . getTagContent "tr" [] $
-  parseTags "<table><tr><td><th>header</th></td><td></tr><tr><td>2</td></tr>...</table>"
+  parseTagsNoPos "<table><tr><td><th>header</th></td><td></tr><tr><td>2</td></tr>...</table>"
 
 tests :: IO ()
-tests = 
-  case all id [ 
+tests =
+  if and [
         TagText "test" ~== TagText ""
       , TagText "test" ~== TagText "test"
       , TagText "test" ~== TagText "soup" == False
@@ -117,7 +117,7 @@ tests =
       , TagOpen "table" [] ~== "table"
       , TagClose "table"   ~== "/table"
       , TagOpen "table" [( "id", "frog")] ~== "table id=frog"
-      ] of
-    True -> print "test succesful"
-    False -> print "test failed !!"
+      ]
+    then print "test successful"
+    else print "test failed !!"
 

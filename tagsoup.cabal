@@ -3,12 +3,16 @@ Version:        0.1
 License:        BSD3
 Author:         Neil Mitchell
 Homepage:       http://www-users.cs.york.ac.uk/~ndm/projects/libraries.php
-Build-Depends:  base, network
+Build-Depends:  base, network, parsec
+-- network needed for Download
+-- parsec needed for SourcePos
 Synopsis:       Parsing and extracting information from (possibly malformed) HTML documents
+GHC-Options: -Wall -O
 Exposed-modules:
         Data.Html.TagSoup
         Data.Html.Download
 
 Executable: tagsouptest
+GHC-Options: -Wall -O
 other-modules: Example.Example
 main-is:        test.hs
