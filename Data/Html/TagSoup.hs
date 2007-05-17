@@ -211,10 +211,7 @@ class InnerText a where
     innerText :: a -> String
 
 instance InnerText Tag where
-    innerText (TagOpen _ _) = ""
-    innerText (TagText text) = text
-    innerText (TagClose _) = ""
-    innerText (TagComment _) = ""
+    innerText = fromMaybe "" . maybeTagText
 
 instance (InnerText a) => InnerText [a] where
     innerText = concatMap innerText
@@ -231,6 +228,11 @@ isTagClose (TagClose {}) = True; isTagClose _ = False
 -- | Test if a 'Tag' is a 'TagText'
 isTagText :: Tag -> Bool
 isTagText (TagText {})  = True; isTagText  _ = False
+
+-- | Extract the string from within 'TagText', otherwise 'Nothing'
+maybeTagText :: Tag -> Maybe String
+maybeTagText (TagText x) = Just x
+maybeTagText _ = Nothing
 
 {-# DEPRECIATED fromTagText #-}
 -- | Extract the string from within 'TagText', crashes if not a 'TagText'
