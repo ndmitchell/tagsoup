@@ -19,6 +19,7 @@
 module Data.Html.TagSoup(
     -- * Data structures and parsing
     Tag(..), Attribute, parseTags,
+    addSourcePositions,
     module Data.Html.Download,
 
     -- * Tag Combinators
@@ -139,6 +140,17 @@ parseString ('&':xs) = case parseEscape a of
     where (a,b) = break (== ';') xs
 parseString (x:xs) = x : parseString xs
 parseString [] = []
+
+
+-- cf. Text.ParserCombinators.Parsec.Pos.SourcePos
+addSourcePositions :: String -> [((Int,Int),Char)]
+addSourcePositions str =
+   let poss =
+          scanl
+             (\(r,c) ch ->
+                 if ch=='\n' then (succ r, 0) else (r, succ c)) (0,0) str
+   in  zip poss str
+
 
 
 -- | Extract all text content from tags (similar to Verbatim found in HaXml)
