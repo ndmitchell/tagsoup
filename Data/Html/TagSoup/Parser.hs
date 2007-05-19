@@ -2,19 +2,15 @@ module Data.Html.TagSoup.Parser where
 
 
 import Text.ParserCombinators.Parsec.Pos
-          (SourcePos, initialPos, updatePosChar)
+          (SourcePos, updatePosChar)
 
 import Control.Monad.State (StateT(..), gets, mplus, liftM2)
+
+import Data.Char (isSpace)
 
 
 -- cf. Haskore.General.Parser
 type Parser a = StateT (SourcePos,String) Maybe a
-
-zeroOrMore   :: Parser a -> Parser [a]
-zeroOrMore p = oneOrMore p `mplus` return []
-
-oneOrMore    :: Parser a -> Parser [a]
-oneOrMore p = liftM2 (:) p (zeroOrMore p)
 
 nextChar :: Parser Char
 nextChar =
@@ -26,6 +22,9 @@ nextChar =
 eof :: Parser Bool
 eof = gets (null . snd)
 
+getPos :: Parser SourcePos
+getPos = gets fst
+
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy p =
    do c <- nextChar
@@ -33,8 +32,33 @@ satisfy p =
         then return c
         else fail "character not matched"
 
+-- | does never fail
+many :: Parser a -> Parser [a]
+many x =
+   {- It is better to have 'force' at the place it is,
+      instead of writing it to the recursive call,
+      because 'x' can cause an infinite loop. -}
+   force $ mplus (many1 x) (return [])
+
+many1 :: Parser a -> Parser [a]
+many1 x = liftM2 (:) x (many x)
+
+manySatisfy :: (Char -> Bool) -> Parser String
+manySatisfy = many . satisfy
+
+many1Satisfy :: (Char -> Bool) -> Parser String
+many1Satisfy = many1 . satisfy
+
+dropSpaces :: Parser ()
+dropSpaces =
+   fmap (const ()) $ manySatisfy isSpace
+
+
+char :: Char -> Parser Char
+char c = satisfy (c==)
+
 string :: String -> Parser String
-string = mapM (\c -> satisfy (c==))
+string = mapM char
 
 readUntilStrict :: String -> Parser String
 readUntilStrict pattern =
@@ -47,6 +71,7 @@ readUntilStrict pattern =
 readUntil :: String -> Parser (Bool,String)
 readUntil pattern =
    let recurse =
+          force $
           fmap (const (True,[])) (string pattern)
           `mplus`
           do isEOF <- eof
@@ -54,7 +79,7 @@ readUntil pattern =
                then return (False,[])
                else liftM2
                        (\c ~(found,str) -> (found,c:str))
-                       nextChar (force recurse)
+                       nextChar recurse
    in  recurse
 {-
 runStateT (readUntil "-->") (initialPos "input", "<!-- comment --> other stuff")

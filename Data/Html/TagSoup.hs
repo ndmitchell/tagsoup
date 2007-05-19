@@ -19,7 +19,6 @@
 module Data.Html.TagSoup(
     -- * Data structures and parsing
     Tag(..), PosTag, Attribute, parseTags, parseTagsNoPos,
-    addSourcePositions,
     module Data.Html.Download,
 
     -- * Tag Combinators
@@ -37,15 +36,18 @@ module Data.Html.TagSoup(
     propSections, propPartitions,
     ) where
 
+import Data.Html.TagSoup.Parser
+
+import Text.ParserCombinators.Parsec.Pos
+          (SourcePos, initialPos)
+
+import Control.Monad.State (mplus, msum, evalStateT, gets)
+
+import Data.Html.Download
+
 import Data.Char
 import Data.List
 import Data.Maybe
-import Data.Html.Download
-
-import Control.Monad (mplus)
-
-import Text.ParserCombinators.Parsec.Pos
-          (SourcePos, initialPos, updatePosChar)
 
 
 -- | An HTML attribute @id=\"name\"@ generates @(\"id\",\"name\")@
@@ -63,126 +65,117 @@ data Tag =
      deriving (Show, Eq, Ord)
 
 
-type PosString p = [(p, Char)]
-type PosTag    p = (p,Tag)
+type PosTag = (SourcePos,Tag)
 
 
 -- | Parse an HTML document to a list of 'Tag'.
 -- Automatically expands out escape characters.
-parseTags :: String -> [PosTag SourcePos]
-parseTags = parseTagPos . addSourcePositions
+parseTags :: String -> [PosTag]
+parseTags str =
+   concat $ fromMaybe (error "parseTagPos can never fail.") $
+   evalStateT
+      (many parseTagPos)
+      (initialPos "anonymous input", str)
 
 -- | Like 'parseTags' but hides source file positions.
 parseTagsNoPos :: String -> [Tag]
 parseTagsNoPos = map snd . parseTags
 
-parseTagPos :: PosString p -> [PosTag p]
 
-parseTagPos ((pos,'<'):inner) =
-   case inner of
-      (_,'/'):xs ->
-         let (name,rest) = spanStripPos isAlphaNum xs
-             rest2 = dropSpaces rest
-             trail =
-                case rest2 of
-                   (_,'>'):rest3 -> parseTagPos rest3
-                   _ ->
-                     parseToEndTag ">"
-                        (\junk ->
-                           junkWarning rest2
-                              ("Junk in closing tag: \"" ++ junk ++"\""))
-                        (pos,
-                         TagWarning ("Unterminated closing tag \"" ++ name ++"\""))
-                        rest2
-         in  (pos, TagClose name) : trail
-      (_,'!'):xs ->
-         case xs of
-            (_,'-'):(_,'-'):rest ->
-               parseToEndTag "-->"
-                  (\cmt -> [(pos, TagComment cmt)])
-                  (pos, TagWarning "Unterminated comment")
-                  rest
-            _ ->
-               let (name,rest) = spanStripPos isAlphaNum xs
-               in  parseToEndTag ">"
-                      (\info -> [(pos, TagSpecial name info)])
-                      (pos, TagWarning ("Unterminated special tag \"" ++ name ++ "\""))
-                      (dropSpaces rest)
-      xs ->
-         let (name,rest) = spanStripPos isAlphaNum xs
-             ((attrs,warnings),rest2) = parseAttributes (dropSpaces rest)
-             maybeProperTrail =
-                mplus
-                   (fmap (((fst (head rest2), TagClose name) :) . parseTagPos)
-                         (splitPrefix "/>" rest2))
-                   (fmap parseTagPos (splitPrefix ">" rest2))
-             trail =
-                fromMaybe
-                   (parseToEndTag ">"
-                      (\junk ->
-                         junkWarning rest2
-                            ("Junk in opening tag: \"" ++ junk ++"\""))
-                      (pos,
-                       TagWarning ("Unterminated opening tag \"" ++ name ++"\""))
-                      rest2)
-                   maybeProperTrail
-             warningTags = map (\(p,msg) -> (p, TagWarning msg)) warnings
-         in  (pos, TagOpen name attrs) :  warningTags ++ trail
-
-parseTagPos [] = []
-parseTagPos xs =
-   [(fst (head xs), TagText $ parseString pre) | not $ null pre] ++
-       parseTagPos post
-    where (pre,post) = spanStripPos ('<'/=) xs
-
-junkWarning :: PosString p -> String -> [PosTag p]
-junkWarning ((p,_):_) warning = [(p, TagWarning warning)]
-junkWarning _ _ = []
-
-parseToEndTag ::
-   String ->
-   (String -> [PosTag p]) ->
-   PosTag p ->
-   PosString p -> [PosTag p]
-parseToEndTag pattern handleContent handleFailure text =
-   let (parsed,rest) = searchSplit pattern text
-   in  handleContent parsed ++
-          maybe [handleFailure] parseTagPos rest
+parseTagPos :: Parser [PosTag]
+parseTagPos = do
+   pos <- getPos
+   msum $
+    (do char '<'
+        msum $
+         (do char '/'
+             name <- manySatisfy isAlphaNum
+             dropSpaces
+             junkPos <- getPos
+             ~(junk,termWarning) <- readUntilTerm 
+                ("Unterminated closing tag \"" ++ name ++"\"") ">"
+             return $
+                (pos, TagClose name) :
+                (not $ null junk,
+                 (junkPos, TagWarning ("Junk in closing tag: \"" ++ junk ++"\""))) ?:
+                termWarning
+         ) :
+         (do char '!'
+             msum $
+              (do string "--"
+                  ~(cmt,termWarning) <-
+                     readUntilTerm "Unterminated comment" "-->"
+                  return $
+                     (pos, TagComment cmt) :
+                     termWarning) :
+              (do name <- manySatisfy isAlphaNum
+                  dropSpaces
+                  ~(info,termWarning) <- readUntilTerm
+                     ("Unterminated special tag \"" ++ name ++ "\"") ">"
+                  return $
+                     (pos, TagSpecial name info) :
+                     termWarning) :
+              []
+         ) :
+         (do name <- manySatisfy isAlphaNum
+             dropSpaces
+             ~(attrs,attrWarnings) <- fmap unzip $ many parseAttribute
+             let openTag = (pos, TagOpen name attrs)
+             let attrWarningTags = concat attrWarnings
+             trail <-
+               force $
+               msum $
+                 (do string "/>"
+                     return [(pos, TagClose name)]) :
+                 (do junkPos <- getPos
+                     ~(junk,termWarning) <- readUntilTerm
+                        ("Unterminated open tag \"" ++ name ++ "\"") ">"
+                     return $
+                        (not $ null junk,
+                         (junkPos, TagWarning ("Junk in opening tag: \"" ++ junk ++"\""))) ?:
+                        termWarning) :
+                 []
+             return $
+                openTag :
+                attrWarningTags ++
+                trail) :
+         []
+    ) :
+    (do text <- many1Satisfy ('<'/=)
+        return [(pos, TagText (parseString text))]
+    ) :
+    []
 
 
-parseAttributes :: PosString p -> (([Attribute], [(p,String)]), PosString p)
-parseAttributes xt@((_,x):_) =
-   if not $ isAlpha x
-     then (([], []), xt)
-     else
-        let (lhs,rest) = spanStripPos isAlphaNum xt
-            rest2 = dropSpaces rest
-            ((rhs,warning), other) =
-                maybe
-                  (("", Nothing), rest2)
-                  (parseValue . dropSpaces)
-                  (splitPrefix "=" rest2)
-            ((attrs,warnings), over) = parseAttributes (dropSpaces other)
-        in  (((lhs, parseString rhs):attrs,
-              maybeToList warning ++ warnings), over)
-parseAttributes [] =
-   (([], [(error "end of file", "parse attributes: unexpected end of input")]),
-    [])
+parseAttribute :: Parser (Attribute, [PosTag])
+parseAttribute =
+   do name <- many1Satisfy (\c -> isAlpha c || c `elem` "_-:")
+      dropSpaces
+      ~(value,warning) <-
+         force $
+         mplus
+            (string "=" >> dropSpaces >> parseValue)
+            (return ("", []))
+      dropSpaces
+      return ((name, parseString value), warning)
 
 
-parseValue :: PosString p -> ((String, Maybe (p,String)), PosString p)
-parseValue ((pos,'\"'):xs) =
-   let (str,maybeRest) = searchSplit "\"" xs
-       (warning,rest) =
-          maybe
-             (Just (pos, "unterminated value string"), [])
-             (\rest1 -> (Nothing, rest1))
-             maybeRest
-   in  ((str,warning),rest)
-parseValue x =
-   let isValid c = isAlphaNum c || c `elem` "_-"
-       (value,rest) = spanStripPos isValid x
-   in  ((value,Nothing), rest)
+parseValue :: Parser (String, [PosTag])
+parseValue =
+   force $
+   msum $
+      (char '"'  >> readUntilTerm "Unterminated doubly quoted value string" "\"") :
+      (char '\'' >> readUntilTerm "Unterminated singly quoted value string" "'") :
+      (fmap (flip (,) []) $
+         manySatisfy (\c -> isAlphaNum c || c `elem` "_-+%/?=.:;,&#()")) :
+      []
+
+readUntilTerm :: String -> String -> Parser (String, [PosTag])
+readUntilTerm warning termPat =
+   do ~(termFound,str) <- readUntil termPat
+      termPos <- getPos
+      return 
+         (str, (not termFound, (termPos, TagWarning warning)) ?: [])
 
 
 
@@ -210,52 +203,17 @@ parseString (x:xs) = x : parseString xs
 parseString [] = []
 
 
--- cf. Text.ParserCombinators.Parsec.Pos.SourcePos
-addSourcePositions :: String -> [(SourcePos,Char)]
-addSourcePositions str =
-   zip (scanl updatePosChar (initialPos "anonymous input") str) str
-
-dropSpaces :: PosString p -> PosString p
-dropSpaces = dropWhile (isSpace . snd)
-
--- | like 'Data.List.span' but it ignores source positions
-spanPos :: (a -> Bool) -> [(i,a)] -> ([(i,a)],[(i,a)])
-spanPos p = span (p . snd)
-
-spanStripPos :: (a -> Bool) -> [(i,a)] -> ([a],[(i,a)])
-spanStripPos p xs =
-   let (ys,zs) = spanPos p xs
-   in  (map snd ys, zs)
-
-splitPrefix :: (Eq a) => [a] -> [(i,a)] -> Maybe [(i,a)]
-splitPrefix pattern str =
-   toMaybe
-      (isPrefixOf pattern (map snd str))
-      (dropMatch pattern str)
-
-
 toMaybe :: Bool -> a -> Maybe a
 toMaybe False _ = Nothing
 toMaybe True  x = Just x
 
-dropMatch :: [b] -> [a] -> [a]
-dropMatch (_:_) [] = []
-dropMatch (_:xs) (_:ys) = dropMatch xs ys
-dropMatch [] ys = ys
 
-searchSplit :: (Eq a) => [a] -> [(i,a)] -> ([a], Maybe [(i,a)])
-searchSplit pattern xs =
-   {- We take care that the input characters can be garbaged collected
-      immediately after they are read. -}
-   let (suffixes,rest) =
-            break (isPrefixOf pattern . map snd) (init $ tails $ xs)
-       prefix = map (snd . head) suffixes
-       trail =
-          case rest of
-             (rest2:_) -> Just $ dropMatch pattern $ rest2
-             _ -> Nothing
-   in  (prefix, trail)
 
+infixr 5 ?:
+
+(?:) :: (Bool, a) -> [a] -> [a]
+(?:) (True,  x) xs = x:xs
+(?:) (False, _) xs = xs
 
 
 -- | Extract all text content from tags (similar to Verbatim found in HaXml)
@@ -345,11 +303,17 @@ class TagComparisonElement a where
 instance TagComparisonElement Char where
   tagEqualElement a ('/':tagname) = a ~== TagClose tagname
   tagEqualElement a tagname =
-       let (name, attrs) = span (/= ' ') tagname
+       let (name, attrStr) = span (/= ' ') tagname
            parsed_attrs =
-              case parseAttributes (map ((,) ()) (attrs ++ ">")) of
-                 ((found_attrs, _), [(_,'>')]) -> found_attrs
-                 (_, trailing) -> error $ "trailing characters " ++ map snd trailing
+              fromMaybe (error "tagEqualElement: parse should never fail") $
+              flip evalStateT (initialPos "attribute string", attrStr)
+                 (do dropSpaces
+                     attrs <- many parseAttribute
+                     isEOF <- eof
+                     if isEOF
+                       then return $ map fst attrs
+                       else fmap (error . ("trailing characters " ++))
+                                 (gets snd))
        in  a ~== TagOpen name parsed_attrs
 
 
@@ -363,8 +327,10 @@ sections :: (a -> Bool) -> [a] -> [[a]]
 sections p = filter (p . head) . init . tails
 
 sections_rec :: (a -> Bool) -> [a] -> [[a]]
-sections_rec _ [] = []
-sections_rec f (x:xs) = [x:xs | f x] ++ sections f xs
+sections_rec f =
+   let recurse [] = []
+       recurse (x:xs) = (f x, x:xs) ?: recurse xs
+   in  recurse
 
 propSections :: [Int] -> Bool
 propSections xs  =  sections (<=0) xs == sections_rec (<=0) xs
