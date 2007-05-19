@@ -52,9 +52,9 @@ readUntil pattern =
           do isEOF <- eof
              if isEOF
                then return (False,[])
-               else liftParseLazy2
+               else liftM2
                        (\c ~(found,str) -> (found,c:str))
-                       nextChar recurse
+                       nextChar (force recurse)
    in  recurse
 {-
 runStateT (readUntil "-->") (initialPos "input", "<!-- comment --> other stuff")
@@ -62,32 +62,12 @@ runStateT (readUntil "-->") (initialPos "input", "<!-- comment --> other stuff")
 
 
 {- |
-@apply@ is similar to @liftM ($)@
-but @apply@ expects that the second parser succeeds.
-This way it can return constructors
-created by the first parser quickly,
-which is important for lazy parsing.
+Turn a parser @x@ into one that evaluates to bottom if @x@ fails.
+This is useful if you know that @x@ cannot fail.
+Using force let you return data immediately and thus makes parsing lazier.
 -}
-apply :: Parser (a -> b) -> Parser a -> Parser b
-apply f x =
-   f >>= (\g -> StateT (\pcs ->
-       -- use laziness of 'let'
-       let Just (y, pcs') = runStateT x pcs
-       in  Just (g y, pcs')))
-
-
-liftParseLazy ::
-   (a -> b)
-     -> Parser a
-     -> Parser b
-liftParseLazy f x =
-   return f `apply` x
-
-liftParseLazy2 ::
-   (a -> b -> c)
-     -> Parser a
-     -> Parser b
-     -> Parser c
-liftParseLazy2 f x y =
-   liftParseLazy f x `apply` y
-
+force :: Parser a -> Parser a
+force x =
+   StateT (\pcs ->
+      let Just (y,pcs') = runStateT x pcs
+      in  Just (y,pcs'))
