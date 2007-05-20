@@ -97,7 +97,7 @@ parseTagPos = do
              return
                 (TagClose name,
                  (not $ null junk,
-                  (Warning junkPos ("Junk in closing tag: \"" ++ junk ++"\""))) ?:
+                  Warning junkPos ("Junk in closing tag: \"" ++ junk ++"\"")) ?:
                  termWarnings,
                  [])
          ) :
@@ -137,8 +137,8 @@ parseTagPos = do
          ) :
          []
     ) :
-    (do text <- many1Satisfy ('<'/=)
-        return (TagText (parseString text), [], [])
+    (do ~(text, warnings) <- parseString1 ('<'/=)
+        return (TagText text, warnings, [])
     ) :
     []
    return $ (pos,tag) : map warningToTag warnings ++ otherTags
@@ -151,6 +151,7 @@ warningToTag :: Warning -> PosTag
 warningToTag (Warning pos msg) = (pos, TagWarning msg)
 
 
+
 parseAttribute :: Parser (Attribute, [Warning])
 parseAttribute =
    do name <- many1Satisfy (\c -> isAlpha c || c `elem` "_-:")
@@ -161,18 +162,34 @@ parseAttribute =
             (string "=" >> dropSpaces >> parseValue)
             (return ("", []))
       dropSpaces
-      return ((name, parseString value), warning)
+      return ((name, value), warning)
 
 
 parseValue :: Parser (String, [Warning])
 parseValue =
-   force $
-   msum $
-      (char '"'  >> readUntilTerm "Unterminated doubly quoted value string" "\"") :
-      (char '\'' >> readUntilTerm "Unterminated singly quoted value string" "'") :
-      (fmap (flip (,) []) $
-         manySatisfy (\c -> isAlphaNum c || c `elem` "_-+%/?=.:;,&#()")) :
+   force $ msum $
+      parseQuoted "Unterminated doubly quoted value string" '"' :
+      parseQuoted "Unterminated singly quoted value string" '\'' :
+      (do pos <- getPos
+          ~(str,warnings) <- parseString (not . flip elem " >")
+          -- maybe this introduces a space leak for long values
+          -- 'nub' will run too slowly
+          let wrong = filter (\c -> not (isAlphaNum c || c `elem` "_-")) str
+          return (str,
+             warnings ++
+             if null wrong
+               then []
+               else [Warning pos $ "Illegal characters in unquoted value: " ++ wrong])) :
       []
+
+parseQuoted :: String -> Char -> Parser (String, [Warning])
+parseQuoted termMsg quote =
+   do char quote
+      ~(str,warnings) <- parseString (quote/=)
+      mplus
+         (char quote >> return (str,warnings))
+         (getPos >>= \termPos ->
+             return (str, warnings ++ [Warning termPos termMsg]))
 
 readUntilTerm :: String -> String -> Parser (String, [Warning])
 readUntilTerm warning termPat =
@@ -191,25 +208,49 @@ escapes = [("gt",'>')
           ]
 
 
-parseEscape :: String -> Maybe Char
-parseEscape ('#':xs) = toMaybe (all isDigit xs) (chr $ read xs)
-parseEscape xs = lookup xs escapes
+parseString :: (Char -> Bool) -> Parser (String,[Warning])
+parseString p =
+   do (strs,warnings) <- fmap unzip $ many (parseChar p)
+      return (concat strs, concat warnings)
 
+parseString1 :: (Char -> Bool) -> Parser (String,[Warning])
+parseString1 p =
+   do (strs,warnings) <- fmap unzip $ many1 (parseChar p)
+      return (concat strs, concat warnings)
 
+parseChar :: (Char -> Bool) -> Parser (String,[Warning])
+parseChar p =
+   do pos <- getPos
+      c <- satisfy p
+      if c=='&'
+        then
+          force $
+          mplus
+            (do ent <-
+                   mplus
+                      (do char '#'
+                          numStr <- many1Satisfy isDigit
+                          return (parseNumericEntity numStr : [], []))
+                      (do nameStr <- many1Satisfy isAlphaNum
+                          return $
+                             either
+                                (\msg -> ('&':nameStr++";", [Warning pos msg]))
+                                (\ch -> (ch:[], [])) $
+                             parseNamedEntity nameStr)
+                char ';'
+                return ent)
+            (return ("&", [Warning pos "Ill formed entity"]))
+        else return (c:[], [])
 
-parseString :: String -> String
-parseString ('&':xs) =
-     case parseEscape a of
-        Nothing -> '&' : parseString xs
-        Just x -> x : parseString (drop 1 b)
-    where (a,b) = break (== ';') xs
-parseString (x:xs) = x : parseString xs
-parseString [] = []
+parseNumericEntity :: String -> Char
+parseNumericEntity = chr . read
 
-
-toMaybe :: Bool -> a -> Maybe a
-toMaybe False _ = Nothing
-toMaybe True  x = Just x
+parseNamedEntity :: String -> Either String Char
+parseNamedEntity name =
+   maybe
+      (Left $ "Unknown HTML entity &" ++ name ++ ";")
+      Right
+      (lookup name escapes)
 
 
 
