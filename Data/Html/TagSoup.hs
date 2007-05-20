@@ -85,69 +85,73 @@ parseTagsNoPos = map snd . parseTags
 parseTagPos :: Parser [PosTag]
 parseTagPos = do
    pos <- getPos
-   msum $
+   ~(tag, warnings, otherTags) <- msum $
     (do char '<'
         msum $
          (do char '/'
              name <- manySatisfy isAlphaNum
              dropSpaces
              junkPos <- getPos
-             ~(junk,termWarning) <- readUntilTerm 
+             ~(junk,termWarnings) <- readUntilTerm 
                 ("Unterminated closing tag \"" ++ name ++"\"") ">"
-             return $
-                (pos, TagClose name) :
-                (not $ null junk,
-                 (junkPos, TagWarning ("Junk in closing tag: \"" ++ junk ++"\""))) ?:
-                termWarning
+             return
+                (TagClose name,
+                 (not $ null junk,
+                  (Warning junkPos ("Junk in closing tag: \"" ++ junk ++"\""))) ?:
+                 termWarnings,
+                 [])
          ) :
          (do char '!'
              msum $
               (do string "--"
-                  ~(cmt,termWarning) <-
+                  ~(cmt,termWarnings) <-
                      readUntilTerm "Unterminated comment" "-->"
-                  return $
-                     (pos, TagComment cmt) :
-                     termWarning) :
+                  return (TagComment cmt, termWarnings, [])) :
               (do name <- manySatisfy isAlphaNum
                   dropSpaces
-                  ~(info,termWarning) <- readUntilTerm
+                  ~(info,termWarnings) <- readUntilTerm
                      ("Unterminated special tag \"" ++ name ++ "\"") ">"
-                  return $
-                     (pos, TagSpecial name info) :
-                     termWarning) :
+                  return (TagSpecial name info, termWarnings, [])) :
               []
          ) :
          (do name <- manySatisfy isAlphaNum
              dropSpaces
              ~(attrs,attrWarnings) <- fmap unzip $ many parseAttribute
-             let openTag = (pos, TagOpen name attrs)
+             let openTag = TagOpen name attrs
              let attrWarningTags = concat attrWarnings
-             trail <-
-               force $
-               msum $
-                 (do string "/>"
-                     return [(pos, TagClose name)]) :
+             ~(trailWarnings,trail) <-
+               force $ msum $
+                 (do closePos <- getPos
+                     string "/>"
+                     return ([], [(closePos, TagClose name)])) :
                  (do junkPos <- getPos
-                     ~(junk,termWarning) <- readUntilTerm
+                     ~(junk,termWarnings) <- readUntilTerm
                         ("Unterminated open tag \"" ++ name ++ "\"") ">"
-                     return $
-                        (not $ null junk,
-                         (junkPos, TagWarning ("Junk in opening tag: \"" ++ junk ++"\""))) ?:
-                        termWarning) :
+                     return
+                        ((not $ null junk,
+                          (Warning junkPos ("Junk in opening tag: \"" ++ junk ++"\""))) ?:
+                         termWarnings,
+                         [])) :
                  []
-             return $
-                openTag :
-                attrWarningTags ++
-                trail) :
+             return (openTag, attrWarningTags ++ trailWarnings, trail)
+         ) :
          []
     ) :
     (do text <- many1Satisfy ('<'/=)
-        return [(pos, TagText (parseString text))]
+        return (TagText (parseString text), [], [])
     ) :
     []
+   return $ (pos,tag) : map warningToTag warnings ++ otherTags
 
 
-parseAttribute :: Parser (Attribute, [PosTag])
+data Warning = Warning SourcePos String
+   deriving Show
+
+warningToTag :: Warning -> PosTag
+warningToTag (Warning pos msg) = (pos, TagWarning msg)
+
+
+parseAttribute :: Parser (Attribute, [Warning])
 parseAttribute =
    do name <- many1Satisfy (\c -> isAlpha c || c `elem` "_-:")
       dropSpaces
@@ -160,7 +164,7 @@ parseAttribute =
       return ((name, parseString value), warning)
 
 
-parseValue :: Parser (String, [PosTag])
+parseValue :: Parser (String, [Warning])
 parseValue =
    force $
    msum $
@@ -170,12 +174,12 @@ parseValue =
          manySatisfy (\c -> isAlphaNum c || c `elem` "_-+%/?=.:;,&#()")) :
       []
 
-readUntilTerm :: String -> String -> Parser (String, [PosTag])
+readUntilTerm :: String -> String -> Parser (String, [Warning])
 readUntilTerm warning termPat =
    do ~(termFound,str) <- readUntil termPat
       termPos <- getPos
       return 
-         (str, (not termFound, (termPos, TagWarning warning)) ?: [])
+         (str, (not termFound, (Warning termPos warning)) ?: [])
 
 
 
