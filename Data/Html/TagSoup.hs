@@ -37,6 +37,10 @@ module Data.Html.TagSoup(
     ) where
 
 import Data.Html.TagSoup.Parser
+   (Parser, Status(Status),
+    char, dropSpaces, eof, force, getPos,
+    many, many1, many1Satisfy, manySatisfy, readUntil,
+    satisfy, source, string)
 
 import Text.ParserCombinators.Parsec.Pos
           (SourcePos, initialPos)
@@ -75,7 +79,7 @@ parseTags str =
    concat $ fromMaybe (error "parseTagPos can never fail.") $
    evalStateT
       (many parseTagPos)
-      (initialPos "anonymous input", str)
+      (Status (initialPos "anonymous input") str)
 
 -- | Like 'parseTags' but hides source file positions.
 parseTagsNoPos :: String -> [Tag]
@@ -351,14 +355,14 @@ instance TagComparisonElement Char where
        let (name, attrStr) = span (/= ' ') tagname
            parsed_attrs =
               fromMaybe (error "tagEqualElement: parse should never fail") $
-              flip evalStateT (initialPos "attribute string", attrStr)
+              flip evalStateT (Status (initialPos "attribute string") attrStr)
                  (do dropSpaces
                      attrs <- many parseAttribute
                      isEOF <- eof
                      if isEOF
                        then return $ map fst attrs
                        else fmap (error . ("trailing characters " ++))
-                                 (gets snd))
+                                 (gets source))
        in  a ~== TagOpen name parsed_attrs
 
 

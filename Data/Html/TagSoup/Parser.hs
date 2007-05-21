@@ -10,20 +10,26 @@ import Data.Char (isSpace)
 
 
 -- cf. Haskore.General.Parser
-type Parser a = StateT (SourcePos,String) Maybe a
+type Parser a = StateT Status Maybe a
+
+data Status =
+   Status {
+      sourcePos :: SourcePos,
+      source    :: String}
+   deriving Show
 
 nextChar :: Parser Char
 nextChar =
-   StateT $ \(pos,str) ->
+   StateT $ \ (Status pos str) ->
       case str of
          []     -> Nothing
-         (c:cs) -> Just (c,(updatePosChar pos c, cs))
+         (c:cs) -> Just (c, Status (updatePosChar pos c) cs)
 
 eof :: Parser Bool
-eof = gets (null . snd)
+eof = gets (null . source)
 
 getPos :: Parser SourcePos
-getPos = gets fst
+getPos = gets sourcePos
 
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy p =
