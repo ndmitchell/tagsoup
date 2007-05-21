@@ -37,15 +37,17 @@ module Data.Html.TagSoup(
     ) where
 
 import Data.Html.TagSoup.Parser
-   (Parser, Status(Status),
+   (Status(Status),
     char, dropSpaces, eof, force, getPos,
     many, many1, many1Satisfy, manySatisfy, readUntil,
     satisfy, source, string)
 
+import qualified Data.Html.TagSoup.Parser as Parser
+
 import Text.ParserCombinators.Parsec.Pos
           (SourcePos, initialPos)
 
-import Control.Monad.State (mplus, msum, evalStateT, gets)
+import Control.Monad.RWS (mplus, msum, evalRWST, gets, tell, when)
 
 import Data.Html.Download
 
@@ -71,136 +73,124 @@ data Tag =
 
 type PosTag = (SourcePos,Tag)
 
+type Parser a = Parser.Parser PosTag a
+
+
 
 -- | Parse an HTML document to a list of 'Tag'.
 -- Automatically expands out escape characters.
 parseTags :: String -> [PosTag]
 parseTags str =
-   concat $ fromMaybe (error "parseTagPos can never fail.") $
-   evalStateT
-      (many parseTagPos)
-      (Status (initialPos "anonymous input") str)
+   snd $
+   fromMaybe (error "parseTagPos can never fail.") $
+   evalRWST (many parseTagPos)
+      () (Status (initialPos "anonymous input") str)
 
 -- | Like 'parseTags' but hides source file positions.
 parseTagsNoPos :: String -> [Tag]
 parseTagsNoPos = map snd . parseTags
 
 
-parseTagPos :: Parser [PosTag]
+parseTagPos :: Parser ()
 parseTagPos = do
    pos <- getPos
-   ~(tag, warnings, otherTags) <- msum $
+   msum $
     (do char '<'
         msum $
          (do char '/'
              name <- manySatisfy isAlphaNum
+             emitTag pos (TagClose name)
              dropSpaces
              junkPos <- getPos
-             ~(junk,termWarnings) <- readUntilTerm 
+             junk <- readUntilTerm
                 ("Unterminated closing tag \"" ++ name ++"\"") ">"
-             return
-                (TagClose name,
-                 (not $ null junk,
-                  Warning junkPos ("Junk in closing tag: \"" ++ junk ++"\"")) ?:
-                 termWarnings,
-                 [])
+             emitWarningWhen
+                (not $ null junk)
+                junkPos ("Junk in closing tag: \"" ++ junk ++"\"")
          ) :
          (do char '!'
              msum $
               (do string "--"
-                  ~(cmt,termWarnings) <-
+                  cmt <-
                      readUntilTerm "Unterminated comment" "-->"
-                  return (TagComment cmt, termWarnings, [])) :
+                  emitTag pos (TagComment cmt)) :
               (do name <- manySatisfy isAlphaNum
                   dropSpaces
-                  ~(info,termWarnings) <- readUntilTerm
+                  info <- readUntilTerm
                      ("Unterminated special tag \"" ++ name ++ "\"") ">"
-                  return (TagSpecial name info, termWarnings, [])) :
+                  emitTag pos (TagSpecial name info)) :
               []
          ) :
          (do name <- manySatisfy isAlphaNum
              dropSpaces
-             ~(attrs,attrWarnings) <- fmap unzip $ many parseAttribute
-             let openTag = TagOpen name attrs
-             let attrWarningTags = concat attrWarnings
-             ~(trailWarnings,trail) <-
-               force $ msum $
-                 (do closePos <- getPos
-                     string "/>"
-                     return ([], [(closePos, TagClose name)])) :
-                 (do junkPos <- getPos
-                     ~(junk,termWarnings) <- readUntilTerm
-                        ("Unterminated open tag \"" ++ name ++ "\"") ">"
-                     return
-                        ((not $ null junk,
-                          (Warning junkPos ("Junk in opening tag: \"" ++ junk ++"\""))) ?:
-                         termWarnings,
-                         [])) :
-                 []
-             return (openTag, attrWarningTags ++ trailWarnings, trail)
+             attrs <- many parseAttribute
+             tell [(pos, TagOpen name attrs)]
+             force $ msum $
+               (do closePos <- getPos
+                   string "/>"
+                   emitTag closePos (TagClose name)) :
+               (do junkPos <- getPos
+                   junk <- readUntilTerm
+                      ("Unterminated open tag \"" ++ name ++ "\"") ">"
+                   emitWarningWhen
+                      (not $ null junk)
+                      junkPos ("Junk in opening tag: \"" ++ junk ++"\"")) :
+               []
          ) :
          []
     ) :
-    (do ~(text, warnings) <- parseString1 ('<'/=)
-        return (TagText text, warnings, [])
+    (do text <- parseString1 ('<'/=)
+        emitTag pos (TagText text)
     ) :
     []
-   return $ (pos,tag) : map warningToTag warnings ++ otherTags
-
-
-data Warning = Warning SourcePos String
-   deriving Show
-
-warningToTag :: Warning -> PosTag
-warningToTag (Warning pos msg) = (pos, TagWarning msg)
 
 
 
-parseAttribute :: Parser (Attribute, [Warning])
+parseAttribute :: Parser Attribute
 parseAttribute =
    do name <- many1Satisfy (\c -> isAlpha c || c `elem` "_-:")
       dropSpaces
-      ~(value,warning) <-
+      value <-
          force $
          mplus
             (string "=" >> dropSpaces >> parseValue)
-            (return ("", []))
+            (return "")
       dropSpaces
-      return ((name, value), warning)
+      return (name, value)
 
 
-parseValue :: Parser (String, [Warning])
+parseValue :: Parser String
 parseValue =
    force $ msum $
       parseQuoted "Unterminated doubly quoted value string" '"' :
       parseQuoted "Unterminated singly quoted value string" '\'' :
       (do pos <- getPos
-          ~(str,warnings) <- parseString (not . flip elem " >")
+          str <- parseString (not . flip elem " >")
           -- maybe this introduces a space leak for long values
           -- 'nub' will run too slowly
           let wrong = filter (\c -> not (isAlphaNum c || c `elem` "_-")) str
-          return (str,
-             warnings ++
-             if null wrong
-               then []
-               else [Warning pos $ "Illegal characters in unquoted value: " ++ wrong])) :
+          emitWarningWhen
+             (not (null wrong))
+             pos $ "Illegal characters in unquoted value: " ++ wrong
+          return str) :
       []
 
-parseQuoted :: String -> Char -> Parser (String, [Warning])
+parseQuoted :: String -> Char -> Parser String
 parseQuoted termMsg quote =
    do char quote
-      ~(str,warnings) <- parseString (quote/=)
+      str <- parseString (quote/=)
       mplus
-         (char quote >> return (str,warnings))
-         (getPos >>= \termPos ->
-             return (str, warnings ++ [Warning termPos termMsg]))
+         (char quote >> return str)
+         (do termPos <- getPos
+             emitWarning termPos termMsg
+             return str)
 
-readUntilTerm :: String -> String -> Parser (String, [Warning])
+readUntilTerm :: String -> String -> Parser String
 readUntilTerm warning termPat =
    do ~(termFound,str) <- readUntil termPat
       termPos <- getPos
-      return 
-         (str, (not termFound, (Warning termPos warning)) ?: [])
+      emitWarningWhen (not termFound) termPos warning
+      return str
 
 
 
@@ -212,17 +202,15 @@ escapes = [("gt",'>')
           ]
 
 
-parseString :: (Char -> Bool) -> Parser (String,[Warning])
+parseString :: (Char -> Bool) -> Parser String
 parseString p =
-   do (strs,warnings) <- fmap unzip $ many (parseChar p)
-      return (concat strs, concat warnings)
+   fmap concat $ many (parseChar p)
 
-parseString1 :: (Char -> Bool) -> Parser (String,[Warning])
+parseString1 :: (Char -> Bool) -> Parser String
 parseString1 p =
-   do (strs,warnings) <- fmap unzip $ many1 (parseChar p)
-      return (concat strs, concat warnings)
+   fmap concat $ many1 (parseChar p)
 
-parseChar :: (Char -> Bool) -> Parser (String,[Warning])
+parseChar :: (Char -> Bool) -> Parser String
 parseChar p =
    do pos <- getPos
       c <- satisfy p
@@ -234,17 +222,18 @@ parseChar p =
                    mplus
                       (do char '#'
                           numStr <- many1Satisfy isDigit
-                          return (parseNumericEntity numStr : [], []))
+                          return [parseNumericEntity numStr])
                       (do nameStr <- many1Satisfy isAlphaNum
-                          return $
-                             either
-                                (\msg -> ('&':nameStr++";", [Warning pos msg]))
-                                (\ch -> (ch:[], [])) $
+                          either
+                             (\msg -> emitWarning pos msg >>
+                                      return ('&':nameStr++";"))
+                             (\ch -> return [ch]) $
                              parseNamedEntity nameStr)
                 char ';'
                 return ent)
-            (return ("&", [Warning pos "Ill formed entity"]))
-        else return (c:[], [])
+            (emitWarning pos "Ill formed entity" >>
+             return "&")
+        else return (c:[])
 
 parseNumericEntity :: String -> Char
 parseNumericEntity = chr . read
@@ -256,6 +245,16 @@ parseNamedEntity name =
       Right
       (lookup name escapes)
 
+
+emitWarningWhen :: Bool -> SourcePos -> String -> Parser ()
+emitWarningWhen cond pos msg =
+   force $ when cond $ emitWarning pos msg
+
+emitWarning :: SourcePos -> String -> Parser ()
+emitWarning pos msg = emitTag pos (TagWarning msg)
+
+emitTag :: SourcePos -> Tag -> Parser ()
+emitTag pos tag = tell [(pos, tag)]
 
 
 infixr 5 ?:
@@ -354,15 +353,17 @@ instance TagComparisonElement Char where
   tagEqualElement a tagname =
        let (name, attrStr) = span (/= ' ') tagname
            parsed_attrs =
+              fst $
               fromMaybe (error "tagEqualElement: parse should never fail") $
-              flip evalStateT (Status (initialPos "attribute string") attrStr)
+              evalRWST
                  (do dropSpaces
                      attrs <- many parseAttribute
                      isEOF <- eof
                      if isEOF
-                       then return $ map fst attrs
+                       then return attrs
                        else fmap (error . ("trailing characters " ++))
                                  (gets source))
+                 () (Status (initialPos "attribute string") attrStr)
        in  a ~== TagOpen name parsed_attrs
 
 

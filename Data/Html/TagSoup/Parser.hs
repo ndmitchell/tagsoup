@@ -4,13 +4,14 @@ module Data.Html.TagSoup.Parser where
 import Text.ParserCombinators.Parsec.Pos
           (SourcePos, updatePosChar)
 
-import Control.Monad.State (StateT(..), gets, mplus, liftM2)
+import Control.Monad.RWS (RWST(..), gets, mplus, liftM2)
 
+import Data.Monoid (mempty)
 import Data.Char (isSpace)
 
 
 -- cf. Haskore.General.Parser
-type Parser a = StateT Status Maybe a
+type Parser w a = RWST () [w] Status Maybe a
 
 data Status =
    Status {
@@ -18,20 +19,20 @@ data Status =
       source    :: String}
    deriving Show
 
-nextChar :: Parser Char
+nextChar :: Parser w Char
 nextChar =
-   StateT $ \ (Status pos str) ->
+   RWST $ \ () (Status pos str) ->
       case str of
          []     -> Nothing
-         (c:cs) -> Just (c, Status (updatePosChar pos c) cs)
+         (c:cs) -> Just (c, Status (updatePosChar pos c) cs, mempty)
 
-eof :: Parser Bool
+eof :: Parser w Bool
 eof = gets (null . source)
 
-getPos :: Parser SourcePos
+getPos :: Parser w SourcePos
 getPos = gets sourcePos
 
-satisfy :: (Char -> Bool) -> Parser Char
+satisfy :: (Char -> Bool) -> Parser w Char
 satisfy p =
    do c <- nextChar
       if p c
@@ -39,34 +40,34 @@ satisfy p =
         else fail "character not matched"
 
 -- | does never fail
-many :: Parser a -> Parser [a]
+many :: Parser w a -> Parser w [a]
 many x =
    {- It is better to have 'force' at the place it is,
       instead of writing it to the recursive call,
       because 'x' can cause an infinite loop. -}
    force $ mplus (many1 x) (return [])
 
-many1 :: Parser a -> Parser [a]
+many1 :: Parser w a -> Parser w [a]
 many1 x = liftM2 (:) x (many x)
 
-manySatisfy :: (Char -> Bool) -> Parser String
+manySatisfy :: (Char -> Bool) -> Parser w String
 manySatisfy = many . satisfy
 
-many1Satisfy :: (Char -> Bool) -> Parser String
+many1Satisfy :: (Char -> Bool) -> Parser w String
 many1Satisfy = many1 . satisfy
 
-dropSpaces :: Parser ()
+dropSpaces :: Parser w ()
 dropSpaces =
    fmap (const ()) $ manySatisfy isSpace
 
 
-char :: Char -> Parser Char
+char :: Char -> Parser w Char
 char c = satisfy (c==)
 
-string :: String -> Parser String
+string :: String -> Parser w String
 string = mapM char
 
-readUntilStrict :: String -> Parser String
+readUntilStrict :: String -> Parser w String
 readUntilStrict pattern =
    let recurse =
           string pattern
@@ -74,7 +75,7 @@ readUntilStrict pattern =
           liftM2 (:) nextChar recurse
    in  recurse
 
-readUntil :: String -> Parser (Bool,String)
+readUntil :: String -> Parser w (Bool,String)
 readUntil pattern =
    let recurse =
           force $
@@ -97,8 +98,8 @@ Turn a parser @x@ into one that evaluates to bottom if @x@ fails.
 This is useful if you know that @x@ cannot fail.
 Using force let you return data immediately and thus makes parsing lazier.
 -}
-force :: Parser a -> Parser a
+force :: Parser w a -> Parser w a
 force x =
-   StateT (\pcs ->
-      let Just (y,pcs') = runStateT x pcs
-      in  Just (y,pcs'))
+   RWST $ \ () pcs ->
+      let Just (y,pcs',w) = runRWST x () pcs
+      in  Just (y,pcs',w)
