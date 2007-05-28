@@ -172,15 +172,16 @@ parseValue =
    force $ msum $
       parseQuoted "Unterminated doubly quoted value string" '"' :
       parseQuoted "Unterminated singly quoted value string" '\'' :
-      (do pos <- getPos
-          str <- parseString (not . flip elem " >")
-          -- maybe this introduces a space leak for long values
-          -- 'nub' will run too slowly
-          let wrong = filter (\c -> not (isAlphaNum c || c `elem` "_-")) str
-          emitWarningWhen
-             (not (null wrong))
-             pos $ "Illegal characters in unquoted value: " ++ wrong
-          return str) :
+      (let parseValueChar =
+              do str <- parseChar (not . flip elem " >\"\'")
+                 let wrong =
+                       filter (\c -> not (isAlphaNum c || c `elem` "_-")) str
+                 pos <- getPos
+                 emitWarningWhen
+                    (not (null wrong))
+                    pos $ "Illegal characters in unquoted value: " ++ wrong
+                 return str
+       in  fmap concat $ many parseValueChar) :
       []
 
 parseQuoted :: String -> Char -> Parser String
