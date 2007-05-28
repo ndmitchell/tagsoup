@@ -9,41 +9,30 @@ module Text.HTML.TagSoup.Parser (
 
 
 import Text.ParserCombinators.Parsec.Pos
-          (SourcePos, initialPos, updatePosChar)
+          (SourcePos, initialPos)
 
-import Control.Monad.RWS (RWST(..), evalRWST, gets, mplus, liftM2, tell)
+import Text.HTML.TagSoup.Parser.Custom
+-- import Text.HTML.TagSoup.Parser.MTL
+
+import Control.Monad (mplus, liftM, liftM2)
 import Control.Monad.Fix (mfix)
 
 import Data.Char (isSpace)
 
 
--- cf. Haskore.General.Parser
-type Parser w a = RWST () [w] Status Maybe a
-
-data Status =
-   Status {
-      sourcePos :: SourcePos,
-      source    :: String}
-   deriving Show
-
 write :: Parser w () -> String -> Maybe [w]
 write p =
-   fmap snd .
-   evalRWST p () .
-   Status (initialPos "anonymous input")
+   fmap (\ ~(_,_,ws) -> ws) .
+   run p .
+   Status (initialPos "input")
 
 eval :: Parser w a -> String -> Maybe a
 eval p =
-   fmap fst .
-   evalRWST p () .
-   Status (initialPos "anonymous input")
+   fmap (\ ~(x,_,_) -> x) .
+   run p .
+   Status (initialPos "input")
 
-nextChar :: Parser w Char
-nextChar =
-   RWST $ \ () (Status pos str) ->
-      case str of
-         []     -> Nothing
-         (c:cs) -> Just (c, Status (updatePosChar pos c) cs, [])
+
 
 eof :: Parser w Bool
 eof = gets (null . source)
@@ -77,7 +66,7 @@ many1Satisfy = ignoreEmit . many1 . satisfy
 
 dropSpaces :: Parser w ()
 dropSpaces =
-   ignoreEmit $ fmap (const ()) $ manySatisfy isSpace
+   ignoreEmit $ liftM (const ()) $ manySatisfy isSpace
 
 
 char :: Char -> Parser w Char
@@ -86,11 +75,12 @@ char c = satisfy (c==)
 string :: String -> Parser w String
 string = ignoreEmit . mapM char
 
+
 readUntil :: String -> Parser w (Bool,String)
 readUntil pattern =
    let recurse =
           force $
-          fmap (const (True,[])) (string pattern)
+          liftM (const (True,[])) (string pattern)
           `mplus`
           do isEOF <- eof
              if isEOF
@@ -104,37 +94,6 @@ runStateT (readUntil "-->") (initialPos "input", "<!-- comment --> other stuff")
 -}
 
 
-{- |
-Turn a parser @x@ into one that evaluates to bottom if @x@ fails.
-This is useful if you know that @x@ cannot fail.
-Using force let you return data immediately and thus makes parsing lazier.
--}
-force :: Parser w a -> Parser w a
-force x =
-   RWST $ \ () pcs ->
-      let Just (y,pcs',w) = runRWST x () pcs
-      in  Just (y,pcs',w)
-
-{- |
-Turn a parser @x@ into one that is evaluated to bottom if @x@ emits something
-throught the writer part of the monad.
-This is useful if you know that @x@ does not emit something.
-In this case you allow subsequent emitters to emit,
-also if the current statement needs infinite steps to complete.
-
-It checks, whether the ignored information is actually empty.
-However this safety leads to too much strictness.
-
-noEmit :: Parser w a -> Parser w a
-noEmit x =
-   RWST $ \ () pcs ->
-      fmap (\ ~(y,pcs',empty@ ~[]) -> (y,pcs',empty)) $ runRWST x () pcs
--}
-
-ignoreEmit :: Parser w a -> Parser w a
-ignoreEmit x =
-   RWST $ \ () pcs ->
-      fmap (\ ~(y,pcs',_) -> (y,pcs',[])) $ runRWST x () pcs
 
 emit :: w -> Parser w ()
 emit w = tell [w]

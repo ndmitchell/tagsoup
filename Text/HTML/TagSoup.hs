@@ -45,7 +45,7 @@ import qualified Text.HTML.TagSoup.Parser as Parser
 
 import Text.ParserCombinators.Parsec.Pos (SourcePos)
 
-import Control.Monad.RWS (mplus, msum, when)
+import Control.Monad (mplus, msum, when, liftM)
 
 import Data.Char
 import Data.List
@@ -173,7 +173,7 @@ parseValue =
                     (not (null wrong))
                     pos $ "Illegal characters in unquoted value: " ++ wrong
                  return str
-       in  fmap concat $ many parseValueChar) :
+       in  liftM concat $ many parseValueChar) :
       []
 
 parseQuoted :: String -> Char -> Parser String
@@ -209,11 +209,11 @@ escapes = [("gt",'>')
 
 parseString :: (Char -> Bool) -> Parser String
 parseString p =
-   fmap concat $ many (parseChar p)
+   liftM concat $ many (parseChar p)
 
 parseString1 :: (Char -> Bool) -> Parser String
 parseString1 p =
-   fmap concat $ many1 (parseChar p)
+   liftM concat $ many1 (parseChar p)
 
 parseChar :: (Char -> Bool) -> Parser String
 parseChar p =
@@ -365,8 +365,8 @@ instance TagComparisonElement Char where
                      isEOF <- eof
                      if isEOF
                        then return attrs
-                       else fmap (error . ("trailing characters " ++))
-                                 (gets source))
+                       else liftM (error . ("trailing characters " ++))
+                                  (gets source))
                  attrStr
        in  a ~== TagOpen name parsed_attrs
 

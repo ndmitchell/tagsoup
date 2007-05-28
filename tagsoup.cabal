@@ -7,11 +7,15 @@ Build-Depends:  base, network, parsec, mtl
 -- network needed for Download
 -- parsec needed for SourcePos
 -- mtl for StateT monad transformer
+--    you can omit it and the module Text.HTML.TagSoup.Parser.MTL,
+--    falling back to Text.HTML.TagSoup.Parser.Custom
 Synopsis:       Parsing and extracting information from (possibly malformed) HTML documents
 GHC-Options: -Wall -O
 Exposed-modules:
         Text.HTML.TagSoup
         Text.HTML.TagSoup.Parser
+        Text.HTML.TagSoup.Parser.Custom
+        Text.HTML.TagSoup.Parser.MTL
         Text.HTML.TagSoup.Test
         Text.HTML.Download
 
