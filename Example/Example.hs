@@ -1,7 +1,9 @@
 
 module Example.Example where
 
-import Data.Html.TagSoup
+import Text.HTML.TagSoup
+import Text.HTML.Download
+
 import Control.Monad
 import Data.List
 import Data.Char

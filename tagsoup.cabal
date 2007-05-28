@@ -10,10 +10,10 @@ Build-Depends:  base, network, parsec, mtl
 Synopsis:       Parsing and extracting information from (possibly malformed) HTML documents
 GHC-Options: -Wall -O
 Exposed-modules:
-        Data.Html.TagSoup
-        Data.Html.TagSoup.Parser
-        Data.Html.TagSoup.Test
-        Data.Html.Download
+        Text.HTML.TagSoup
+        Text.HTML.TagSoup.Parser
+        Text.HTML.TagSoup.Test
+        Text.HTML.Download
 
 Executable: tagsouptest
 GHC-Options: -Wall -O
