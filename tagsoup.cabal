@@ -11,6 +11,8 @@ Synopsis:       Parsing and extracting information from (possibly malformed) HTM
 GHC-Options: -Wall -O
 Exposed-modules:
         Data.Html.TagSoup
+        Data.Html.TagSoup.Parser
+        Data.Html.TagSoup.Test
         Data.Html.Download
 
 Executable: tagsouptest
