@@ -41,7 +41,7 @@ import Data.Html.TagSoup.Parser
     char, dropSpaces, eof, force, getPos,
     many, many1, many1Satisfy, manySatisfy, readUntil,
     satisfy, source, string,
-    emit, ignoreEmit)
+    emit)
 
 import qualified Data.Html.TagSoup.Parser as Parser
 
@@ -76,7 +76,6 @@ data Tag =
 type PosTag = (SourcePos,Tag)
 
 type Parser a = Parser.Parser PosTag a
-
 
 
 -- | Parse an HTML document to a list of 'Tag'.
@@ -145,8 +144,11 @@ parseTagPos = do
          ) :
          []
     ) :
-    (do text <- parseString1 ('<'/=)
-        emitTag pos (TagText text)
+    (mfix
+       (\ text ->
+          emitTag pos (TagText text) >>
+          parseString1 ('<'/=))
+       >> return ()
     ) :
     []
 
@@ -214,11 +216,11 @@ escapes = [("gt",'>')
 
 parseString :: (Char -> Bool) -> Parser String
 parseString p =
-   ignoreEmit $ fmap concat $ many (parseChar p)
+   fmap concat $ many (parseChar p)
 
 parseString1 :: (Char -> Bool) -> Parser String
 parseString1 p =
-   ignoreEmit $ fmap concat $ many1 (parseChar p)
+   fmap concat $ many1 (parseChar p)
 
 parseChar :: (Char -> Bool) -> Parser String
 parseChar p =
