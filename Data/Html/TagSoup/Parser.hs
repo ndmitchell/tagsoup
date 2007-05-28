@@ -1,10 +1,18 @@
-module Data.Html.TagSoup.Parser where
+module Data.Html.TagSoup.Parser (
+   Parser, Status(Status),
+   char, dropSpaces, eof, force, getPos,
+   many, many1, many1Satisfy, manySatisfy, readUntil,
+   satisfy, source, string,
+   emit,
+   eval, write, gets, mfix)
+  where
 
 
 import Text.ParserCombinators.Parsec.Pos
-          (SourcePos, updatePosChar)
+          (SourcePos, initialPos, updatePosChar)
 
-import Control.Monad.RWS (RWST(..), gets, mplus, liftM2, tell)
+import Control.Monad.RWS (RWST(..), evalRWST, gets, mplus, liftM2, tell)
+import Control.Monad.Fix (mfix)
 
 import Data.Char (isSpace)
 
@@ -17,6 +25,18 @@ data Status =
       sourcePos :: SourcePos,
       source    :: String}
    deriving Show
+
+write :: Parser w () -> String -> Maybe [w]
+write p =
+   fmap snd .
+   evalRWST p () .
+   Status (initialPos "anonymous input")
+
+eval :: Parser w a -> String -> Maybe a
+eval p =
+   fmap fst .
+   evalRWST p () .
+   Status (initialPos "anonymous input")
 
 nextChar :: Parser w Char
 nextChar =
@@ -66,14 +86,6 @@ char c = satisfy (c==)
 string :: String -> Parser w String
 string = ignoreEmit . mapM char
 
-readUntilStrict :: String -> Parser w String
-readUntilStrict pattern =
-   let recurse =
-          string pattern
-          `mplus`
-          liftM2 (:) nextChar recurse
-   in  ignoreEmit recurse
-
 readUntil :: String -> Parser w (Bool,String)
 readUntil pattern =
    let recurse =
@@ -109,11 +121,15 @@ throught the writer part of the monad.
 This is useful if you know that @x@ does not emit something.
 In this case you allow subsequent emitters to emit,
 also if the current statement needs infinite steps to complete.
--}
+
+It checks, whether the ignored information is actually empty.
+However this safety leads to too much strictness.
+
 noEmit :: Parser w a -> Parser w a
 noEmit x =
    RWST $ \ () pcs ->
       fmap (\ ~(y,pcs',empty@ ~[]) -> (y,pcs',empty)) $ runRWST x () pcs
+-}
 
 ignoreEmit :: Parser w a -> Parser w a
 ignoreEmit x =

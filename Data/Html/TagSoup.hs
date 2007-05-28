@@ -37,19 +37,16 @@ module Data.Html.TagSoup(
     ) where
 
 import Data.Html.TagSoup.Parser
-   (Status(Status),
-    char, dropSpaces, eof, force, getPos,
+   (char, dropSpaces, eof, force, getPos,
     many, many1, many1Satisfy, manySatisfy, readUntil,
     satisfy, source, string,
-    emit)
+    emit, mfix, gets)
 
 import qualified Data.Html.TagSoup.Parser as Parser
 
-import Text.ParserCombinators.Parsec.Pos
-          (SourcePos, initialPos)
+import Text.ParserCombinators.Parsec.Pos (SourcePos)
 
-import Control.Monad.RWS (mplus, msum, evalRWST, gets, when)
-import Control.Monad.Fix (mfix)
+import Control.Monad.RWS (mplus, msum, when)
 
 import Data.Html.Download
 
@@ -81,11 +78,9 @@ type Parser a = Parser.Parser PosTag a
 -- | Parse an HTML document to a list of 'Tag'.
 -- Automatically expands out escape characters.
 parseTags :: String -> [PosTag]
-parseTags str =
-   snd $
-   fromMaybe (error "parseTagPos can never fail.") $
-   evalRWST (many parseTagPos)
-      () (Status (initialPos "anonymous input") str)
+parseTags =
+   fromMaybe (error "parseTagPos can never fail.") .
+   Parser.write (many parseTagPos >> return ())
 
 -- | Like 'parseTags' but hides source file positions.
 parseTagsNoPos :: String -> [Tag]
@@ -366,9 +361,8 @@ instance TagComparisonElement Char where
   tagEqualElement a tagname =
        let (name, attrStr) = span (/= ' ') tagname
            parsed_attrs =
-              fst $
               fromMaybe (error "tagEqualElement: parse should never fail") $
-              evalRWST
+              Parser.eval
                  (do dropSpaces
                      attrs <- many parseAttribute
                      isEOF <- eof
@@ -376,7 +370,7 @@ instance TagComparisonElement Char where
                        then return attrs
                        else fmap (error . ("trailing characters " ++))
                                  (gets source))
-                 () (Status (initialPos "attribute string") attrStr)
+                 attrStr
        in  a ~== TagOpen name parsed_attrs
 
 
