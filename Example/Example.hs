@@ -18,7 +18,7 @@ import Data.Char
 -}
 haskellHitCount :: IO ()
 haskellHitCount = do
-        tags <- liftM parseTagsNoPos $ openURL "http://haskell.org/haskellwiki/Haskell"
+        tags <- liftM parseTags $ openURL "http://haskell.org/haskellwiki/Haskell"
         let count = fromFooter $ head $ sections (~== TagOpen "div" [("class","printfooter")]) tags
         putStrLn $ "haskell.org has been hit " ++ show count ++ " times"
     where
@@ -36,7 +36,7 @@ haskellHitCount = do
 -}
 googleTechNews :: IO ()
 googleTechNews = do
-        tags <- liftM parseTagsNoPos $ openURL "http://news.google.com/?ned=us&topic=t"
+        tags <- liftM parseTags $ openURL "http://news.google.com/?ned=us&topic=t"
         let links = map extract $ sections match tags
         putStr $ unlines links
     where
@@ -51,7 +51,7 @@ googleTechNews = do
 
 spjPapers :: IO ()
 spjPapers = do
-        tags <- liftM parseTagsNoPos $ openURL "http://research.microsoft.com/~simonpj/"
+        tags <- liftM parseTags $ openURL "http://research.microsoft.com/~simonpj/"
         let links = map f $ sections (isTagOpenName "a") $
                     takeWhile (~/= TagOpen "a" [("name","haskell")]) $
                     drop 5 $ dropWhile (~/= TagOpen "a" [("name","current")]) tags
@@ -66,7 +66,7 @@ spjPapers = do
 
 ndmPapers :: IO ()
 ndmPapers = do
-        tags <- liftM parseTagsNoPos $ openURL "http://www-users.cs.york.ac.uk/~ndm/downloads/"
+        tags <- liftM parseTags $ openURL "http://www-users.cs.york.ac.uk/~ndm/downloads/"
         let papers = map f $ sections (~== TagOpen "li" [("class","paper")]) tags
         putStr $ unlines papers
     where
@@ -76,7 +76,7 @@ ndmPapers = do
 
 currentTime :: IO ()
 currentTime = do
-        tags <- liftM parseTagsNoPos $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
+        tags <- liftM parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
         let time = innerText (dropWhile (~/= TagOpen "strong" [("id","ct")]) tags !! 1)
         putStrLn time
 
@@ -88,7 +88,7 @@ data Package = Package {name :: String, desc :: String, href :: String}
 
 hackage :: IO [(Section,[Package])]
 hackage = do
-    tags <- liftM parseTagsNoPos $ openURL "http://hackage.haskell.org/packages/archive/pkg-list.html"
+    tags <- liftM parseTags $ openURL "http://hackage.haskell.org/packages/archive/pkg-list.html"
     return $ map parseSect $ partitions (isTagOpenName "h3") tags
     where
         parseSect xs = (nam, packs)
@@ -104,7 +104,7 @@ hackage = do
 -- should print "header"
 getTagContentExample :: IO ()
 getTagContentExample = print . innerText . getTagContent "tr" [] $
-  parseTagsNoPos "<table><tr><td><th>header</th></td><td></tr><tr><td>2</td></tr>...</table>"
+  parseTags "<table><tr><td><th>header</th></td><td></tr><tr><td>2</td></tr>...</table>"
 
 tests :: IO ()
 tests =

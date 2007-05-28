@@ -12,13 +12,13 @@
     the HTML is not cooperating with the person trying to extract the information,
     but is also not trying to hide the information.
 
-    The standard practice is to parse a String to 'Tag's using 'parseTags',
+    The standard practice is to parse a String to 'Tag's using 'parsePosTags',
     then operate upon it to extract the necessary information.
 -}
 
 module Text.HTML.TagSoup(
     -- * Data structures and parsing
-    Tag(..), PosTag, Attribute, parseTags, parseTagsNoPos,
+    Tag(..), PosTag, Attribute, parseTags, parsePosTags,
 
     -- * Tag Combinators
     (~==), (~/=),
@@ -74,18 +74,18 @@ type Parser a = Parser.Parser PosTag a
 
 -- | Parse an HTML document to a list of 'Tag'.
 -- Automatically expands out escape characters.
-parseTags :: String -> [PosTag]
-parseTags =
-   fromMaybe (error "parseTagPos can never fail.") .
-   Parser.write (many parseTagPos >> return ())
+parsePosTags :: String -> [PosTag]
+parsePosTags =
+   fromMaybe (error "parsePosTag can never fail.") .
+   Parser.write (many parsePosTag >> return ())
 
--- | Like 'parseTags' but hides source file positions.
-parseTagsNoPos :: String -> [Tag]
-parseTagsNoPos = map snd . parseTags
+-- | Like 'parsePosTags' but hides source file positions.
+parseTags :: String -> [Tag]
+parseTags = map snd . parsePosTags
 
 
-parseTagPos :: Parser ()
-parseTagPos = do
+parsePosTag :: Parser ()
+parsePosTag = do
    pos <- getPos
    msum $
     (do char '<'
