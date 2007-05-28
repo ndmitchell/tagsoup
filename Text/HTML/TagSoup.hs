@@ -19,12 +19,14 @@
 module Text.HTML.TagSoup(
     -- * Data structures and parsing
     Tag(..), PosTag, Attribute, parseTags, parsePosTags,
+    canonicalizeTags, canonicalizePosTags,
 
     -- * Tag Combinators
     (~==), (~/=),
     TagComparison, TagComparisonElement, {- Haddock want to refer to then -}
     isTagOpen, isTagClose, isTagText, isTagWarning,
     fromTagText, fromAttrib,
+    maybeTagText,
     isTagOpenName, isTagCloseName,
     sections, partitions, getTagContent,
 
@@ -70,6 +72,27 @@ data Tag =
 type PosTag = (SourcePos,Tag)
 
 type Parser a = Parser.Parser PosTag a
+
+{- |
+Turns all tag names to lower case and
+converts DOCTYPE to upper case.
+-}
+canonicalizePosTags :: [PosTag] -> [PosTag]
+canonicalizePosTags =
+   map (\(i,tag) -> (i, canonicalizeTag tag))
+
+canonicalizeTags :: [Tag] -> [Tag]
+canonicalizeTags =
+   map canonicalizeTag
+
+canonicalizeTag :: Tag -> Tag
+canonicalizeTag t =
+   case t of
+      TagOpen  name attrs  -> TagOpen  (map toLower name) attrs
+      TagClose name        -> TagClose (map toLower name)
+      TagSpecial name info -> TagSpecial (map toUpper name) info
+      _ -> t
+
 
 
 -- | Parse an HTML document to a list of 'Tag'.
