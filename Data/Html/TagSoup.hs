@@ -40,14 +40,16 @@ import Data.Html.TagSoup.Parser
    (Status(Status),
     char, dropSpaces, eof, force, getPos,
     many, many1, many1Satisfy, manySatisfy, readUntil,
-    satisfy, source, string)
+    satisfy, source, string,
+    emit, ignoreEmit)
 
 import qualified Data.Html.TagSoup.Parser as Parser
 
 import Text.ParserCombinators.Parsec.Pos
           (SourcePos, initialPos)
 
-import Control.Monad.RWS (mplus, msum, evalRWST, gets, tell, when)
+import Control.Monad.RWS (mplus, msum, evalRWST, gets, when)
+import Control.Monad.Fix (mfix)
 
 import Data.Html.Download
 
@@ -102,39 +104,43 @@ parseTagPos = do
              emitTag pos (TagClose name)
              dropSpaces
              junkPos <- getPos
-             junk <- readUntilTerm
+             readUntilTerm
+                (\ junk ->
+                   emitWarningWhen
+                      (not $ null junk)
+                      junkPos ("Junk in closing tag: \"" ++ junk ++"\""))
                 ("Unterminated closing tag \"" ++ name ++"\"") ">"
-             emitWarningWhen
-                (not $ null junk)
-                junkPos ("Junk in closing tag: \"" ++ junk ++"\"")
          ) :
          (do char '!'
              msum $
               (do string "--"
-                  cmt <-
-                     readUntilTerm "Unterminated comment" "-->"
-                  emitTag pos (TagComment cmt)) :
+                  readUntilTerm
+                     (\ cmt -> emitTag pos (TagComment cmt))
+                     "Unterminated comment" "-->") :
               (do name <- manySatisfy isAlphaNum
                   dropSpaces
-                  info <- readUntilTerm
-                     ("Unterminated special tag \"" ++ name ++ "\"") ">"
-                  emitTag pos (TagSpecial name info)) :
+                  readUntilTerm
+                     (\ info -> emitTag pos (TagSpecial name info))
+                     ("Unterminated special tag \"" ++ name ++ "\"") ">") :
               []
          ) :
          (do name <- manySatisfy isAlphaNum
              dropSpaces
-             attrs <- many parseAttribute
-             tell [(pos, TagOpen name attrs)]
+             mfix
+                (\attrs ->
+                   emit (pos, TagOpen name attrs) >>
+                   many parseAttribute)
              force $ msum $
                (do closePos <- getPos
                    string "/>"
                    emitTag closePos (TagClose name)) :
                (do junkPos <- getPos
-                   junk <- readUntilTerm
-                      ("Unterminated open tag \"" ++ name ++ "\"") ">"
-                   emitWarningWhen
-                      (not $ null junk)
-                      junkPos ("Junk in opening tag: \"" ++ junk ++"\"")) :
+                   readUntilTerm
+                      (\ junk ->
+                         emitWarningWhen
+                            (not $ null junk)
+                            junkPos ("Junk in opening tag: \"" ++ junk ++ "\""))
+                      ("Unterminated open tag \"" ++ name ++ "\"") ">") :
                []
          ) :
          []
@@ -179,18 +185,22 @@ parseQuoted :: String -> Char -> Parser String
 parseQuoted termMsg quote =
    do char quote
       str <- parseString (quote/=)
-      mplus
-         (char quote >> return str)
+      force $ mplus
+         (char quote >> return ())
          (do termPos <- getPos
-             emitWarning termPos termMsg
-             return str)
-
-readUntilTerm :: String -> String -> Parser String
-readUntilTerm warning termPat =
-   do ~(termFound,str) <- readUntil termPat
-      termPos <- getPos
-      emitWarningWhen (not termFound) termPos warning
+             emitWarning termPos termMsg)
       return str
+
+{-
+Instead of using 'generateTag' we could also wrap the call to 'readUntilTerm'
+in 'mfix' in order to emit a tag, where some information is read later.
+-}
+readUntilTerm :: (String -> Parser ()) -> String -> String -> Parser ()
+readUntilTerm generateTag termWarning termPat =
+   do ~(termFound,str) <- readUntil termPat
+      generateTag str
+      termPos <- getPos
+      emitWarningWhen (not termFound) termPos termWarning
 
 
 
@@ -204,11 +214,11 @@ escapes = [("gt",'>')
 
 parseString :: (Char -> Bool) -> Parser String
 parseString p =
-   fmap concat $ many (parseChar p)
+   ignoreEmit $ fmap concat $ many (parseChar p)
 
 parseString1 :: (Char -> Bool) -> Parser String
 parseString1 p =
-   fmap concat $ many1 (parseChar p)
+   ignoreEmit $ fmap concat $ many1 (parseChar p)
 
 parseChar :: (Char -> Bool) -> Parser String
 parseChar p =
@@ -254,7 +264,7 @@ emitWarning :: SourcePos -> String -> Parser ()
 emitWarning pos msg = emitTag pos (TagWarning msg)
 
 emitTag :: SourcePos -> Tag -> Parser ()
-emitTag pos tag = tell [(pos, tag)]
+emitTag = curry emit
 
 
 infixr 5 ?:

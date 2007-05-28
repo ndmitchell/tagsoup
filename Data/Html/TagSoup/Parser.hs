@@ -4,9 +4,8 @@ module Data.Html.TagSoup.Parser where
 import Text.ParserCombinators.Parsec.Pos
           (SourcePos, updatePosChar)
 
-import Control.Monad.RWS (RWST(..), gets, mplus, liftM2)
+import Control.Monad.RWS (RWST(..), gets, mplus, liftM2, tell)
 
-import Data.Monoid (mempty)
 import Data.Char (isSpace)
 
 
@@ -24,7 +23,7 @@ nextChar =
    RWST $ \ () (Status pos str) ->
       case str of
          []     -> Nothing
-         (c:cs) -> Just (c, Status (updatePosChar pos c) cs, mempty)
+         (c:cs) -> Just (c, Status (updatePosChar pos c) cs, [])
 
 eof :: Parser w Bool
 eof = gets (null . source)
@@ -51,21 +50,21 @@ many1 :: Parser w a -> Parser w [a]
 many1 x = liftM2 (:) x (many x)
 
 manySatisfy :: (Char -> Bool) -> Parser w String
-manySatisfy = many . satisfy
+manySatisfy = ignoreEmit . many . satisfy
 
 many1Satisfy :: (Char -> Bool) -> Parser w String
-many1Satisfy = many1 . satisfy
+many1Satisfy = ignoreEmit . many1 . satisfy
 
 dropSpaces :: Parser w ()
 dropSpaces =
-   fmap (const ()) $ manySatisfy isSpace
+   ignoreEmit $ fmap (const ()) $ manySatisfy isSpace
 
 
 char :: Char -> Parser w Char
 char c = satisfy (c==)
 
 string :: String -> Parser w String
-string = mapM char
+string = ignoreEmit . mapM char
 
 readUntilStrict :: String -> Parser w String
 readUntilStrict pattern =
@@ -73,7 +72,7 @@ readUntilStrict pattern =
           string pattern
           `mplus`
           liftM2 (:) nextChar recurse
-   in  recurse
+   in  ignoreEmit recurse
 
 readUntil :: String -> Parser w (Bool,String)
 readUntil pattern =
@@ -87,7 +86,7 @@ readUntil pattern =
                else liftM2
                        (\c ~(found,str) -> (found,c:str))
                        nextChar recurse
-   in  recurse
+   in  ignoreEmit recurse
 {-
 runStateT (readUntil "-->") (initialPos "input", "<!-- comment --> other stuff")
 -}
@@ -103,3 +102,23 @@ force x =
    RWST $ \ () pcs ->
       let Just (y,pcs',w) = runRWST x () pcs
       in  Just (y,pcs',w)
+
+{- |
+Turn a parser @x@ into one that is evaluated to bottom if @x@ emits something
+throught the writer part of the monad.
+This is useful if you know that @x@ does not emit something.
+In this case you allow subsequent emitters to emit,
+also if the current statement needs infinite steps to complete.
+-}
+noEmit :: Parser w a -> Parser w a
+noEmit x =
+   RWST $ \ () pcs ->
+      fmap (\ ~(y,pcs',empty@ ~[]) -> (y,pcs',empty)) $ runRWST x () pcs
+
+ignoreEmit :: Parser w a -> Parser w a
+ignoreEmit x =
+   RWST $ \ () pcs ->
+      fmap (\ ~(y,pcs',_) -> (y,pcs',[])) $ runRWST x () pcs
+
+emit :: w -> Parser w ()
+emit w = tell [w]
