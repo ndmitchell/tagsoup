@@ -24,3 +24,7 @@ Executable: tagsouptest
 GHC-Options: -Wall -O
 other-modules: Example.Example
 main-is:        test.hs
+
+Executable: validate
+GHC-Options: -Wall -O
+main-is:     Example/Validate.hs
