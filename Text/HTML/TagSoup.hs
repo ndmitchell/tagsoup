@@ -44,6 +44,7 @@ import Text.HTML.TagSoup.Parser
     emit, mfix, gets)
 
 import qualified Text.HTML.TagSoup.Parser as Parser
+import qualified Text.HTML.TagSoup.Entity as HTMLEntity
 
 import Text.ParserCombinators.Parsec.Pos (SourcePos)
 
@@ -222,14 +223,6 @@ readUntilTerm generateTag termWarning termPat =
 
 
 
-escapes :: [(String,Char)]
-escapes = [("gt",'>')
-          ,("lt",'<')
-          ,("amp",'&')
-          ,("quot",'\"')
-          ]
-
-
 parseString :: (Char -> Bool) -> Parser String
 parseString p =
    liftM concat $ many (parseChar p)
@@ -270,9 +263,8 @@ parseNamedEntity :: String -> Either String Char
 parseNamedEntity name =
    maybe
       (Left $ "Unknown HTML entity &" ++ name ++ ";")
-      Right
-      (lookup name escapes)
-
+      (Right . chr)
+      (lookup name HTMLEntity.table)
 
 emitWarningWhen :: Bool -> SourcePos -> String -> Parser ()
 emitWarningWhen cond pos msg =
