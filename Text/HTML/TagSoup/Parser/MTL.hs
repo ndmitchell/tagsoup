@@ -5,8 +5,8 @@ module Text.HTML.TagSoup.Parser.MTL (
    ) where
 
 
-import Text.ParserCombinators.Parsec.Pos
-          (SourcePos, updatePosChar)
+import qualified Text.HTML.TagSoup.Position as Position
+import Text.HTML.TagSoup.Position (Position)
 
 import Control.Monad.RWS (RWST(..), gets, tell)
 import Control.Monad.Fix (mfix)
@@ -17,7 +17,7 @@ type Parser w a = RWST () [w] Status Maybe a
 
 data Status =
    Status {
-      sourcePos :: SourcePos,
+      sourcePos :: Position,
       source    :: String}
    deriving Show
 
@@ -31,7 +31,7 @@ nextChar =
    RWST $ \ () (Status pos str) ->
       case str of
          []     -> Nothing
-         (c:cs) -> Just (c, Status (updatePosChar pos c) cs, [])
+         (c:cs) -> Just (c, Status (Position.updateOnChar c pos) cs, [])
 
 
 {- |

@@ -18,7 +18,8 @@
 
 module Text.HTML.TagSoup(
     -- * Data structures and parsing
-    Tag(..), PosTag, Attribute, parseTags, parsePosTags,
+    Tag(..), PosTag, Attribute,
+    parseTags, parsePosTags, parseFilePosTags,
     canonicalizeTags, canonicalizePosTags,
 
     -- * Tag Combinators
@@ -26,7 +27,7 @@ module Text.HTML.TagSoup(
     TagComparison, TagComparisonElement, {- Haddock want to refer to then -}
     isTagOpen, isTagClose, isTagText, isTagWarning,
     fromTagText, fromAttrib,
-    maybeTagText,
+    maybeTagText, maybeTagWarning,
     isTagOpenName, isTagCloseName,
     sections, partitions, getTagContent,
 
@@ -46,7 +47,7 @@ import Text.HTML.TagSoup.Parser
 import qualified Text.HTML.TagSoup.Parser as Parser
 import qualified Text.HTML.TagSoup.Entity as HTMLEntity
 
-import Text.ParserCombinators.Parsec.Pos (SourcePos)
+import Text.HTML.TagSoup.Position (Position)
 
 import Control.Monad (mplus, msum, when, liftM)
 
@@ -70,7 +71,7 @@ data Tag =
      deriving (Show, Eq, Ord)
 
 
-type PosTag = (SourcePos,Tag)
+type PosTag = (Position,Tag)
 
 type Parser a = Parser.Parser PosTag a
 
@@ -96,12 +97,18 @@ canonicalizeTag t =
 
 
 
+parseFilePosTags :: FilePath -> String -> [PosTag]
+parseFilePosTags fileName =
+   fromMaybe (error "parsePosTag can never fail.") .
+   Parser.write fileName (many parsePosTag >> return ())
+
+
 -- | Parse an HTML document to a list of 'Tag'.
 -- Automatically expands out escape characters.
 parsePosTags :: String -> [PosTag]
 parsePosTags =
    fromMaybe (error "parsePosTag can never fail.") .
-   Parser.write (many parsePosTag >> return ())
+   Parser.write "input" (many parsePosTag >> return ())
 
 -- | Like 'parsePosTags' but hides source file positions.
 parseTags :: String -> [Tag]
@@ -266,14 +273,14 @@ parseNamedEntity name =
       (Right . chr)
       (lookup name HTMLEntity.table)
 
-emitWarningWhen :: Bool -> SourcePos -> String -> Parser ()
+emitWarningWhen :: Bool -> Position -> String -> Parser ()
 emitWarningWhen cond pos msg =
    force $ when cond $ emitWarning pos msg
 
-emitWarning :: SourcePos -> String -> Parser ()
+emitWarning :: Position -> String -> Parser ()
 emitWarning pos msg = emitTag pos (TagWarning msg)
 
-emitTag :: SourcePos -> Tag -> Parser ()
+emitTag :: Position -> Tag -> Parser ()
 emitTag = curry emit
 
 
@@ -322,6 +329,11 @@ fromTagText x = error ("(" ++ show x ++ ") is not a TagText")
 -- | Test if a 'Tag' is a 'TagWarning'
 isTagWarning :: Tag -> Bool
 isTagWarning (TagWarning {})  = True; isTagWarning _ = False
+
+-- | Extract the string from within 'TagWarning', otherwise 'Nothing'
+maybeTagWarning :: Tag -> Maybe String
+maybeTagWarning (TagWarning x) = Just x
+maybeTagWarning _ = Nothing
 
 -- | Extract an attribute, crashes if not a 'TagOpen'.
 --   Returns @\"\"@ if no attribute present.
@@ -374,7 +386,7 @@ instance TagComparisonElement Char where
        let (name, attrStr) = span (/= ' ') tagname
            parsed_attrs =
               fromMaybe (error "tagEqualElement: parse should never fail") $
-              Parser.eval
+              Parser.eval "input"
                  (do dropSpaces
                      attrs <- many parseAttribute
                      isEOF <- eof

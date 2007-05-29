@@ -3,9 +3,8 @@ Version:        0.1
 License:        BSD3
 Author:         Neil Mitchell
 Homepage:       http://www-users.cs.york.ac.uk/~ndm/projects/libraries.php
-Build-Depends:  base, network, parsec, mtl
+Build-Depends:  base, network, mtl
 -- network needed for Download
--- parsec needed for SourcePos
 -- mtl for StateT monad transformer
 --    you can omit it and the module Text.HTML.TagSoup.Parser.MTL,
 --    falling back to Text.HTML.TagSoup.Parser.Custom
@@ -17,6 +16,7 @@ Exposed-modules:
         Text.HTML.TagSoup.Parser
         Text.HTML.TagSoup.Parser.Custom
         Text.HTML.TagSoup.Parser.MTL
+        Text.HTML.TagSoup.Position
         Text.HTML.TagSoup.Test
         Text.HTML.Download
 

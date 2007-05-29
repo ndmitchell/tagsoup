@@ -8,8 +8,8 @@ module Text.HTML.TagSoup.Parser (
   where
 
 
-import Text.ParserCombinators.Parsec.Pos
-          (SourcePos, initialPos)
+import qualified Text.HTML.TagSoup.Position as Position
+import Text.HTML.TagSoup.Position (Position)
 
 import Text.HTML.TagSoup.Parser.Custom
 -- import Text.HTML.TagSoup.Parser.MTL
@@ -20,24 +20,24 @@ import Control.Monad.Fix (mfix)
 import Data.Char (isSpace)
 
 
-write :: Parser w () -> String -> Maybe [w]
-write p =
+write :: FilePath -> Parser w () -> String -> Maybe [w]
+write fileName p =
    fmap (\ ~(_,_,ws) -> ws) .
    run p .
-   Status (initialPos "input")
+   Status (Position.initialize fileName)
 
-eval :: Parser w a -> String -> Maybe a
-eval p =
+eval :: FilePath -> Parser w a -> String -> Maybe a
+eval fileName p =
    fmap (\ ~(x,_,_) -> x) .
    run p .
-   Status (initialPos "input")
+   Status (Position.initialize fileName)
 
 
 
 eof :: Parser w Bool
 eof = gets (null . source)
 
-getPos :: Parser w SourcePos
+getPos :: Parser w Position
 getPos = gets sourcePos
 
 satisfy :: (Char -> Bool) -> Parser w Char
@@ -90,7 +90,7 @@ readUntil pattern =
                        nextChar recurse
    in  ignoreEmit recurse
 {-
-runStateT (readUntil "-->") (initialPos "input", "<!-- comment --> other stuff")
+runStateT (readUntil "-->") (Position.initialize "input", "<!-- comment --> other stuff")
 -}
 
 

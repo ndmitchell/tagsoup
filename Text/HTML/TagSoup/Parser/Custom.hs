@@ -6,8 +6,8 @@ module Text.HTML.TagSoup.Parser.Custom (
    ) where
 
 
-import Text.ParserCombinators.Parsec.Pos
-          (SourcePos, updatePosChar)
+import qualified Text.HTML.TagSoup.Position as Position
+import Text.HTML.TagSoup.Position (Position)
 
 import Control.Monad (MonadPlus, mzero, mplus, liftM, liftM2)
 import Control.Monad.Fix (MonadFix, mfix)
@@ -57,7 +57,7 @@ instance MonadFix (Parser w) where
 
 data Status =
    Status {
-      sourcePos :: SourcePos,
+      sourcePos :: Position,
       source    :: String}
    deriving Show
 
@@ -68,7 +68,7 @@ nextChar =
    Cons $ \ (Status pos str) ->
       case str of
          []     -> Nothing
-         (c:cs) -> Just (c, Status (updatePosChar pos c) cs, [])
+         (c:cs) -> Just (c, Status (Position.updateOnChar c pos) cs, [])
 
 
 {- |
