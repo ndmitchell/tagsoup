@@ -4,9 +4,9 @@ module Example.Example where
 import Text.HTML.TagSoup
 import Text.HTML.Download
 
-import Control.Monad
-import Data.List
-import Data.Char
+import Control.Monad (liftM)
+import Data.List (isPrefixOf, findIndex)
+import Data.Char (isDigit)
 
 
 {-
