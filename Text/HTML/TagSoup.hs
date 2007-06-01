@@ -40,7 +40,7 @@ module Text.HTML.TagSoup(
 
 import Text.HTML.TagSoup.Parser
    (char, dropSpaces, eof, force, getPos,
-    many, many1, many1Satisfy, manySatisfy, readUntil,
+    many, many1, many1Satisfy, readUntil,
     satisfy, source, string,
     emit, mfix, gets)
 
@@ -64,7 +64,7 @@ type Attribute = (String,String)
 data Tag =
      TagOpen String [Attribute]  -- ^ An open tag with 'Attribute's in their original order.
    | TagClose String             -- ^ A closing tag
-   | TagText String              -- ^ A text node, guranteed not to be the empty string
+   | TagText String              -- ^ A text node, guaranteed not to be the empty string
    | TagComment String           -- ^ A comment
    | TagSpecial String String    -- ^ A tag like <!DOCTYPE ...>
    | TagWarning String           -- ^ Mark a syntax error in the input file
@@ -122,7 +122,7 @@ parsePosTag = do
     (do char '<'
         msum $
          (do char '/'
-             name <- manySatisfy isAlphaNum
+             name <- many1Satisfy isAlpha
              emitTag pos (TagClose name)
              dropSpaces
              junkPos <- getPos
@@ -139,14 +139,14 @@ parsePosTag = do
                   readUntilTerm
                      (\ cmt -> emitTag pos (TagComment cmt))
                      "Unterminated comment" "-->") :
-              (do name <- manySatisfy isAlphaNum
+              (do name <- many1Satisfy isAlpha
                   dropSpaces
                   readUntilTerm
                      (\ info -> emitTag pos (TagSpecial name info))
                      ("Unterminated special tag \"" ++ name ++ "\"") ">") :
               []
          ) :
-         (do name <- manySatisfy isAlphaNum
+         (do name <- many1Satisfy isAlpha
              dropSpaces
              mfix
                 (\attrs ->
@@ -164,6 +164,9 @@ parsePosTag = do
                             junkPos ("Junk in opening tag: \"" ++ junk ++ "\""))
                       ("Unterminated open tag \"" ++ name ++ "\"") ">") :
                []
+         ) :
+         (do emitTag pos (TagText "<")
+             emitWarning pos "A '<', that is not part of a tag. Encode it as &lt; please."
          ) :
          []
     ) :

@@ -39,6 +39,7 @@ lazyTags =
       ("<!-- "++cycle "comment") :
       ("<!"++cycle "doctype") :
       ("<!DOCTYPE"++cycle " description") :
+      (cycle "1<2 ") :
       []
 
 lazyWarnings :: [Char]
@@ -50,4 +51,5 @@ lazyWarnings =
       ("<html name="++cycle "val&ue") :
       ("<html name="++cycle "va&l!ue") :
       ("</html "++cycle "junk") :
+      (cycle "1<2 ") :
       []
