@@ -122,7 +122,7 @@ parsePosTag = do
     (do char '<'
         msum $
          (do char '/'
-             name <- many1Satisfy (\c -> isAlphaNum c || c `elem` "_:")
+             name <- parseName
              emitTag pos (TagClose name)
              dropSpaces
              junkPos <- getPos
@@ -146,7 +146,7 @@ parsePosTag = do
                      ("Unterminated special tag \"" ++ name ++ "\"") ">") :
               []
          ) :
-         (do name <- many1Satisfy (\c -> isAlphaNum c || c `elem` "_:")
+         (do name <- parseName
              dropSpaces
              mfix
                 (\attrs ->
@@ -182,7 +182,7 @@ parsePosTag = do
 
 parseAttribute :: Parser Attribute
 parseAttribute =
-   do name <- many1Satisfy (\c -> isAlpha c || c `elem` "_-:")
+   do name <- parseName
       dropSpaces
       value <-
          force $
@@ -192,6 +192,9 @@ parseAttribute =
       dropSpaces
       return (name, value)
 
+parseName :: Parser String
+parseName =
+   many1Satisfy (\c -> isAlphaNum c || c `elem` "_-:")
 
 parseValue :: Parser String
 parseValue =
