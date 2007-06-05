@@ -122,7 +122,7 @@ parsePosTag = do
     (do char '<'
         msum $
          (do char '/'
-             name <- many1Satisfy isAlpha
+             name <- many1Satisfy (\c -> isAlphaNum c || c `elem` "_:")
              emitTag pos (TagClose name)
              dropSpaces
              junkPos <- getPos
@@ -139,14 +139,14 @@ parsePosTag = do
                   readUntilTerm
                      (\ cmt -> emitTag pos (TagComment cmt))
                      "Unterminated comment" "-->") :
-              (do name <- many1Satisfy isAlpha
+              (do name <- many1Satisfy isAlphaNum
                   dropSpaces
                   readUntilTerm
                      (\ info -> emitTag pos (TagSpecial name info))
                      ("Unterminated special tag \"" ++ name ++ "\"") ">") :
               []
          ) :
-         (do name <- many1Satisfy isAlpha
+         (do name <- many1Satisfy (\c -> isAlphaNum c || c `elem` "_:")
              dropSpaces
              mfix
                 (\attrs ->
@@ -201,7 +201,7 @@ parseValue =
       (let parseValueChar =
               do str <- parseChar (not . flip elem " >\"\'")
                  let wrong =
-                       filter (\c -> not (isAlphaNum c || c `elem` "_-")) str
+                       filter (\c -> not (isAlphaNum c || c `elem` "-._:")) str
                  pos <- getPos
                  emitWarningWhen
                     (not (null wrong))
