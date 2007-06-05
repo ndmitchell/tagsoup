@@ -244,6 +244,23 @@ parseString1 p =
 parseChar :: (Char -> Bool) -> Parser String
 parseChar p =
    do pos <- getPos
+      x <- parseHTMLChar p
+      let returnChar c = return $ c:[]
+      case x of
+         Char c -> returnChar c
+         NumericRef num -> returnChar (chr num)
+         NamedRef name ->
+            maybe
+               (let refName = '&':name++";"
+                in  emitWarning pos ("Unknown HTML entity " ++ refName) >>
+                    return refName)
+               (returnChar . chr)
+               (lookup name HTMLEntity.table)
+
+
+parseHTMLChar :: (Char -> Bool) -> Parser HTMLChar
+parseHTMLChar p =
+   do pos <- getPos
       c <- satisfy p
       if c=='&'
         then
@@ -251,30 +268,20 @@ parseChar p =
           mplus
             (do ent <-
                    mplus
-                      (do char '#'
-                          numStr <- many1Satisfy isDigit
-                          return [parseNumericEntity numStr])
-                      (do nameStr <- many1Satisfy isAlphaNum
-                          either
-                             (\msg -> emitWarning pos msg >>
-                                      return ('&':nameStr++";"))
-                             (\ch -> return [ch]) $
-                             parseNamedEntity nameStr)
+                      (char '#' >>
+                       liftM (NumericRef . read) (many1Satisfy isDigit))
+                      (liftM NamedRef $ many1Satisfy isAlphaNum)
                 char ';'
                 return ent)
             (emitWarning pos "Ill formed entity" >>
-             return "&")
-        else return (c:[])
+             return (Char '&'))
+        else return (Char c)
 
-parseNumericEntity :: String -> Char
-parseNumericEntity = chr . read
+data HTMLChar =
+     Char Char
+   | NumericRef Int
+   | NamedRef String
 
-parseNamedEntity :: String -> Either String Char
-parseNamedEntity name =
-   maybe
-      (Left $ "Unknown HTML entity &" ++ name ++ ";")
-      (Right . chr)
-      (lookup name HTMLEntity.table)
 
 emitWarningWhen :: Bool -> Position -> String -> Parser ()
 emitWarningWhen cond pos msg =
