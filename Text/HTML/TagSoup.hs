@@ -33,9 +33,6 @@ module Text.HTML.TagSoup(
 
     -- * extract all text
     InnerText(..),
-
-    -- * QuickCheck properties
-    propSections, propPartitions,
     ) where
 
 import Text.HTML.TagSoup.Parser
@@ -99,7 +96,7 @@ canonicalizeTag t =
 
 parseFilePosTags :: FilePath -> String -> [PosTag]
 parseFilePosTags fileName =
-   fromMaybe (error "parsePosTag can never fail.") .
+   fromMaybe (error "parseFilePosTag can never fail.") .
    Parser.write fileName (many parsePosTag >> return ())
 
 
@@ -290,13 +287,6 @@ emitTag :: Position -> Tag -> Parser ()
 emitTag = curry emit
 
 
-infixr 5 ?:
-
-(?:) :: (Bool, a) -> [a] -> [a]
-(?:) (True,  x) xs = x:xs
-(?:) (False, _) xs = xs
-
-
 -- | Extract all text content from tags (similar to Verbatim found in HaXml)
 class InnerText a where
     innerText :: a -> String
@@ -413,31 +403,12 @@ instance TagComparisonElement a => TagComparison [a] where
 sections :: (a -> Bool) -> [a] -> [[a]]
 sections p = filter (p . head) . init . tails
 
-sections_rec :: (a -> Bool) -> [a] -> [[a]]
-sections_rec f =
-   let recurse [] = []
-       recurse (x:xs) = (f x, x:xs) ?: recurse xs
-   in  recurse
-
-propSections :: [Int] -> Bool
-propSections xs  =  sections (<=0) xs == sections_rec (<=0) xs
-
 -- | This function is similar to 'sections', but splits the list
 --   so no element appears in any two partitions.
 partitions :: (a -> Bool) -> [a] -> [[a]]
 partitions p =
    let notp = not . p
    in  groupBy (const notp) . dropWhile notp
-
-partitions_rec :: (a -> Bool) -> [a] -> [[a]]
-partitions_rec f = g . dropWhile (not . f)
-    where
-        g [] = []
-        g (x:xs) = (x:a) : g b
-            where (a,b) = break f xs
-
-propPartitions :: [Int] -> Bool
-propPartitions xs  =  partitions (<=0) xs == partitions_rec (<=0) xs
 
 getTagContent :: String -> [( String, String )] -> [Tag] -> [Tag]
 getTagContent name attr tagsoup =

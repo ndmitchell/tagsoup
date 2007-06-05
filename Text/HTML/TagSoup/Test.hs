@@ -1,4 +1,10 @@
-module Text.HTML.TagSoup.Test where
+module Text.HTML.TagSoup.Test (
+    -- * Tests on laziness
+    laziness, lazyTags, lazyWarnings,
+
+    -- * QuickCheck properties
+    propSections, propPartitions,
+   ) where
 
 import qualified Text.HTML.TagSoup as TagSoup
 
@@ -53,3 +59,37 @@ lazyWarnings =
       ("</html "++cycle "junk") :
       (cycle "1<2 ") :
       []
+
+
+
+infixr 5 ?:
+
+(?:) :: (Bool, a) -> [a] -> [a]
+(?:) (True,  x) xs = x:xs
+(?:) (False, _) xs = xs
+
+
+sections_rec :: (a -> Bool) -> [a] -> [[a]]
+sections_rec f =
+   let recurse [] = []
+       recurse (x:xs) = (f x, x:xs) ?: recurse xs
+   in  recurse
+
+propSections :: Int -> [Int] -> Bool
+propSections y xs  =
+   let p = (<=y)
+   in  TagSoup.sections p xs == sections_rec p xs
+
+
+
+partitions_rec :: (a -> Bool) -> [a] -> [[a]]
+partitions_rec f = g . dropWhile (not . f)
+    where
+        g [] = []
+        g (x:xs) = (x:a) : g b
+            where (a,b) = break f xs
+
+propPartitions :: Int -> [Int] -> Bool
+propPartitions y xs  =
+   let p = (<=y)
+   in  TagSoup.partitions p xs == partitions_rec p xs
