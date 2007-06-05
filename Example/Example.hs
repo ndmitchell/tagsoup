@@ -100,6 +100,16 @@ hackage = do
                                   (drop 2 $ dropWhile (/= ':') $ innerText $ xs !! 4)
                                   (fromAttrib "href" $ xs !! 1)
 
+-- rssCreators Example: prints names of story contributors on
+-- sequence.complete.org. This content is RSS (not HTML), and the selected
+-- tag uses a different XML namespace "dc:creator".
+rssCreators :: IO [String]
+rssCreators = do
+    tags <- liftM parseTags $ openURL "http://sequence.complete.org/node/feed"
+    return $ map names $ partitions (isTagOpenName "dc:creator") tags
+    where
+      names xs = innerText $ xs !! 1
+
 -- getTagContent Example ( prints content of first td as text
 -- should print "header"
 getTagContentExample :: IO ()
