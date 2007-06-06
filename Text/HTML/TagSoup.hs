@@ -118,63 +118,75 @@ parsePosTag = do
    msum $
     (do char '<'
         msum $
-         (do char '/'
-             name <- parseName
-             emitTag pos (TagClose name)
-             dropSpaces
-             junkPos <- getPos
-             readUntilTerm
-                (\ junk ->
-                   emitWarningWhen
-                      (not $ null junk)
-                      junkPos ("Junk in closing tag: \"" ++ junk ++"\""))
-                ("Unterminated closing tag \"" ++ name ++"\"") ">"
-         ) :
-         (do char '!'
-             msum $
-              (do string "--"
-                  readUntilTerm
-                     (\ cmt -> emitTag pos (TagComment cmt))
-                     "Unterminated comment" "-->") :
-              (do name <- many1Satisfy isAlphaNum
-                  dropSpaces
-                  readUntilTerm
-                     (\ info -> emitTag pos (TagSpecial name info))
-                     ("Unterminated special tag \"" ++ name ++ "\"") ">") :
-              []
-         ) :
-         (do name <- parseName
-             dropSpaces
-             mfix
-                (\attrs ->
-                   emit (pos, TagOpen name attrs) >>
-                   many parseAttribute)
-             force $ msum $
-               (do closePos <- getPos
-                   string "/>"
-                   emitTag closePos (TagClose name)) :
-               (do junkPos <- getPos
-                   readUntilTerm
-                      (\ junk ->
-                         emitWarningWhen
-                            (not $ null junk)
-                            junkPos ("Junk in opening tag: \"" ++ junk ++ "\""))
-                      ("Unterminated open tag \"" ++ name ++ "\"") ">") :
-               []
-         ) :
+         parseSpecialTag pos :
+         parseCloseTag pos :
+         parseOpenTag pos :
          (do emitTag pos (TagText "<")
              emitWarning pos "A '<', that is not part of a tag. Encode it as &lt; please."
          ) :
          []
     ) :
-    (mfix
-       (\ text ->
-          emitTag pos (TagText text) >>
-          parseString1 ('<'/=))
-       >> return ()
-    ) :
+    parseText pos :
     []
 
+
+parseOpenTag :: Position -> Parser ()
+parseOpenTag pos =
+   do name <- parseName
+      dropSpaces
+      mfix
+         (\attrs ->
+            emit (pos, TagOpen name attrs) >>
+            many parseAttribute)
+      force $ msum $
+        (do closePos <- getPos
+            string "/>"
+            emitTag closePos (TagClose name)) :
+        (do junkPos <- getPos
+            readUntilTerm
+               (\ junk ->
+                  emitWarningWhen
+                     (not $ null junk)
+                     junkPos ("Junk in opening tag: \"" ++ junk ++ "\""))
+               ("Unterminated open tag \"" ++ name ++ "\"") ">") :
+        []
+
+parseCloseTag :: Position -> Parser ()
+parseCloseTag pos =
+   do char '/'
+      name <- parseName
+      emitTag pos (TagClose name)
+      dropSpaces
+      junkPos <- getPos
+      readUntilTerm
+         (\ junk ->
+            emitWarningWhen
+               (not $ null junk)
+               junkPos ("Junk in closing tag: \"" ++ junk ++"\""))
+         ("Unterminated closing tag \"" ++ name ++"\"") ">"
+
+parseSpecialTag :: Position -> Parser ()
+parseSpecialTag pos =
+   do char '!'
+      msum $
+       (do string "--"
+           readUntilTerm
+              (\ cmt -> emitTag pos (TagComment cmt))
+              "Unterminated comment" "-->") :
+       (do name <- many1Satisfy isAlphaNum
+           dropSpaces
+           readUntilTerm
+              (\ info -> emitTag pos (TagSpecial name info))
+              ("Unterminated special tag \"" ++ name ++ "\"") ">") :
+       []
+
+parseText :: Position -> Parser ()
+parseText pos =
+   mfix
+     (\ text ->
+        emitTag pos (TagText text) >>
+        parseString1 ('<'/=))
+     >> return ()
 
 
 parseAttribute :: Parser Attribute
