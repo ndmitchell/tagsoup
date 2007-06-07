@@ -20,26 +20,24 @@ module Text.HTML.TagSoup(
     -- * Data structures and parsing
     Tag(..), PosTag, Attribute,
     parseTags, parsePosTags, parseFilePosTags,
+    parseTag, parseInnerOfTag,
     canonicalizeTags, canonicalizePosTags,
 
     -- * Tag Combinators
-    (~==), (~/=),
-    TagComparison, TagComparisonElement, {- Haddock want to refer to then -}
     isTagOpen, isTagClose, isTagText, isTagWarning,
     fromTagText, fromAttrib,
     maybeTagText, maybeTagWarning,
-    isTagOpenName, isTagCloseName,
-    sections, partitions, getTagContent,
+    sections, partitions,
 
     -- * extract all text
     InnerText(..),
     ) where
 
 import Text.HTML.TagSoup.Parser
-   (char, dropSpaces, eof, force, getPos,
+   (char, dropSpaces, force, getPos,
     many, many1, many1Satisfy, readUntil,
-    satisfy, source, string,
-    emit, mfix, gets)
+    satisfy, string,
+    emit, mfix)
 
 import qualified Text.HTML.TagSoup.Parser as Parser
 import qualified Text.HTML.TagSoup.Entity as HTMLEntity
@@ -63,7 +61,7 @@ data Tag =
    | TagClose String             -- ^ A closing tag
    | TagText String              -- ^ A text node, guaranteed not to be the empty string
    | TagComment String           -- ^ A comment
-   | TagSpecial String String    -- ^ A tag like <!DOCTYPE ...>
+   | TagSpecial String String    -- ^ A tag like @\<!DOCTYPE ...\>@
    | TagWarning String           -- ^ Mark a syntax error in the input file
      deriving (Show, Eq, Ord)
 
@@ -91,6 +89,33 @@ canonicalizeTag t =
       TagClose name        -> TagClose (map toLower name)
       TagSpecial name info -> TagSpecial (map toUpper name) info
       _ -> t
+
+
+{- |
+Parse a single tag, throws an error if there is a syntax error.
+This is useful for parsing a match pattern.
+-}
+parseTag :: String -> Tag
+parseTag str =
+   let tags =
+          fromMaybe (error "tagEqualElement: parse should never fail") $
+          Parser.write "string" parsePosTag str
+       throwError = error $
+          "parseTag: parsing results in\n" ++
+          unlines (map show tags)
+   in  case tags of
+          [(_,tag)] ->
+              if isTagWarning tag
+                then throwError
+                else tag
+          _ -> throwError
+
+{- |
+Parse the inner of a single tag.
+That is, @parseTag \"\<bla\>\"@ is the same as @parseInnerOfTag \"\<bla\>\"@.
+-}
+parseInnerOfTag :: String -> Tag
+parseInnerOfTag str = parseTag $ "<"++str++">"
 
 
 
@@ -356,66 +381,6 @@ fromAttrib :: String -> Tag -> String
 fromAttrib att (TagOpen _ atts) = fromMaybe "" $ lookup att atts
 fromAttrib _ x = error ("(" ++ show x ++ ") is not a TagOpen")
 
--- | Returns True if the 'Tag' is 'TagOpen' and matches the given name
-{-# DEPRECATED isTagOpenName "use ~== \'tagname\" instead" #-}
--- useg (~== "tagname") instead
-isTagOpenName :: String -> Tag -> Bool
-isTagOpenName name (TagOpen n _) = n == name
-isTagOpenName _ _ = False
-
--- | Returns True if the 'Tag' is 'TagClose' and matches the given name
-isTagCloseName :: String -> Tag -> Bool
-isTagCloseName name (TagClose n) = n == name
-isTagCloseName _ _ = False
-
-
--- | Performs an inexact match, the first item should be the thing to match.
--- If the second item is a blank string, that is considered to match anything.
--- ( See "Example\/Example.hs" function tests for some examples
-
-class TagComparison a where
-  (~==), (~/=) :: Tag -> a -> Bool
-  a ~== b = not (a ~/= b)
-  -- | Negation of '~=='
-  a ~/= b = not (a ~== b)
-
-instance TagComparison Tag where
-  -- For 'TagOpen' missing attributes on the right are allowed.
-  (TagText y)    ~== (TagText x)    = null x || x == y
-  (TagClose y)   ~== (TagClose x)   = null x || x == y
-  (TagOpen y ys) ~== (TagOpen x xs) = (null x || x == y) && all f xs
-      where
-         f ("",val) = val `elem` map snd ys
-         f (name,"") = name `elem` map fst ys
-         f nameval = nameval `elem` ys
-  _ ~== _ = False
-
--- | This is a helper class for instantiating TagComparison for Strings
-
-class TagComparisonElement a where
-  tagEqualElement :: Tag -> [a] -> Bool
-
-instance TagComparisonElement Char where
-  tagEqualElement a ('/':tagname) = a ~== TagClose tagname
-  tagEqualElement a tagname =
-       let (name, attrStr) = span (/= ' ') tagname
-           parsed_attrs =
-              fromMaybe (error "tagEqualElement: parse should never fail") $
-              Parser.eval "input"
-                 (do dropSpaces
-                     attrs <- many parseAttribute
-                     isEOF <- eof
-                     if isEOF
-                       then return attrs
-                       else liftM (error . ("trailing characters " ++))
-                                  (gets source))
-                 attrStr
-       in  a ~== TagOpen name parsed_attrs
-
-
-instance TagComparisonElement a => TagComparison [a] where
-  (~==) = tagEqualElement
-
 
 -- | This function takes a list, and returns all suffixes whose
 --   first item matches the predicate.
@@ -428,8 +393,3 @@ partitions :: (a -> Bool) -> [a] -> [[a]]
 partitions p =
    let notp = not . p
    in  groupBy (const notp) . dropWhile notp
-
-getTagContent :: String -> [( String, String )] -> [Tag] -> [Tag]
-getTagContent name attr tagsoup =
-   let start = sections ( ~== TagOpen name attr ) tagsoup !! 0
-   in takeWhile (/= TagClose name) $ drop 1 start

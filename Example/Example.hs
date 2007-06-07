@@ -4,6 +4,8 @@ module Example.Example where
 import Text.HTML.TagSoup
 import Text.HTML.Download
 
+import qualified Text.HTML.TagSoup.Match as Match
+
 import Control.Monad (liftM)
 import Data.List (isPrefixOf, findIndex)
 import Data.Char (isDigit)
@@ -19,7 +21,7 @@ import Data.Char (isDigit)
 haskellHitCount :: IO ()
 haskellHitCount = do
         tags <- liftM parseTags $ openURL "http://haskell.org/haskellwiki/Haskell"
-        let count = fromFooter $ head $ sections (~== TagOpen "div" [("class","printfooter")]) tags
+        let count = fromFooter $ head $ sections (Match.tagOpenAttrLit "div" ("class","printfooter")) tags
         putStrLn $ "haskell.org has been hit " ++ show count ++ " times"
     where
         fromFooter x = read (filter isDigit num) :: Int
@@ -27,7 +29,7 @@ haskellHitCount = do
                 num = ss !! (i - 1)
                 Just i = findIndex (== "times.") ss
                 ss = words s
-                TagText s = sections (isTagOpenName "p") x !! 1 !! 1
+                TagText s = sections (Match.tagOpenNameLit "p") x !! 1 !! 1
 
 
 {-
@@ -42,19 +44,17 @@ googleTechNews = do
     where
         extract xs = innerText (xs !! 2)
 
-        match (TagOpen "a" y)
-            = case lookup "id" y of
-                   Just z -> "r" `isPrefixOf` z && 'i' `notElem` z
-                   _ -> False
-        match _ = False
+        match =
+           Match.tagOpenAttrNameLit "a" "id"
+              (\value -> "r" `isPrefixOf` value && 'i' `notElem` value)
 
 
 spjPapers :: IO ()
 spjPapers = do
         tags <- liftM parseTags $ openURL "http://research.microsoft.com/~simonpj/"
-        let links = map f $ sections (isTagOpenName "a") $
-                    takeWhile (~/= TagOpen "a" [("name","haskell")]) $
-                    drop 5 $ dropWhile (~/= TagOpen "a" [("name","current")]) tags
+        let links = map f $ sections (Match.tagOpenNameLit "a") $
+                    takeWhile (not . Match.tagOpenAttrLit "a" ("name","haskell")) $
+                    drop 5 $ dropWhile (not . Match.tagOpenAttrLit "a" ("name","current")) tags
         putStr $ unlines links
     where
         f :: [Tag] -> String
@@ -67,7 +67,7 @@ spjPapers = do
 ndmPapers :: IO ()
 ndmPapers = do
         tags <- liftM parseTags $ openURL "http://www-users.cs.york.ac.uk/~ndm/downloads/"
-        let papers = map f $ sections (~== TagOpen "li" [("class","paper")]) tags
+        let papers = map f $ sections (Match.tagOpenAttrLit "li" ("class","paper")) tags
         putStr $ unlines papers
     where
         f :: [Tag] -> String
@@ -77,7 +77,7 @@ ndmPapers = do
 currentTime :: IO ()
 currentTime = do
         tags <- liftM parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
-        let time = innerText (dropWhile (~/= TagOpen "strong" [("id","ct")]) tags !! 1)
+        let time = innerText (dropWhile (not . Match.tagOpenAttrLit "strong" ("id","ct")) tags !! 1)
         putStrLn time
 
 
@@ -89,16 +89,18 @@ data Package = Package {name :: String, desc :: String, href :: String}
 hackage :: IO [(Section,[Package])]
 hackage = do
     tags <- liftM parseTags $ openURL "http://hackage.haskell.org/packages/archive/pkg-list.html"
-    return $ map parseSect $ partitions (isTagOpenName "h3") tags
+    return $ map parseSect $ partitions (Match.tagOpenNameLit "h3") tags
     where
         parseSect xs = (nam, packs)
             where
                 nam = innerText $ xs !! 2
-                packs = map parsePackage $ partitions (isTagOpenName "li") xs
+                packs = map parsePackage $ partitions (Match.tagOpenNameLit "li") xs
 
-        parsePackage xs = Package (innerText $ xs !! 2)
-                                  (drop 2 $ dropWhile (/= ':') $ innerText $ xs !! 4)
-                                  (fromAttrib "href" $ xs !! 1)
+        parsePackage xs =
+           Package
+              (innerText $ xs !! 2)
+              (drop 2 $ dropWhile (/= ':') $ innerText $ xs !! 4)
+              (fromAttrib "href" $ xs !! 1)
 
 -- rssCreators Example: prints names of story contributors on
 -- sequence.complete.org. This content is RSS (not HTML), and the selected
@@ -106,30 +108,35 @@ hackage = do
 rssCreators :: IO [String]
 rssCreators = do
     tags <- liftM parseTags $ openURL "http://sequence.complete.org/node/feed"
-    return $ map names $ partitions (isTagOpenName "dc:creator") tags
+    return $ map names $ partitions (Match.tagOpenNameLit "dc:creator") tags
     where
       names xs = innerText $ xs !! 1
 
--- getTagContent Example ( prints content of first td as text
+-- getTagContent Example ( prints content of first td as text )
 -- should print "header"
 getTagContentExample :: IO ()
-getTagContentExample = print . innerText . getTagContent "tr" [] $
-  parseTags "<table><tr><td><th>header</th></td><td></tr><tr><td>2</td></tr>...</table>"
+getTagContentExample =
+   print . innerText . Match.getTagContent "tr" Match.ignore $
+   parseTags "<table><tr><td><th>header</th></td><td></tr><tr><td>2</td></tr>...</table>"
 
 tests :: IO ()
 tests =
-  if and [
-        TagText "test" ~== TagText ""
-      , TagText "test" ~== TagText "test"
-      , TagText "test" ~== TagText "soup" == False
-      , TagOpen "table" [ ("id", "name")] ~== TagOpen "table" []
-      , TagOpen "table" [ ("id", "name")] ~== TagOpen "table"[ ("id", "name")]
-      , TagOpen "table" [ ("id", "name")] ~== TagOpen "table"[ ("id", "")]
-      , TagOpen "table" [ ("id", "other name")] ~== TagOpen "table"[ ("id", "name")] == False
-      , TagOpen "table" [] ~== "table"
-      , TagClose "table"   ~== "/table"
-      , TagOpen "table" [( "id", "frog")] ~== "table id=frog"
-      ]
+  if and $
+       Match.tagText Match.ignore (TagText "test") :
+       Match.tagText ("test"==) (TagText "test") :
+       Match.tagText ("soup"/=) (TagText "test") :
+       Match.tagOpenNameLit "table"
+           (TagOpen "table" [("id", "name")]) :
+       Match.tagOpenLit "table" (Match.anyAttrLit ("id", "name"))
+           (TagOpen "table" [("id", "name")]) :
+       Match.tagOpenLit "table" (Match.anyAttrNameLit "id")
+           (TagOpen "table" [("id", "name")]) :
+       not (Match.tagOpenLit "table" (Match.anyAttrLit ("id", "name"))
+              (TagOpen "table" [("id", "other name")])) :
+       (parseInnerOfTag "table" == TagOpen "table" []) :
+       (parseInnerOfTag "/table" == TagClose "table") :
+       (parseInnerOfTag "table id=frog" == TagOpen "table" [( "id", "frog")]) :
+       []
     then print "test successful"
     else print "test failed !!"
 
