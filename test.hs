@@ -1,5 +1,9 @@
 module Main where
-import Example.Example
+import Example.Example (tests)
 
 main :: IO ()
-main = tests
+main =
+   print $
+      if tests
+        then "test successful"
+        else "test failed !!"

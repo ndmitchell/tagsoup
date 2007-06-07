@@ -119,9 +119,9 @@ getTagContentExample =
    print . innerText . Match.getTagContent "tr" Match.ignore $
    parseTags "<table><tr><td><th>header</th></td><td></tr><tr><td>2</td></tr>...</table>"
 
-tests :: IO ()
+tests :: Bool
 tests =
-  if and $
+   and $
        Match.tagText Match.ignore (TagText "test") :
        Match.tagText ("test"==) (TagText "test") :
        Match.tagText ("soup"/=) (TagText "test") :
@@ -137,6 +137,4 @@ tests =
        (parseInnerOfTag "/table" == TagClose "table") :
        (parseInnerOfTag "table id=frog" == TagOpen "table" [( "id", "frog")]) :
        []
-    then print "test successful"
-    else print "test failed !!"
 
