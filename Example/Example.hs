@@ -7,6 +7,7 @@ import Text.HTML.Download
 import qualified Text.HTML.TagSoup.Match as Match
 
 import Control.Monad (liftM)
+import Data.Maybe (mapMaybe)
 import Data.List (isPrefixOf, findIndex)
 import Data.Char (isDigit)
 
@@ -39,10 +40,10 @@ haskellHitCount = do
 googleTechNews :: IO ()
 googleTechNews = do
         tags <- liftM parseTags $ openURL "http://news.google.com/?ned=us&topic=t"
-        let links = map extract $ sections match tags
+        let links = mapMaybe extract $ sections match tags
         putStr $ unlines links
     where
-        extract xs = fromTagText (xs !! 2)
+        extract xs = maybeTagText (xs !! 2)
 
         match =
            Match.tagOpenAttrNameLit "a" "id"
