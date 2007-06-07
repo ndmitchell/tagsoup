@@ -42,7 +42,7 @@ googleTechNews = do
         let links = map extract $ sections match tags
         putStr $ unlines links
     where
-        extract xs = innerText (xs !! 2)
+        extract xs = fromTagText (xs !! 2)
 
         match =
            Match.tagOpenAttrNameLit "a" "id"
@@ -58,7 +58,7 @@ spjPapers = do
         putStr $ unlines links
     where
         f :: [Tag] -> String
-        f = dequote . unwords . words . innerText . head . filter isTagText
+        f = dequote . unwords . words . fromTagText . head . filter isTagText
 
         dequote ('\"':xs) | last xs == '\"' = init xs
         dequote x = x
@@ -71,13 +71,13 @@ ndmPapers = do
         putStr $ unlines papers
     where
         f :: [Tag] -> String
-        f xs = innerText (xs !! 2)
+        f xs = fromTagText (xs !! 2)
 
 
 currentTime :: IO ()
 currentTime = do
         tags <- liftM parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
-        let time = innerText (dropWhile (not . Match.tagOpenAttrLit "strong" ("id","ct")) tags !! 1)
+        let time = fromTagText (dropWhile (not . Match.tagOpenAttrLit "strong" ("id","ct")) tags !! 1)
         putStrLn time
 
 
@@ -93,13 +93,13 @@ hackage = do
     where
         parseSect xs = (nam, packs)
             where
-                nam = innerText $ xs !! 2
+                nam = fromTagText $ xs !! 2
                 packs = map parsePackage $ partitions (Match.tagOpenNameLit "li") xs
 
         parsePackage xs =
            Package
-              (innerText $ xs !! 2)
-              (drop 2 $ dropWhile (/= ':') $ innerText $ xs !! 4)
+              (fromTagText $ xs !! 2)
+              (drop 2 $ dropWhile (/= ':') $ fromTagText $ xs !! 4)
               (fromAttrib "href" $ xs !! 1)
 
 -- rssCreators Example: prints names of story contributors on
@@ -110,13 +110,13 @@ rssCreators = do
     tags <- liftM parseTags $ openURL "http://sequence.complete.org/node/feed"
     return $ map names $ partitions (Match.tagOpenNameLit "dc:creator") tags
     where
-      names xs = innerText $ xs !! 1
+      names xs = fromTagText $ xs !! 1
 
 -- getTagContent Example ( prints content of first td as text )
 -- should print "header"
-getTagContentExample :: IO ()
+getTagContentExample :: String
 getTagContentExample =
-   print . innerText . Match.getTagContent "tr" Match.ignore $
+   innerText . Match.getTagContent "tr" Match.ignore $
    parseTags "<table><tr><td><th>header</th></td><td></tr><tr><td>2</td></tr>...</table>"
 
 tests :: Bool

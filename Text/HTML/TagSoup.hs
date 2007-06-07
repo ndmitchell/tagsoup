@@ -30,7 +30,7 @@ module Text.HTML.TagSoup(
     sections, partitions,
 
     -- * extract all text
-    InnerText(..),
+    innerText,
     ) where
 
 import Text.HTML.TagSoup.Parser
@@ -46,9 +46,9 @@ import Text.HTML.TagSoup.Position (Position)
 
 import Control.Monad (mplus, msum, when, liftM)
 
-import Data.Char
-import Data.List
-import Data.Maybe
+import Data.Char (isAlphaNum, isDigit, toLower, toUpper, chr)
+import Data.List (tails, groupBy)
+import Data.Maybe (fromMaybe, mapMaybe)
 
 
 -- | An HTML attribute @id=\"name\"@ generates @(\"id\",\"name\")@
@@ -331,16 +331,6 @@ emitTag :: Position -> Tag -> Parser ()
 emitTag = curry emit
 
 
--- | Extract all text content from tags (similar to Verbatim found in HaXml)
-class InnerText a where
-    innerText :: a -> String
-
-instance InnerText Tag where
-    innerText = fromMaybe "" . maybeTagText
-
-instance (InnerText a) => InnerText [a] where
-    innerText = concatMap innerText
-
 
 -- | Test if a 'Tag' is a 'TagOpen'
 isTagOpen :: Tag -> Bool
@@ -359,12 +349,14 @@ maybeTagText :: Tag -> Maybe String
 maybeTagText (TagText x) = Just x
 maybeTagText _ = Nothing
 
-{-# DEPRECIATED fromTagText #-}
 -- | Extract the string from within 'TagText', crashes if not a 'TagText'
---   (DEPRECIATED, use 'innerText' instead)
 fromTagText :: Tag -> String
 fromTagText (TagText x) = x
 fromTagText x = error ("(" ++ show x ++ ") is not a TagText")
+
+-- | Extract all text content from tags (similar to Verbatim found in HaXml)
+innerText :: [Tag] -> String
+innerText = concat . mapMaybe maybeTagText
 
 -- | Test if a 'Tag' is a 'TagWarning'
 isTagWarning :: Tag -> Bool
