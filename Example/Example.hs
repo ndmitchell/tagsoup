@@ -30,7 +30,7 @@ haskellHitCount = do
                 num = ss !! (i - 1)
                 Just i = findIndex (== "times.") ss
                 ss = words s
-                TagText s = sections (Match.tagOpenNameLit "p") x !! 1 !! 1
+                TagText s = sections (~== "p") x !! 1 !! 1
 
 
 {-
@@ -53,7 +53,7 @@ googleTechNews = do
 spjPapers :: IO ()
 spjPapers = do
         tags <- liftM parseTags $ openURL "http://research.microsoft.com/~simonpj/"
-        let links = map f $ sections (Match.tagOpenNameLit "a") $
+        let links = map f $ sections (~== "a") $
                     takeWhile (not . Match.tagOpenAttrLit "a" ("name","haskell")) $
                     drop 5 $ dropWhile (not . Match.tagOpenAttrLit "a" ("name","current")) tags
         putStr $ unlines links
@@ -90,12 +90,12 @@ data Package = Package {name :: String, desc :: String, href :: String}
 hackage :: IO [(Section,[Package])]
 hackage = do
     tags <- liftM parseTags $ openURL "http://hackage.haskell.org/packages/archive/pkg-list.html"
-    return $ map parseSect $ partitions (Match.tagOpenNameLit "h3") tags
+    return $ map parseSect $ partitions (~== "h3") tags
     where
         parseSect xs = (nam, packs)
             where
                 nam = fromTagText $ xs !! 2
-                packs = map parsePackage $ partitions (Match.tagOpenNameLit "li") xs
+                packs = map parsePackage $ partitions (~== "li") xs
 
         parsePackage xs =
            Package
@@ -109,7 +109,7 @@ hackage = do
 rssCreators :: IO [String]
 rssCreators = do
     tags <- liftM parseTags $ openURL "http://sequence.complete.org/node/feed"
-    return $ map names $ partitions (Match.tagOpenNameLit "dc:creator") tags
+    return $ map names $ partitions (~== "dc:creator") tags
     where
       names xs = fromTagText $ xs !! 1
 
