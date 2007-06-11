@@ -27,9 +27,12 @@ you have found a laziness stopper.
 laziness :: [Char]
 laziness = lazyTags ++ lazyWarnings
 
+parseTags :: String -> [TagSoup.Tag Char]
+parseTags = TagSoup.parseTags
+
 lazyTags :: [Char]
 lazyTags =
-   map ((!!1000) . show . TagSoup.parseTags) $
+   map ((!!1000) . show . parseTags) $
       (cycle "Rhabarber") :
       (repeat '&') :
       ("<"++cycle "html") :
@@ -50,7 +53,7 @@ lazyTags =
 
 lazyWarnings :: [Char]
 lazyWarnings =
-   map ((!!1000) . show . tail . TagSoup.parseTags) $
+   map ((!!1000) . show . tail . parseTags) $
       (repeat '&') :
       ("<html "++cycle "na!me=value ") :
       ("<html name="++cycle "val!ue") :

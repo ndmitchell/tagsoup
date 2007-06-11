@@ -8,39 +8,40 @@ ignore _ = True
 
 
 -- | match an opening tag
-tagOpen :: (String -> Bool) -> ([Attribute] -> Bool) -> Tag -> Bool
+tagOpen :: (String -> Bool) -> ([Attribute char] -> Bool) -> Tag char -> Bool
 tagOpen pName pAttrs (TagOpen name attrs) =
    pName name && pAttrs attrs
 tagOpen _ _ _ = False
 
 -- | match an closing tag
-tagClose :: (String -> Bool) -> Tag -> Bool
+tagClose :: (String -> Bool) -> Tag char -> Bool
 tagClose pName (TagClose name) = pName name
 tagClose _ _ = False
 
 -- | match a text
-tagText :: (String -> Bool) -> Tag -> Bool
+tagText :: ([char] -> Bool) -> Tag char -> Bool
 tagText p (TagText text) = p text
 tagText _ _ = False
 
-tagComment :: (String -> Bool) -> Tag -> Bool
+tagComment :: (String -> Bool) -> Tag char -> Bool
 tagComment p (TagComment text) = p text
 tagComment _ _ = False
 
-tagSpecial :: (String -> Bool) -> (String -> Bool) -> Tag -> Bool
+tagSpecial :: (String -> Bool) -> (String -> Bool) -> Tag char -> Bool
 tagSpecial pType pInfo (TagSpecial typ info) = pType typ && pInfo info
 tagSpecial _ _ _ = False
 
 
 -- | match a opening tag's name literally
-tagOpenLit :: String -> ([Attribute] -> Bool) -> Tag -> Bool
+tagOpenLit :: String -> ([Attribute char] -> Bool) -> Tag char -> Bool
 tagOpenLit name = tagOpen (name==)
 
 -- | match a closing tag's name literally
-tagCloseLit :: String -> Tag -> Bool
+tagCloseLit :: String -> Tag char -> Bool
 tagCloseLit name = tagClose (name==)
 
-tagOpenAttrLit :: String -> Attribute -> Tag -> Bool
+tagOpenAttrLit :: (Eq char) =>
+   String -> Attribute char -> Tag char -> Bool
 tagOpenAttrLit name attr =
    tagOpenLit name (anyAttrLit attr)
 
@@ -50,45 +51,45 @@ with given name, that satisfies a predicate.
 If an attribute occurs multiple times,
 all occurrences are checked.
 -}
-tagOpenAttrNameLit :: String -> String -> (String -> Bool) -> Tag -> Bool
+tagOpenAttrNameLit :: String -> String -> ([char] -> Bool) -> Tag char -> Bool
 tagOpenAttrNameLit tagName attrName pAttrValue =
    tagOpenLit tagName
       (anyAttr (\(name,value) -> name==attrName && pAttrValue value))
 
 
 -- | Check if the 'Tag' is 'TagOpen' and matches the given name
-tagOpenNameLit :: String -> Tag -> Bool
+tagOpenNameLit :: String -> Tag char -> Bool
 tagOpenNameLit name = tagOpenLit name ignore
 
 -- | Check if the 'Tag' is 'TagClose' and matches the given name
-tagCloseNameLit :: String -> Tag -> Bool
+tagCloseNameLit :: String -> Tag char -> Bool
 tagCloseNameLit name = tagCloseLit name
 
 
 
 
-anyAttr :: ((String,String) -> Bool) -> [Attribute] -> Bool
+anyAttr :: ((String,[char]) -> Bool) -> [Attribute char] -> Bool
 anyAttr = any
 
-anyAttrName :: (String -> Bool) -> [Attribute] -> Bool
+anyAttrName :: (String -> Bool) -> [Attribute char] -> Bool
 anyAttrName p = any (p . fst)
 
-anyAttrValue :: (String -> Bool) -> [Attribute] -> Bool
-anyAttrValue p = any (p . fst)
+anyAttrValue :: ([char] -> Bool) -> [Attribute char] -> Bool
+anyAttrValue p = any (p . snd)
 
 
-anyAttrLit :: (String,String) -> [Attribute] -> Bool
+anyAttrLit :: (Eq char) => (String,[char]) -> [Attribute char] -> Bool
 anyAttrLit attr = anyAttr (attr==)
 
-anyAttrNameLit :: String -> [Attribute] -> Bool
+anyAttrNameLit :: String -> [Attribute char] -> Bool
 anyAttrNameLit name = anyAttrName (name==)
 
-anyAttrValueLit :: String -> [Attribute] -> Bool
+anyAttrValueLit :: (Eq char) => [char] -> [Attribute char] -> Bool
 anyAttrValueLit value = anyAttrValue (value==)
 
 
 
-getTagContent :: String -> ([Attribute] -> Bool) -> [Tag] -> [Tag]
+getTagContent :: String -> ([Attribute char] -> Bool) -> [Tag char] -> [Tag char]
 getTagContent name pAttrs =
    takeWhile (not . tagCloseLit name) . drop 1 .
    head . sections (tagOpenLit name pAttrs)

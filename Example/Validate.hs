@@ -14,7 +14,8 @@ import Data.Maybe (mapMaybe)
 
 validate :: FilePath -> String -> String
 validate fileName input =
-   let tags = parseFilePosTags fileName input
+   let tags :: [PosTag Char]
+       tags = parseFilePosTags fileName input
        warnings =
           mapMaybe (\(pos,tag) -> fmap ((,) pos) $ maybeTagWarning tag) tags
    in  unlines $ map (\(pos,msg) -> Position.toReportText pos ++ " " ++ msg) warnings

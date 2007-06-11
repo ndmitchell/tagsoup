@@ -18,19 +18,21 @@
 
 module Text.HTML.TagSoup(
     -- * Data structures and parsing
-    Tag(..), PosTag, Attribute,
+    Tag(..), PosTag, Attribute, CharType, HTMLChar(..),
     parseTags, parsePosTags, parseFilePosTags,
     parseTag, parseInnerOfTag,
     canonicalizeTags, canonicalizePosTags,
 
-    -- * Tag Combinators
+    -- * Tag identification
     isTagOpen, isTagClose, isTagText, isTagWarning,
+
+    -- * Extraction
     fromTagText, fromAttrib,
     maybeTagText, maybeTagWarning,
-    sections, partitions,
-
-    -- * extract all text
     innerText,
+
+    -- * Utility
+    sections, partitions,
     ) where
 
 import Text.HTML.TagSoup.Parser
@@ -52,37 +54,45 @@ import Data.Maybe (fromMaybe, mapMaybe)
 
 
 -- | An HTML attribute @id=\"name\"@ generates @(\"id\",\"name\")@
-type Attribute = (String,String)
+type Attribute char = (String,[char])
 
 -- | An HTML element, a document is @[Tag]@.
 --   There is no requirement for 'TagOpen' and 'TagClose' to match
-data Tag =
-     TagOpen String [Attribute]  -- ^ An open tag with 'Attribute's in their original order.
+--   The type parameter @char@ let you choose between
+--   @Char@ for interpreted HTML entity references and
+--   @HTMLChar@ for uninterpreted HTML entity.
+--   The first one works only properly for plain ASCII ISO-Latin-1 text
+--   (no need for special character decoding),
+--   the second one does also not do any decoding for you
+--   but it allows you doing it properly yourself.
+data Tag char =
+     TagOpen String [Attribute char]
+                                 -- ^ An open tag with 'Attribute's in their original order.
    | TagClose String             -- ^ A closing tag
-   | TagText String              -- ^ A text node, guaranteed not to be the empty string
+   | TagText [char]              -- ^ A text node, guaranteed not to be the empty string
    | TagComment String           -- ^ A comment
    | TagSpecial String String    -- ^ A tag like @\<!DOCTYPE ...\>@
    | TagWarning String           -- ^ Mark a syntax error in the input file
      deriving (Show, Eq, Ord)
 
 
-type PosTag = (Position,Tag)
+type PosTag char = (Position, Tag char)
 
-type Parser a = Parser.Parser PosTag a
+type Parser char a = Parser.Parser (PosTag char) a
 
 {- |
 Turns all tag names to lower case and
 converts DOCTYPE to upper case.
 -}
-canonicalizePosTags :: [PosTag] -> [PosTag]
+canonicalizePosTags :: [PosTag char] -> [PosTag char]
 canonicalizePosTags =
    map (\(i,tag) -> (i, canonicalizeTag tag))
 
-canonicalizeTags :: [Tag] -> [Tag]
+canonicalizeTags :: [Tag char] -> [Tag char]
 canonicalizeTags =
    map canonicalizeTag
 
-canonicalizeTag :: Tag -> Tag
+canonicalizeTag :: Tag char -> Tag char
 canonicalizeTag t =
    case t of
       TagOpen  name attrs  -> TagOpen  (map toLower name) attrs
@@ -95,7 +105,8 @@ canonicalizeTag t =
 Parse a single tag, throws an error if there is a syntax error.
 This is useful for parsing a match pattern.
 -}
-parseTag :: String -> Tag
+parseTag :: (CharType char, Show char) =>
+   String -> Tag char
 parseTag str =
    let tags =
           fromMaybe (error "tagEqualElement: parse should never fail") $
@@ -114,12 +125,13 @@ parseTag str =
 Parse the inner of a single tag.
 That is, @parseTag \"\<bla\>\"@ is the same as @parseInnerOfTag \"\<bla\>\"@.
 -}
-parseInnerOfTag :: String -> Tag
+parseInnerOfTag :: (CharType char, Show char) =>
+   String -> Tag char
 parseInnerOfTag str = parseTag $ "<"++str++">"
 
 
 
-parseFilePosTags :: FilePath -> String -> [PosTag]
+parseFilePosTags :: CharType char => FilePath -> String -> [PosTag char]
 parseFilePosTags fileName =
    fromMaybe (error "parseFilePosTag can never fail.") .
    Parser.write fileName (many parsePosTag >> return ())
@@ -127,17 +139,17 @@ parseFilePosTags fileName =
 
 -- | Parse an HTML document to a list of 'Tag'.
 -- Automatically expands out escape characters.
-parsePosTags :: String -> [PosTag]
+parsePosTags :: CharType char => String -> [PosTag char]
 parsePosTags =
    fromMaybe (error "parsePosTag can never fail.") .
    Parser.write "input" (many parsePosTag >> return ())
 
 -- | Like 'parsePosTags' but hides source file positions.
-parseTags :: String -> [Tag]
+parseTags :: CharType char => String -> [Tag char]
 parseTags = map snd . parsePosTags
 
 
-parsePosTag :: Parser ()
+parsePosTag :: CharType char => Parser char ()
 parsePosTag = do
    pos <- getPos
    msum $
@@ -146,7 +158,7 @@ parsePosTag = do
          parseSpecialTag pos :
          parseCloseTag pos :
          parseOpenTag pos :
-         (do emitTag pos (TagText "<")
+         (do emitTag pos (TagText [fromChar '<'])
              emitWarning pos "A '<', that is not part of a tag. Encode it as &lt; please."
          ) :
          []
@@ -155,7 +167,7 @@ parsePosTag = do
     []
 
 
-parseOpenTag :: Position -> Parser ()
+parseOpenTag :: CharType char => Position -> Parser char ()
 parseOpenTag pos =
    do name <- parseName
       dropSpaces
@@ -176,7 +188,7 @@ parseOpenTag pos =
                ("Unterminated open tag \"" ++ name ++ "\"") ">") :
         []
 
-parseCloseTag :: Position -> Parser ()
+parseCloseTag :: Position -> Parser char ()
 parseCloseTag pos =
    do char '/'
       name <- parseName
@@ -190,7 +202,7 @@ parseCloseTag pos =
                junkPos ("Junk in closing tag: \"" ++ junk ++"\""))
          ("Unterminated closing tag \"" ++ name ++"\"") ">"
 
-parseSpecialTag :: Position -> Parser ()
+parseSpecialTag :: Position -> Parser char ()
 parseSpecialTag pos =
    do char '!'
       msum $
@@ -205,7 +217,7 @@ parseSpecialTag pos =
               ("Unterminated special tag \"" ++ name ++ "\"") ">") :
        []
 
-parseText :: Position -> Parser ()
+parseText :: CharType char => Position -> Parser char ()
 parseText pos =
    mfix
      (\ text ->
@@ -214,7 +226,7 @@ parseText pos =
      >> return ()
 
 
-parseAttribute :: Parser Attribute
+parseAttribute :: CharType char => Parser char (Attribute char)
 parseAttribute =
    do name <- parseName
       dropSpaces
@@ -222,32 +234,52 @@ parseAttribute =
          force $
          mplus
             (string "=" >> dropSpaces >> parseValue)
-            (return "")
+            (return [])
       dropSpaces
       return (name, value)
 
-parseName :: Parser String
+parseName :: Parser char String
 parseName =
    many1Satisfy (\c -> isAlphaNum c || c `elem` "_-:")
 
-parseValue :: Parser String
+parseValue :: CharType char => Parser char [char]
 parseValue =
    force $ msum $
       parseQuoted "Unterminated doubly quoted value string" '"' :
       parseQuoted "Unterminated singly quoted value string" '\'' :
-      (let parseValueChar =
-              do str <- parseChar (not . flip elem " >\"\'")
-                 let wrong =
-                       filter (\c -> not (isAlphaNum c || c `elem` "-._:")) str
-                 pos <- getPos
-                 emitWarningWhen
-                    (not (null wrong))
-                    pos $ "Illegal characters in unquoted value: " ++ wrong
-                 return str
-       in  liftM concat $ many parseValueChar) :
+      parseUnquotedValue :
       []
 
-parseQuoted :: String -> Char -> Parser String
+parseUnquotedValueChar :: Parser Char String
+parseUnquotedValueChar =
+   let parseValueChar =
+          do pos <- getPos
+             str <- parseChar (not . flip elem " >\"\'")
+             let wrong = filter (not . isValidValueChar) str
+             emitWarningWhen
+                (not (null wrong))
+                pos $ "Illegal characters in unquoted value: " ++ wrong
+             return str
+   in  liftM concat $ many parseValueChar
+
+parseUnquotedValueHTMLChar :: Parser HTMLChar [HTMLChar]
+parseUnquotedValueHTMLChar =
+   let parseValueChar =
+          do pos <- getPos
+             hc <- parseHTMLChar (not . flip elem " >\"\'")
+             let wrong =
+                    case hc of
+                       Char c -> not (isValidValueChar c)
+                       _ -> False
+             emitWarningWhen wrong pos $
+                "Illegal characters in unquoted value: '" ++ show wrong ++ "'"
+             return hc
+   in  many parseValueChar
+
+isValidValueChar :: Char -> Bool
+isValidValueChar c  =  isAlphaNum c || c `elem` "_-:."
+
+parseQuoted :: CharType char => String -> Char -> Parser char [char]
 parseQuoted termMsg quote =
    do char quote
       str <- parseString (quote/=)
@@ -261,7 +293,8 @@ parseQuoted termMsg quote =
 Instead of using 'generateTag' we could also wrap the call to 'readUntilTerm'
 in 'mfix' in order to emit a tag, where some information is read later.
 -}
-readUntilTerm :: (String -> Parser ()) -> String -> String -> Parser ()
+readUntilTerm ::
+   (String -> Parser char ()) -> String -> String -> Parser char ()
 readUntilTerm generateTag termWarning termPat =
    do ~(termFound,str) <- readUntil termPat
       generateTag str
@@ -269,16 +302,26 @@ readUntilTerm generateTag termWarning termPat =
       emitWarningWhen (not termFound) termPos termWarning
 
 
+class CharType char where
+   fromChar :: Char -> char
+   parseString  :: (Char -> Bool) -> Parser char [char]
+   parseString1 :: (Char -> Bool) -> Parser char [char]
+   parseUnquotedValue :: Parser char [char]
 
-parseString :: (Char -> Bool) -> Parser String
-parseString p =
-   liftM concat $ many (parseChar p)
+instance CharType Char where
+   fromChar = id
+   parseString  p = liftM concat $ many  (parseChar p)
+   parseString1 p = liftM concat $ many1 (parseChar p)
+   parseUnquotedValue = parseUnquotedValueChar
 
-parseString1 :: (Char -> Bool) -> Parser String
-parseString1 p =
-   liftM concat $ many1 (parseChar p)
+instance CharType HTMLChar where
+   fromChar = Char
+   parseString  p = many  (parseHTMLChar p)
+   parseString1 p = many1 (parseHTMLChar p)
+   parseUnquotedValue = parseUnquotedValueHTMLChar
 
-parseChar :: (Char -> Bool) -> Parser String
+
+parseChar :: (Char -> Bool) -> Parser char String
 parseChar p =
    do pos <- getPos
       x <- parseHTMLChar p
@@ -295,7 +338,7 @@ parseChar p =
                (lookup name HTMLEntity.table)
 
 
-parseHTMLChar :: (Char -> Bool) -> Parser HTMLChar
+parseHTMLChar :: (Char -> Bool) -> Parser char HTMLChar
 parseHTMLChar p =
    do pos <- getPos
       c <- satisfy p
@@ -318,59 +361,59 @@ data HTMLChar =
      Char Char
    | NumericRef Int
    | NamedRef String
+      deriving (Show, Eq)
 
 
-emitWarningWhen :: Bool -> Position -> String -> Parser ()
+emitWarningWhen :: Bool -> Position -> String -> Parser char ()
 emitWarningWhen cond pos msg =
    force $ when cond $ emitWarning pos msg
 
-emitWarning :: Position -> String -> Parser ()
+emitWarning :: Position -> String -> Parser char ()
 emitWarning pos msg = emitTag pos (TagWarning msg)
 
-emitTag :: Position -> Tag -> Parser ()
+emitTag :: Position -> Tag char -> Parser char ()
 emitTag = curry emit
 
 
-
 -- | Test if a 'Tag' is a 'TagOpen'
-isTagOpen :: Tag -> Bool
+isTagOpen :: Tag char -> Bool
 isTagOpen (TagOpen {})  = True; isTagOpen  _ = False
 
 -- | Test if a 'Tag' is a 'TagClose'
-isTagClose :: Tag -> Bool
+isTagClose :: Tag char -> Bool
 isTagClose (TagClose {}) = True; isTagClose _ = False
 
 -- | Test if a 'Tag' is a 'TagText'
-isTagText :: Tag -> Bool
+isTagText :: Tag char -> Bool
 isTagText (TagText {})  = True; isTagText  _ = False
 
 -- | Extract the string from within 'TagText', otherwise 'Nothing'
-maybeTagText :: Tag -> Maybe String
+maybeTagText :: Tag char -> Maybe [char]
 maybeTagText (TagText x) = Just x
 maybeTagText _ = Nothing
 
 -- | Extract the string from within 'TagText', crashes if not a 'TagText'
-fromTagText :: Tag -> String
+fromTagText :: Show char => Tag char -> [char]
 fromTagText (TagText x) = x
 fromTagText x = error ("(" ++ show x ++ ") is not a TagText")
 
 -- | Extract all text content from tags (similar to Verbatim found in HaXml)
-innerText :: [Tag] -> String
+innerText :: [Tag char] -> [char]
 innerText = concat . mapMaybe maybeTagText
 
 -- | Test if a 'Tag' is a 'TagWarning'
-isTagWarning :: Tag -> Bool
+isTagWarning :: Tag char -> Bool
 isTagWarning (TagWarning {})  = True; isTagWarning _ = False
 
 -- | Extract the string from within 'TagWarning', otherwise 'Nothing'
-maybeTagWarning :: Tag -> Maybe String
+maybeTagWarning :: Tag char -> Maybe String
 maybeTagWarning (TagWarning x) = Just x
 maybeTagWarning _ = Nothing
 
 -- | Extract an attribute, crashes if not a 'TagOpen'.
 --   Returns @\"\"@ if no attribute present.
-fromAttrib :: String -> Tag -> String
-fromAttrib att (TagOpen _ atts) = fromMaybe "" $ lookup att atts
+fromAttrib :: Show char => String -> Tag char -> [char]
+fromAttrib att (TagOpen _ atts) = fromMaybe [] $ lookup att atts
 fromAttrib _ x = error ("(" ++ show x ++ ") is not a TagOpen")
 
 

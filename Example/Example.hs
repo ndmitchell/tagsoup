@@ -58,7 +58,7 @@ spjPapers = do
                     drop 5 $ dropWhile (not . Match.tagOpenAttrLit "a" ("name","current")) tags
         putStr $ unlines links
     where
-        f :: [Tag] -> String
+        f :: [Tag Char] -> String
         f = dequote . unwords . words . fromTagText . head . filter isTagText
 
         dequote ('\"':xs) | last xs == '\"' = init xs
@@ -71,7 +71,7 @@ ndmPapers = do
         let papers = map f $ sections (Match.tagOpenAttrLit "li" ("class","paper")) tags
         putStr $ unlines papers
     where
-        f :: [Tag] -> String
+        f :: [Tag Char] -> String
         f xs = fromTagText (xs !! 2)
 
 
@@ -134,8 +134,8 @@ tests =
            (TagOpen "table" [("id", "name")]) :
        not (Match.tagOpenLit "table" (Match.anyAttrLit ("id", "name"))
               (TagOpen "table" [("id", "other name")])) :
-       (parseInnerOfTag "table" == TagOpen "table" []) :
-       (parseInnerOfTag "/table" == TagClose "table") :
-       (parseInnerOfTag "table id=frog" == TagOpen "table" [( "id", "frog")]) :
+       (parseInnerOfTag "table" == (TagOpen "table" [] :: Tag Char)) :
+       (parseInnerOfTag "/table" == (TagClose "table" :: Tag Char)) :
+       (parseInnerOfTag "table id=frog" == TagOpen "table" [("id", "frog")]) :
        []
 
