@@ -392,10 +392,9 @@ maybeTagText :: Tag char -> Maybe [char]
 maybeTagText (TagText x) = Just x
 maybeTagText _ = Nothing
 
-{-# DEPRECIATED fromTagText #-}
+{-# DEPRECATED fromTagText "use innerText instead" #-}
 -- | Extract the string from within 'TagText', crashes if not a 'TagText'
---   (DEPRECIATED, use 'innerText' instead)
-fromTagText :: Tag -> String
+fromTagText :: Show char => Tag char -> [char]
 fromTagText (TagText x) = x
 fromTagText x = error ("(" ++ show x ++ ") is not a TagText")
 
