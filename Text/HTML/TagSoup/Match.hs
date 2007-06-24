@@ -1,6 +1,7 @@
 module Text.HTML.TagSoup.Match where
 
-import Text.HTML.TagSoup (Tag(..), Attribute, sections)
+import Text.HTML.TagSoup (Tag(..), Attribute)
+import Data.List
 
 
 ignore :: a -> Bool
@@ -93,3 +94,4 @@ getTagContent :: String -> ([Attribute char] -> Bool) -> [Tag char] -> [Tag char
 getTagContent name pAttrs =
    takeWhile (not . tagCloseLit name) . drop 1 .
    head . sections (tagOpenLit name pAttrs)
+    where sections p = filter (p . head) . init . tails
