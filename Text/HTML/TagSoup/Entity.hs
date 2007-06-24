@@ -9,6 +9,11 @@ lookupNamedEntity :: String -> Maybe Char
 lookupNamedEntity x = liftM chr $ lookup x table
 
 
+escapeXMLChar :: Char -> String
+escapeXMLChar x = case [a | (a,b) <- xmlTable, b == ord x] of
+                       (y:_) -> "&" ++ y ++ ";"
+                       _ -> [x]
+
 
 xmlTable :: [(String, Int)]
 xmlTable =
