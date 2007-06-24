@@ -119,23 +119,3 @@ getTagContentExample :: String
 getTagContentExample =
    innerText . Match.getTagContent "tr" Match.ignore $
    parseTags "<table><tr><td><th>header</th></td><td></tr><tr><td>2</td></tr>...</table>"
-
-tests :: Bool
-tests =
-   and $
-       Match.tagText Match.ignore (TagText "test") :
-       Match.tagText ("test"==) (TagText "test") :
-       Match.tagText ("soup"/=) (TagText "test") :
-       Match.tagOpenNameLit "table"
-           (TagOpen "table" [("id", "name")]) :
-       Match.tagOpenLit "table" (Match.anyAttrLit ("id", "name"))
-           (TagOpen "table" [("id", "name")]) :
-       Match.tagOpenLit "table" (Match.anyAttrNameLit "id")
-           (TagOpen "table" [("id", "name")]) :
-       not (Match.tagOpenLit "table" (Match.anyAttrLit ("id", "name"))
-              (TagOpen "table" [("id", "other name")])) :
-       (parseInnerOfTag "table" == (TagOpen "table" [] :: Tag Char)) :
-       (parseInnerOfTag "/table" == (TagClose "table" :: Tag Char)) :
-       (parseInnerOfTag "table id=frog" == TagOpen "table" [("id", "frog")]) :
-       []
-

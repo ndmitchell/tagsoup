@@ -96,3 +96,25 @@ propPartitions :: Int -> [Int] -> Bool
 propPartitions y xs  =
    let p = (<=y)
    in  TagSoup.partitions p xs == partitions_rec p xs
+
+
+
+tests :: Bool
+tests =
+   and $
+       Match.tagText Match.ignore (TagText "test") :
+       Match.tagText ("test"==) (TagText "test") :
+       Match.tagText ("soup"/=) (TagText "test") :
+       Match.tagOpenNameLit "table"
+           (TagOpen "table" [("id", "name")]) :
+       Match.tagOpenLit "table" (Match.anyAttrLit ("id", "name"))
+           (TagOpen "table" [("id", "name")]) :
+       Match.tagOpenLit "table" (Match.anyAttrNameLit "id")
+           (TagOpen "table" [("id", "name")]) :
+       not (Match.tagOpenLit "table" (Match.anyAttrLit ("id", "name"))
+              (TagOpen "table" [("id", "other name")])) :
+       (parseInnerOfTag "table" == (TagOpen "table" [] :: Tag Char)) :
+       (parseInnerOfTag "/table" == (TagClose "table" :: Tag Char)) :
+       (parseInnerOfTag "table id=frog" == TagOpen "table" [("id", "frog")]) :
+       []
+
