@@ -4,10 +4,6 @@ import Text.HTML.TagSoup.Type (Tag(..), Attribute)
 import Data.List
 
 
-ignore :: a -> Bool
-ignore _ = True
-
-
 -- | match an opening tag
 tagOpen :: (String -> Bool) -> ([Attribute char] -> Bool) -> Tag char -> Bool
 tagOpen pName pAttrs (TagOpen name attrs) =
@@ -60,7 +56,7 @@ tagOpenAttrNameLit tagName attrName pAttrValue =
 
 -- | Check if the 'Tag' is 'TagOpen' and matches the given name
 tagOpenNameLit :: String -> Tag char -> Bool
-tagOpenNameLit name = tagOpenLit name ignore
+tagOpenNameLit name = tagOpenLit name (const True)
 
 -- | Check if the 'Tag' is 'TagClose' and matches the given name
 tagCloseNameLit :: String -> Tag char -> Bool
