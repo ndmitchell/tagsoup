@@ -1,99 +1,117 @@
 
-module Text.HTML.TagSoup.Parser(
-    -- * Data structures and parsing
-    PosTag, CharType, Parser,
-    parseTags, parsePosTags, parseFilePosTags,
-    parseTag, parseInnerOfTag
-    ) where
+module Text.HTML.TagSoup.Parser(parseTags) where
 
-import Text.HTML.TagSoup.Parser.All
-   (char, dropSpaces, force, getPos,
-    many, many1, many1Satisfy, readUntil,
-    satisfy, string,
-    emit, mfix)
-
-import qualified Text.HTML.TagSoup.Parser.All as Parser
-import qualified Text.HTML.TagSoup.Entity as HTMLEntity
-
-import Text.HTML.TagSoup.Position (Position)
 import Text.HTML.TagSoup.Type
-
-import Control.Monad (mplus, msum, when, liftM)
-
-import Data.Char (isAlphaNum, isDigit, toLower, toUpper, chr)
-import Data.List (tails, groupBy)
-import Data.Maybe (fromMaybe, mapMaybe)
+import Text.HTML.TagSoup.Position
+import Control.Monad.State
+import Data.Char
+import Data.List
 
 
-type PosTag char = (Position, Tag char)
+---------------------------------------------------------------------
+-- * Driver
 
-type Parser char a = Parser.Parser (PosTag char) a
-
-
-{- |
-Parse a single tag, throws an error if there is a syntax error.
-This is useful for parsing a match pattern.
--}
-parseTag :: (CharType char, Show char) =>
-   String -> Tag char
-parseTag str =
-   let tags =
-          fromMaybe (error "tagEqualElement: parse should never fail") $
-          Parser.write "string" parsePosTag str
-       throwError = error $
-          "parseTag: parsing results in\n" ++
-          unlines (map show tags)
-   in  case tags of
-          [(_,tag)] ->
-              if isTagWarning tag
-                then throwError
-                else tag
-          _ -> throwError
-
-{- |
-Parse the inner of a single tag.
-That is, @parseTag \"\<bla\>\"@ is the same as @parseInnerOfTag \"\<bla\>\"@.
--}
-parseInnerOfTag :: (CharType char, Show char) =>
-   String -> Tag char
-parseInnerOfTag str = parseTag $ "<"++str++">"
-
-
-
-parseFilePosTags :: CharType char => FilePath -> String -> [PosTag char]
-parseFilePosTags fileName =
-   fromMaybe (error "parseFilePosTag can never fail.") .
-   Parser.write fileName (many parsePosTag >> return ())
-
-
--- | Parse an HTML document to a list of 'Tag'.
--- Automatically expands out escape characters.
-parsePosTags :: CharType char => String -> [PosTag char]
-parsePosTags =
-   fromMaybe (error "parsePosTag can never fail.") .
-   Parser.write "input" (many parsePosTag >> return ())
-
--- | Like 'parsePosTags' but hides source file positions.
 parseTags :: CharType char => String -> [Tag char]
-parseTags = map snd . parsePosTags
+parseTags x = mergeChars $ parse (initialize "") x
+    where
+        -- should be more lazy
+        mergeChars (TagText x:TagText y:xs) = mergeChars $ TagText (x++y) : xs
+        mergeChars (x:xs) = x : mergeChars xs
+        mergeChars [] = []
 
 
-parsePosTag :: CharType char => Parser char ()
-parsePosTag = do
-   pos <- getPos
-   msum $
-    (do char '<'
-        msum $
-         parseSpecialTag pos :
-         parseCloseTag pos :
-         parseOpenTag pos :
-         (do emitTag pos (TagText [fromChar '<'])
-             emitWarning pos "A '<', that is not part of a tag. Encode it as &lt; please."
-         ) :
-         []
-    ) :
-    parseText pos :
-    []
+---------------------------------------------------------------------
+-- * Combinator
+
+
+parseUntil :: Position -> (String -> Bool) -> String -> (Position -> String -> String -> a) -> a
+parseUntil p test s cont = cont (updateOnString p a) a b
+    where
+        (a,b) = f s
+
+        f s | null s || test s = ("",s)
+        f (s:ss) = (s:a,b)
+            where (a,b) = f ss
+
+
+parseSpan :: Position -> (Char -> Bool) -> String -> (Position -> String -> String -> a) -> a
+parseSpan p test s cont = parseUntil p (test . head) s cont
+
+
+dropSpaces :: Position -> String -> (Position -> String -> a) -> a
+dropSpaces p s cont = parseSpan p isSpace s (\p _ s -> cont p s)
+
+
+parseName :: Position -> String -> (Position -> String -> String -> a) -> a
+parseName p xs cont = parseSpan p isNameChar xs cont
+
+isNameChar x = isAlphaNum x || x `elem` "-_:"
+
+
+
+-- In text mode we are looking for
+--
+-- if we see '</' that must be a close tag
+-- if we see '<!' that must be a special tag
+-- if we see '<' then anything else that must be an open tag
+-- if we see '&' then we want an entity
+
+parse :: CharType char => Position -> String -> [Tag char]
+parse p ('<':'!':'-':'-':xs) =
+        parseUntil (updateOnString p "<!--") ("-->" `isPrefixOf`) xs f
+    where
+        f p comment ('-':'-':'>':xs) = TagComment comment : parse p xs
+        f p comment "" = TagComment comment : TagWarning p "Unterminate comment, expected -->" : []
+
+-- parse p ('<':'/':xs) = parseName (updateOnString "</") p xs 
+
+{-
+
+parse p ('<':xs)
+
+parse p ('&':xs) = 
+
+-}
+
+{-
+
+= do
+    c <- getc
+    case c of
+        Nothing -> return []
+        Just '&' -> parseEntity
+        Just '<' -> do
+            c <- getc
+            case c of
+                Just '!' -> parseSpecial
+                Just '/' -> parseCloseTag
+                Just c -> parseOpenTag c
+                Nothing -> do
+                    p <- getp
+                    let warn = TagWarning p "Unexpected end of file when reading '<'"
+                    return [warn, TagText [Char '<']]
+
+
+
+
+parseOpenTag :: Char -> Parser [Tag HTMLChar]
+parseOpenTag c = undefined
+
+
+parseCloseTag = undefined
+
+parseSpecial = undefined
+
+
+parseEntity = undefined
+-}
+{-
+
+
+do
+    c <- dropSpaces c
+
+    do
 
 
 parseOpenTag :: CharType char => Position -> Parser char ()
@@ -218,10 +236,8 @@ parseQuoted termMsg quote =
              emitWarning termPos termMsg)
       return str
 
-{-
-Instead of using 'generateTag' we could also wrap the call to 'readUntilTerm'
-in 'mfix' in order to emit a tag, where some information is read later.
--}
+--Instead of using 'generateTag' we could also wrap the call to 'readUntilTerm'
+--in 'mfix' in order to emit a tag, where some information is read later.
 readUntilTerm ::
    (String -> Parser char ()) -> String -> String -> Parser char ()
 readUntilTerm generateTag termWarning termPat =
@@ -296,3 +312,5 @@ emitWarning pos msg = emitTag pos (TagWarning msg)
 
 emitTag :: Position -> Tag char -> Parser char ()
 emitTag = curry emit
+
+-}
