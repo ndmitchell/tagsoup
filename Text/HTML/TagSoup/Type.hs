@@ -6,6 +6,7 @@ module Text.HTML.TagSoup.Type(
 
     -- * Tag identification
     isTagOpen, isTagClose, isTagText, isTagWarning,
+    isTagOpenName, isTagCloseName,
 
     -- * Extraction
     fromTagText, fromAttrib,
@@ -89,3 +90,13 @@ fromAttrib :: Show char => String -> Tag char -> [char]
 fromAttrib att (TagOpen _ atts) = fromMaybe [] $ lookup att atts
 fromAttrib _ x = error ("(" ++ show x ++ ") is not a TagOpen")
 
+
+-- | Returns True if the 'Tag' is 'TagOpen' and matches the given name
+isTagOpenName :: String -> Tag a -> Bool
+isTagOpenName name (TagOpen n _) = n == name
+isTagOpenName _ _ = False
+
+-- | Returns True if the 'Tag' is 'TagClose' and matches the given name
+isTagCloseName :: String -> Tag a -> Bool
+isTagCloseName name (TagClose n) = n == name
+isTagCloseName _ _ = False

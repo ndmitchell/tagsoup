@@ -25,6 +25,7 @@ module Text.HTML.TagSoup(
 
     -- * Tag identification
     isTagOpen, isTagClose, isTagText, isTagWarning,
+    isTagOpenName, isTagCloseName,
 
     -- * Extraction
     fromTagText, fromAttrib,
@@ -33,6 +34,9 @@ module Text.HTML.TagSoup(
 
     -- * Utility
     sections, partitions,
+    
+    -- * Combinators
+    (~==),(~/=)
     ) where
 
 import Text.HTML.TagSoup.Parser
@@ -60,6 +64,32 @@ canonicalizeTag t =
       TagClose name        -> TagClose (map toLower name)
       TagSpecial name info -> TagSpecial (map toUpper name) info
       _ -> t
+
+
+
+-- | Performs an inexact match, the first item should be the thing to match.
+-- If the second item is a blank string, that is considered to match anything.
+-- For example:
+--
+-- > (TagText "test" ~== TagText ""    ) == True
+-- > (TagText "test" ~== TagText "test") == True
+-- > (TagText "test" ~== TagText "soup") == False
+--
+-- For 'TagOpen' missing attributes on the right are allowed.
+(~==) :: Eq a => Tag a -> Tag a -> Bool
+(TagText y) ~== (TagText x) = null x || x == y
+(TagClose y) ~== (TagClose x) = null x || x == y
+(TagOpen y ys) ~== (TagOpen x xs) = (null x || x == y) && all f xs
+    where
+        f (name,val) | null name = val  `elem` map snd ys
+                     | null val  = name `elem` map fst ys
+        f nameval = nameval `elem` ys
+_ ~== _ = False
+
+-- | Negation of '~=='
+(~/=) :: Eq a => Tag a -> Tag a -> Bool
+(~/=) a b = not (a ~== b)
+
 
 
 -- | This function takes a list, and returns all suffixes whose
