@@ -1,7 +1,14 @@
 -- this should be in Text.HTML but then we provoke name clashes
 module Text.HTML.TagSoup.Entity where
 
-import Data.Char(ord)
+import Data.Char
+import Control.Monad
+
+
+lookupNamedEntity :: String -> Maybe Char
+lookupNamedEntity x = liftM chr $ lookup x table
+
+
 
 xmlTable :: [(String, Int)]
 xmlTable =
