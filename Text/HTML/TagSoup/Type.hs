@@ -13,22 +13,8 @@ module Text.HTML.TagSoup.Type(
     innerText,
     ) where
 
-import Text.HTML.TagSoup.Parser
-   (char, dropSpaces, force, getPos,
-    many, many1, many1Satisfy, readUntil,
-    satisfy, string,
-    emit, mfix)
 
-import qualified Text.HTML.TagSoup.Parser as Parser
-import qualified Text.HTML.TagSoup.Entity as HTMLEntity
-
-import Text.HTML.TagSoup.Position (Position)
-
-import Control.Monad (mplus, msum, when, liftM)
-
-import Data.Char (isAlphaNum, isDigit, toLower, toUpper, chr)
-import Data.List (tails, groupBy)
-import Data.Maybe (fromMaybe, mapMaybe)
+import Data.Maybe
 
 
 -- | An HTML attribute @id=\"name\"@ generates @(\"id\",\"name\")@
