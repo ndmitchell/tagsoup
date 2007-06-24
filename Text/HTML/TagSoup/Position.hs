@@ -11,7 +11,7 @@ Cf. to Text.ParserCombinators.Parsec.Pos
 -}
 
 module Text.HTML.TagSoup.Position (
-    Position, FileName, Row, Column,
+    Position(..), FileName, Row, Column,
     new, initialize,
     setRow, setColumn, setFileName,
     getRow, getColumn, getFileName,
@@ -76,10 +76,10 @@ setColumn n p = p{column = n}
 
 updateOnString :: Position -> String -> Position
 updateOnString pos string =
-   foldl' (flip updateOnChar) pos string
+   foldl' updateOnChar pos string
 
-updateOnChar   :: Char -> Position -> Position
-updateOnChar char pos@(Position _ r c) =
+updateOnChar   :: Position -> Char -> Position
+updateOnChar pos@(Position _ r c) char =
    let (newRow, newColumn) =
           case char of
             '\n' -> (succ r, 0)
