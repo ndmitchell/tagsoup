@@ -35,13 +35,13 @@ module Text.HTML.TagSoup(
     sections, partitions,
     ) where
 
-import Text.HTML.TagSoup.Parser
+import Text.HTML.TagSoup.Parser.All
    (char, dropSpaces, force, getPos,
     many, many1, many1Satisfy, readUntil,
     satisfy, string,
     emit, mfix)
 
-import qualified Text.HTML.TagSoup.Parser as Parser
+import qualified Text.HTML.TagSoup.Parser.All as Parser
 import qualified Text.HTML.TagSoup.Entity as HTMLEntity
 
 import Text.HTML.TagSoup.Position (Position)
