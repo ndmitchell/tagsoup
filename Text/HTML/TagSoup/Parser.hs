@@ -12,7 +12,7 @@ import Data.List
 -- * Driver
 
 parseTags :: CharType char => String -> [Tag char]
-parseTags x = mergeChars $ parse (initialize "") x
+parseTags x = mergeChars $ parse (initialize "",x)
     where
         -- should be more lazy
         mergeChars (TagText x:TagText y:xs) = mergeChars $ TagText (x++y) : xs
@@ -21,32 +21,42 @@ parseTags x = mergeChars $ parse (initialize "") x
 
 
 ---------------------------------------------------------------------
--- * Combinator
+-- * Combinators
 
 
-parseUntil :: Position -> (String -> Bool) -> String -> (Position -> String -> String -> a) -> a
-parseUntil p test s cont = cont (updateOnString p a) a b
+type PosStr = (Position,String)
+
+parseUntil :: (String -> Bool) -> PosStr -> (String,PosStr)
+parseUntil test (p,s) | null s || test s = ("",(p,s))
+parseUntil test (p,s:ss) = (s:a,b)
+    where (a,b) = parseUntil test (p,ss)
+
+
+parseEnd :: CharType char => String -> String -> PosStr -> (String,[Tag char],PosStr)
+parseEnd msg end ps = (a,b,c)
     where
-        (a,b) = f s
-
-        f s | null s || test s = ("",s)
-        f (s:ss) = (s:a,b)
-            where (a,b) = f ss
-
-
-parseSpan :: Position -> (Char -> Bool) -> String -> (Position -> String -> String -> a) -> a
-parseSpan p test s cont = parseUntil p (test . head) s cont
+        (a,(p,s)) = parseUntil (end `isPrefixOf`) ps
+        
+        (b,c) = case s of
+                    "" -> ([TagWarning p $ "Unexpected end, looking for " ++ show end ++ " in " ++ msg], (p,s))
+                    _ -> ([], (p += end, drop (length end) s))
 
 
-dropSpaces :: Position -> String -> (Position -> String -> a) -> a
-dropSpaces p s cont = parseSpan p isSpace s (\p _ s -> cont p s)
+parseSpan :: (Char -> Bool) -> PosStr -> (String, PosStr)
+parseSpan test = parseUntil (test . head)
 
 
-parseName :: Position -> String -> (Position -> String -> String -> a) -> a
-parseName p xs cont = parseSpan p isNameChar xs cont
+dropSpaces :: PosStr -> PosStr
+dropSpaces = snd . parseSpan isSpace
+
+
+parseName :: PosStr -> (String,PosStr)
+parseName = parseSpan isNameChar
 
 isNameChar x = isAlphaNum x || x `elem` "-_:"
 
+
+(+=) = updateOnString
 
 
 -- In text mode we are looking for
@@ -56,12 +66,82 @@ isNameChar x = isAlphaNum x || x `elem` "-_:"
 -- if we see '<' then anything else that must be an open tag
 -- if we see '&' then we want an entity
 
-parse :: CharType char => Position -> String -> [Tag char]
-parse p ('<':'!':'-':'-':xs) =
-        parseUntil (updateOnString p "<!--") ("-->" `isPrefixOf`) xs f
+parse :: CharType char => PosStr -> [Tag char]
+parse (p, '<':'!':'-':'-':xs) = TagComment a : errs ++ parse b
     where
-        f p comment ('-':'-':'>':xs) = TagComment comment : parse p xs
-        f p comment "" = TagComment comment : TagWarning p "Unterminate comment, expected -->" : []
+        (a,errs,b) = parseEnd "comment" "-->" (p += "<!--", xs)
+
+parse (p, '<':'!':xs) = TagSpecial name contents : errs ++ parse ps2
+    where
+        (name,ps1) = parseName (p += "<!", xs)
+        (contents,errs,ps2) = parseEnd "special" ">" $ dropSpaces ps1
+
+parse (p, '<':'/':xs) = TagClose name : errs ++ parse ps3
+    where
+        (name,ps1) = parseName (p += "</", xs)
+        (p2,s2) = dropSpaces ps1
+        (errs,ps3) = case s2 of
+                         '>':xs -> ([],(p2 += ">",xs))
+                         [] -> ([TagWarning p2 "Unexpected end, looking for > in closing tag"],(p2,s2))
+                         _:xs -> let ~(a,b,c) = parseEnd "closing tag" ">" (p2,s2)
+                                 in (TagWarning p2 "Unexpected junk in closing tag" : b, c)
+
+parse (p, '<':xs) = TagOpen name attrs : errs ++ [TagClose name | shut] ++ parse ps2
+    where
+        (name,ps1) = parseName (p += "<", xs)
+        (attrs,errs,shut,ps2) = parseAttribs ps1
+
+parse (p, '&':xs) = TagText c : errs : parse ps
+    where
+        (c,errs,ps) = parseEntity (p += "&", xs)
+
+parse (p, x:xs) = TagText [fromHTMLChar $ Char x] : parse (p += [x], xs)
+parse (p, []) = []
+
+
+
+parseAttribs :: CharType char => PosStr -> ([Attribute char],[Tag char],Bool,PosStr)
+parseAttribs ps =
+    case dropSpaces ps of
+        (p,'/':'>':xs) -> ([],[],True,(p += "/>",xs))
+        (p,'>':xs) -> ([],[],False,(p += ">",xs))
+        ps2 -> let ~(a,b,c) = parseAttrib ps2
+                   ~(d,e,f,g) = parseAttribs c
+               in (a:d,b++e,f,g)
+
+
+parseAttrib :: CharType char => PosStr -> (Attribute char,[Tag char],PosStr)
+parseAttrib ps = ((name,val2),[TagWarning (fst ps) "Blank attribute" | null name] ++ errs2 ++ errs,ps3)
+    where
+        (name,ps2) = parseName ps
+        (val2,errs2) = fixupEntities ps2 val
+        (val,errs,ps3) = case dropSpaces ps2 of
+                             (p,'=':s) -> case dropSpaces (p += "=",s) of
+                                (p,q:s) | q `elem` "'\"" -> parseEnd "string" [q] (p += [q],s)
+                                ps -> let ~(a,b) = parseName ps
+                                      in (a,[],b)
+                             ps -> ([],[],ps)
+
+
+fixupEntities :: CharType char => PosStr -> String -> ([char],[Tag char])
+fixupEntities = undefined
+{-
+fixupEntities ps ('&':xs) = (a,b
+    where (a,b,c) = parseEntity ps xs
+-}
+
+parseEntity = undefined
+
+{-
+
+parse (p0, '<':'!':xs) =
+        parseSpaceName (parseEnd "special tag" ">" . cont) (p0 += "<!", xs)
+    where
+        cont name special rest = TagSpecial name special ++
+            [TagWarning p0 "Blank name in special tag" | null name] ++
+            parse rest
+-}
+
 
 -- parse p ('<':'/':xs) = parseName (updateOnString "</") p xs 
 
