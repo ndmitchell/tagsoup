@@ -40,7 +40,7 @@ data Tag char =
    | TagText [char]              -- ^ A text node, guaranteed not to be the empty string
    | TagComment String           -- ^ A comment
    | TagSpecial String String    -- ^ A tag like @\<!DOCTYPE ...\>@
-   | TagWarning Position String  -- ^ Mark a syntax error in the input file
+   | TagWarning String           -- ^ Mark a syntax error in the input file
      deriving (Show, Eq, Ord)
 
 
@@ -104,7 +104,7 @@ isTagWarning (TagWarning {})  = True; isTagWarning _ = False
 
 -- | Extract the string from within 'TagWarning', otherwise 'Nothing'
 maybeTagWarning :: Tag char -> Maybe String
-maybeTagWarning (TagWarning _ x) = Just x
+maybeTagWarning (TagWarning x) = Just x
 maybeTagWarning _ = Nothing
 
 -- | Extract an attribute, crashes if not a 'TagOpen'.
