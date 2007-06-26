@@ -10,7 +10,12 @@ type Test = (String,IO ())
 
 allTests = tests ++ regress
 
-tests = [("hitcount",("Haskell Hit Count",haskellHitCount))]
+tests = [("hitcount",("Haskell Hit Count",haskellHitCount))
+        ,("google",("Google Tech News",googleTechNews))
+        ,("spj",("Simon Peyton Jones' papers",spjPapers))
+        ,("ndm",("Neil Mitchell's papers",ndmPapers))
+        ,("time",("Current Time",currentTime))
+        ]
 
 regress = [("regress",("Regression Tests",haskellHitCount))]
 
