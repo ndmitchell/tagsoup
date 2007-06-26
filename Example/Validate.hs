@@ -5,25 +5,19 @@ Detects basic syntax errors like isolated ampersands and unquoted attribute valu
 module Main where
 
 import Text.HTML.TagSoup
-import qualified Text.HTML.TagSoup.Position as Position
-
-import System.Environment (getArgs)
-
-import Data.Maybe (mapMaybe)
+import Text.HTML.TagSoup.Position
+import System.Environment
 
 
 validate :: FilePath -> String -> String
-validate fileName input =
-   let tags :: [PosTag Char]
-       tags = parseFilePosTags fileName input
-       warnings =
-          mapMaybe (\(pos,tag) -> fmap ((,) pos) $ maybeTagWarning tag) tags
-   in  unlines $ map (\(pos,msg) -> Position.toReportText pos ++ " " ++ msg) warnings
+validate file input = unlines
+    [toReportText (setFileName file pos) ++ " " ++ msg
+    | TagPos pos (TagWarning msg) <- parseTagsGeneric input :: [TagPos Char]]
 
 validateIO :: FilePath -> IO ()
-validateIO fileName =
-   do text <- readFile fileName
-      putStrLn (validate fileName text)
+validateIO file =
+   do text <- readFile file
+      putStrLn (validate file text)
 
 
 main :: IO ()
