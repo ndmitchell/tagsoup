@@ -1,5 +1,5 @@
 
-module Text.HTML.TagSoup.Parser(parseTags) where
+module Text.HTML.TagSoup.Parser(parseTags, parseTagsGenerics) where
 
 import Text.HTML.TagSoup.Type
 import Text.HTML.TagSoup.TagPos
@@ -12,8 +12,12 @@ import Data.List
 ---------------------------------------------------------------------
 -- * Driver
 
-parseTags :: (TagType tag, CharType char) => String -> [tag char]
-parseTags x = mergeTexts $ evalState parse $ Value x (initialize "")
+parseTags :: String -> [Tag Char]
+parseTags = parseTagsGeneric
+
+parseTagsGeneric :: (TagType tag, CharType char) => String -> [tag char]
+parseTagsGeneric x = mergeTexts $ evalState parse $ Value x (initialize "")
+
 
 
 mergeTexts :: (TagType tag, CharType char) => [TagPos char] -> [tag char]
