@@ -15,16 +15,15 @@ Exposed-modules:
         Text.HTML.TagSoup.Entity
         Text.HTML.TagSoup.Match
         Text.HTML.TagSoup.Parser
-        Text.HTML.TagSoup.Parser.Custom
-        Text.HTML.TagSoup.Parser.MTL
         Text.HTML.TagSoup.Position
-        Text.HTML.TagSoup.Test
+        Text.HTML.TagSoup.TagPos
+        Text.HTML.TagSoup.Type
         Text.HTML.Download
 
 Executable: tagsouptest
 GHC-Options: -Wall -O
 other-modules: Example.Example
-main-is:        test.hs
+main-is:        Main.hs
 
 Executable: validate
 GHC-Options: -Wall -O
