@@ -22,7 +22,7 @@ import Data.Char (isDigit)
 haskellHitCount :: IO ()
 haskellHitCount = do
         tags <- liftM parseTags $ openURL "http://haskell.org/haskellwiki/Haskell"
-        let count = fromFooter $ head $ sections (~== TagOpen "div" [("class","printfooter")]) tags
+        let count = fromFooter $ head $ sections (~== "<div class=printfooter>") tags
         putStrLn $ "haskell.org has been hit " ++ show count ++ " times"
     where
         fromFooter x = read (filter isDigit num) :: Int
@@ -30,7 +30,7 @@ haskellHitCount = do
                 num = ss !! (i - 1)
                 Just i = findIndex (== "times.") ss
                 ss = words s
-                TagText s = sections (~== TagOpen "p" []) x !! 1 !! 1
+                TagText s = sections (~== "<p>") x !! 1 !! 1
 
 
 {-
@@ -54,8 +54,8 @@ spjPapers :: IO ()
 spjPapers = do
         tags <- liftM parseTags $ openURL "http://research.microsoft.com/~simonpj/"
         let links = map f $ sections (isTagOpenName "a") $
-                    takeWhile (not . Match.tagOpenAttrLit "a" ("name","haskell")) $
-                    drop 5 $ dropWhile (not . Match.tagOpenAttrLit "a" ("name","current")) tags
+                    takeWhile (~/= "<a name=haskell>") $
+                    drop 5 $ dropWhile (~/= "<a name=current>") tags
         putStr $ unlines links
     where
         f :: [Tag Char] -> String
@@ -68,7 +68,7 @@ spjPapers = do
 ndmPapers :: IO ()
 ndmPapers = do
         tags <- liftM parseTags $ openURL "http://www-users.cs.york.ac.uk/~ndm/downloads/"
-        let papers = map f $ sections (Match.tagOpenAttrLit "li" ("class","paper")) tags
+        let papers = map f $ sections (~== "<li class=paper>") tags
         putStr $ unlines papers
     where
         f :: [Tag Char] -> String
@@ -78,7 +78,7 @@ ndmPapers = do
 currentTime :: IO ()
 currentTime = do
         tags <- liftM parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
-        let time = fromTagText (dropWhile (not . Match.tagOpenAttrLit "strong" ("id","ct")) tags !! 1)
+        let time = fromTagText (dropWhile (~/= "<strong id=ct>") tags !! 1)
         putStrLn time
 
 
@@ -90,12 +90,12 @@ data Package = Package {name :: String, desc :: String, href :: String}
 hackage :: IO [(Section,[Package])]
 hackage = do
     tags <- liftM parseTags $ openURL "http://hackage.haskell.org/packages/archive/pkg-list.html"
-    return $ map parseSect $ partitions (isTagOpenName "h3") tags
+    return $ map parseSect $ partitions (~== "<h3>") tags
     where
         parseSect xs = (nam, packs)
             where
                 nam = fromTagText $ xs !! 2
-                packs = map parsePackage $ partitions (isTagOpenName "li") xs
+                packs = map parsePackage $ partitions (~== "<li>") xs
 
         parsePackage xs =
            Package
