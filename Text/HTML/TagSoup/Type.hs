@@ -3,6 +3,7 @@
 module Text.HTML.TagSoup.Type(
     -- * Data structures and parsing
     Tag(..), Attribute, HTMLChar(..), CharType(..),
+    tagToHTMLChar,
 
     -- * Tag identification
     isTagOpen, isTagClose, isTagText, isTagWarning,
@@ -59,11 +60,32 @@ instance CharType Char where
                         Just y -> NamedRef y
 
 
+tagToHTMLChar :: CharType char => Tag char -> Tag HTMLChar
+tagToHTMLChar (TagOpen a b) = TagOpen a (map f b)
+    where f (a,b) = (a, map toHTMLChar b)
+tagToHTMLChar (TagText s) = TagText (map toHTMLChar s)
+tagToHTMLChar (TagClose x) = TagClose x
+tagToHTMLChar (TagComment x) = TagComment x
+tagToHTMLChar (TagSpecial x y) = TagSpecial x y
+tagToHTMLChar (TagWarning x) = TagWarning x
+
+
+
+
 data HTMLChar =
      Char Char
    | NumericRef Int
    | NamedRef String
-      deriving (Show, Eq)
+      deriving Show
+
+instance Eq HTMLChar where
+    (Char a) == (Char b) = a == b
+    (NumericRef a) == (NumericRef b) = a == b
+    (NamedRef a) == (NamedRef b) = a == b
+    a == b = a1 == b1
+        where
+            a1 = fromHTMLChar a :: Char
+            b1 = fromHTMLChar b
 
 
 instance CharType HTMLChar where
