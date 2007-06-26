@@ -62,6 +62,24 @@ canonicalizeTag x = setTag x $ f $ getTag x
         f x = x
 
 
+-- | Define a class to allow String's or Tag's to be used as matches
+class TagRep a where
+    toTagRep :: a -> Tag HTMLChar
+
+instance CharType char => TagRep (Tag char) where
+    toTagRep = tagToHTMLChar
+
+class    IsChar a    where toChar :: a -> Char
+instance IsChar Char where toChar =  id
+
+instance IsChar c => TagRep [c] where
+    toTagRep x = case parseTagsGeneric s of
+                    [a] -> a
+                    _ -> error $ "When using a TagRep it must be exactly one tag, you gave: " ++ s
+        where s = map toChar x
+
+
+
 -- | Performs an inexact match, the first item should be the thing to match.
 -- If the second item is a blank string, that is considered to match anything.
 -- For example:
@@ -71,18 +89,20 @@ canonicalizeTag x = setTag x $ f $ getTag x
 -- > (TagText "test" ~== TagText "soup") == False
 --
 -- For 'TagOpen' missing attributes on the right are allowed.
-(~==) :: Eq a => Tag a -> Tag a -> Bool
-(TagText y) ~== (TagText x) = null x || x == y
-(TagClose y) ~== (TagClose x) = null x || x == y
-(TagOpen y ys) ~== (TagOpen x xs) = (null x || x == y) && all f xs
+(~==) :: (CharType char, TagRep t) => Tag char -> t -> Bool
+(~==) a b = f (tagToHTMLChar a) (toTagRep b)
     where
-        f (name,val) | null name = val  `elem` map snd ys
-                     | null val  = name `elem` map fst ys
-        f nameval = nameval `elem` ys
-_ ~== _ = False
+        f (TagText y) (TagText x) = null x || x == y
+        f (TagClose y) (TagClose x) = null x || x == y
+        f (TagOpen y ys) (TagOpen x xs) = (null x || x == y) && all g xs
+            where
+                g (name,val) | null name = val  `elem` map snd ys
+                             | null val  = name `elem` map fst ys
+                g nameval = nameval `elem` ys
+        f _ _ = False
 
 -- | Negation of '~=='
-(~/=) :: Eq a => Tag a -> Tag a -> Bool
+(~/=) :: (CharType char, TagRep t) => Tag char -> t -> Bool
 (~/=) a b = not (a ~== b)
 
 
