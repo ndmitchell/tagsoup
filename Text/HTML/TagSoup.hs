@@ -20,7 +20,7 @@ module Text.HTML.TagSoup(
     -- * Data structures and parsing
     Tag(..), Attribute, CharType, HTMLChar(..),
     TagPos(..), TagType,
-    parseTags, parseTagsGenerics,
+    parseTags, parseTagsGeneric,
     canonicalizeTags,
 
     -- * Tag identification
