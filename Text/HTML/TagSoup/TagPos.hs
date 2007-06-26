@@ -19,13 +19,13 @@ class TagType a where
 
 
 instance TagType Tag where
-    newTagPos a b = b
+    newTagPos _ b = b
     getTag = id
-    setTag a b = b
+    setTag _ b = b
 
 
 instance TagType TagPos where
     newTagPos = TagPos
-    getTag (TagPos a b) = b
+    getTag (TagPos _ b) = b
     setTag (TagPos a _) b = TagPos a b
 

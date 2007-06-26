@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -w #-}
 
 module Text.HTML.TagSoup.Parser(parseTags, parseTagsGeneric) where
 
@@ -25,7 +26,7 @@ mergeTexts (TagPos p (TagText x):xs) = newTagPos p (TagText $ concat $ x:texts) 
     where
         (texts,warns,rest) = f xs
 
-        f (TagPos p (TagText x):xs) = (x:a,b,c)
+        f (TagPos _ (TagText x):xs) = (x:a,b,c)
             where (a,b,c) = f xs
         f (TagPos p (TagWarning x):xs) = (a,newTagPos p (TagWarning x):b,c)
             where (a,b,c) = f xs
@@ -207,8 +208,8 @@ value :: (TagType tag, CharType char) => Parser ([char],[tag char])
 value = do
     Value s p <- get
     case s of
-        '\"':ss -> consume 1 >> f p True "\""
-        '\'':ss -> consume 1 >> f p True "\'"
+        '\"':_ -> consume 1 >> f p True "\""
+        '\'':_ -> consume 1 >> f p True "\'"
         _ -> f p False " />"
     where
         f p1 quote end = do
@@ -231,7 +232,7 @@ value = do
 
 entity :: (TagType tag, CharType char) => Position -> Parser ([char],[tag char])
 entity p1 = do
-    Value s p <- get
+    Value s _ <- get
     ~(res,bad) <- case s of
         '#':_ -> do
             consume 1
@@ -248,7 +249,7 @@ entity p1 = do
     if bad then
         return (map fromHTMLChar res,[tagPos p1 $ TagWarning "Unquoted & found"])
      else do
-        Value s p <- get
+        Value s _ <- get
         case s of
             ';':_ -> consume 1 >> return (map fromHTMLChar res,[])
             _ -> return (map fromHTMLChar res,[tagPos p1 $ TagWarning "Missing closing \";\" in entity"])

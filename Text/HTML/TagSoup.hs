@@ -59,7 +59,7 @@ canonicalizeTag x = setTag x $ f $ getTag x
         f (TagOpen  name attrs ) = TagOpen    (map toLower name) attrs
         f (TagClose name       ) = TagClose   (map toLower name)
         f (TagSpecial name info) = TagSpecial (map toUpper name) info
-        f x = x
+        f a = a
 
 
 -- | Define a class to allow String's or Tag's to be used as matches

@@ -19,7 +19,6 @@ module Text.HTML.TagSoup.Type(
 import Data.Char
 import Data.Maybe
 import Text.HTML.TagSoup.Entity
-import Text.HTML.TagSoup.Position
 
 
 -- | An HTML attribute @id=\"name\"@ generates @(\"id\",\"name\")@
@@ -61,8 +60,7 @@ instance CharType Char where
 
 
 tagToHTMLChar :: CharType char => Tag char -> Tag HTMLChar
-tagToHTMLChar (TagOpen a b) = TagOpen a (map f b)
-    where f (a,b) = (a, map toHTMLChar b)
+tagToHTMLChar (TagOpen a b) = TagOpen a [(c, map toHTMLChar d) | (c,d) <- b]
 tagToHTMLChar (TagText s) = TagText (map toHTMLChar s)
 tagToHTMLChar (TagClose x) = TagClose x
 tagToHTMLChar (TagComment x) = TagComment x
