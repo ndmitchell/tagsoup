@@ -14,14 +14,18 @@ data TagPos char = TagPos Position (Tag char)
 
 class TagType a where
     newTagPos :: Position -> Tag char -> a char
-    fromTagPos :: a char -> Tag char
+    getTag :: a char -> Tag char
+    setTag :: a char -> Tag char -> a char
 
 
 instance TagType Tag where
     newTagPos a b = b
-    fromTagPos = id
+    getTag = id
+    setTag a b = b
 
 
 instance TagType TagPos where
     newTagPos = TagPos
-    fromTagPos (TagPos a b) = b
+    getTag (TagPos a b) = b
+    setTag (TagPos a _) b = TagPos a b
+
