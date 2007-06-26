@@ -12,7 +12,7 @@ import Data.List
 -- * Driver
 
 parseTags :: CharType char => String -> [Tag char]
-parseTags x = {- mergeTexts $ -} evalState parse (x,initialize "")
+parseTags x = mergeTexts $ evalState parse $ Value x (initialize "")
 
 
 mergeTexts (TagText x:xs) = TagText (concat $ x:texts) : warns ++ mergeTexts rest
@@ -32,22 +32,23 @@ mergeTexts [] = []
 ---------------------------------------------------------------------
 -- * Combinators
 
+data Value = Value String !Position
 
-type Parser a = State (String,Position) a
+type Parser a = State Value a
 
 
 isNameChar x = isAlphaNum x || x `elem` "-_:"
 
 consume :: Int -> Parser ()
 consume n = do
-    ~(s,p) <- get
+    Value s p <- get
     let (a,b) = splitAt n s
-    put (b, updateOnString p a)
+    put $ Value b (updateOnString p a)
 
 
 breakOn :: String -> Parser (String,Bool)
 breakOn end = do
-    ~(s,p) <- get
+    Value s p <- get
     if null s then
         return ("",True)
      else if end `isPrefixOf` s then
@@ -60,7 +61,7 @@ breakOn end = do
 
 breakName :: Parser String
 breakName = do
-    ~(s,p) <- get
+    Value s p <- get
     if not (null s) && isAlpha (head s) then do
         let (a,b) = span isNameChar s
         consume (length a)
@@ -70,7 +71,7 @@ breakName = do
 
 breakNumber :: Parser (Maybe Int)
 breakNumber = do
-    ~(s,p) <- get
+    Value s p <- get
     if not (null s) && isDigit (head s) then do
         let (a,b) = span isDigit s
         consume (length a)
@@ -81,7 +82,7 @@ breakNumber = do
 
 dropSpaces :: Parser ()
 dropSpaces = do
-    ~(s,p) <- get
+    Value s p <- get
     let n = length $ takeWhile isSpace s
     consume n
 
@@ -95,7 +96,7 @@ tagPos _ x = x
 
 parse :: CharType char => Parser [Tag char]
 parse = do
-    ~(s,p) <- get
+    Value s p <- get
     case s of
         '<':'!':'-':'-':_ -> consume 4 >> comment p
         '<':'!':_         -> consume 2 >> special p
@@ -135,7 +136,7 @@ special p1 = do
 close p1 = do
     name <- breakName
     dropSpaces
-    ~(s,p) <- get
+    Value s p <- get
     case s of
         '>':s -> do
             consume 1
@@ -168,7 +169,7 @@ open p1 = do
 attribs :: CharType char => Position -> Parser ([Attribute char],Bool,[Tag char])
 attribs p1 = do
     dropSpaces
-    ~(s,p) <- get
+    Value s p <- get
     case s of
         '/':'>':_ -> consume 2 >> return ([],True ,[])
         '>':_     -> consume 1 >> return ([],False,[])
@@ -184,7 +185,7 @@ attrib p1 = do
         ~(atts,shut,warns) <- attribs p1
         return (atts,shut,tagPos p1 (TagWarning "Junk character in tag") : warns)
      else do
-        ~(s,p) <- get
+        Value s p <- get
         case s of
             '=':s -> do
                 consume 1
@@ -198,14 +199,14 @@ attrib p1 = do
 
 value :: CharType char => Parser ([char],[Tag char])
 value = do
-    ~(s,p) <- get
+    Value s p <- get
     case s of
         '\"':ss -> consume 1 >> f p True "\""
         '\'':ss -> consume 1 >> f p True "\'"
         _ -> f p False " />"
     where
         f p1 quote end = do
-            ~(s,p) <- get
+            Value s p <- get
             case s of
                 '&':_ -> do
                     consume 1
@@ -224,7 +225,7 @@ value = do
 
 entity :: CharType char => Position -> Parser ([char],[Tag char])
 entity p1 = do
-    ~(s,p) <- get
+    Value s p <- get
     ~(res,bad) <- case s of
         '#':_ -> do
             consume 1
@@ -241,7 +242,7 @@ entity p1 = do
     if bad then
         return (map fromHTMLChar res,[tagPos p1 $ TagWarning "Unquoted & found"])
      else do
-        ~(s,p) <- get
+        Value s p <- get
         case s of
             ';':_ -> consume 1 >> return (map fromHTMLChar res,[])
             _ -> return (map fromHTMLChar res,[tagPos p1 $ TagWarning "Missing closing \";\" in entity"])
