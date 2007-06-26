@@ -2,6 +2,7 @@
 module Text.HTML.TagSoup.Parser(parseTags) where
 
 import Text.HTML.TagSoup.Type
+import Text.HTML.TagSoup.TagPos
 import Text.HTML.TagSoup.Position
 import Control.Monad.State
 import Data.Char
@@ -11,21 +12,22 @@ import Data.List
 ---------------------------------------------------------------------
 -- * Driver
 
-parseTags :: CharType char => String -> [Tag char]
+parseTags :: (TagType tag, CharType char) => String -> [tag char]
 parseTags x = mergeTexts $ evalState parse $ Value x (initialize "")
 
 
-mergeTexts (TagText x:xs) = TagText (concat $ x:texts) : warns ++ mergeTexts rest
+mergeTexts :: (TagType tag, CharType char) => [TagPos char] -> [tag char]
+mergeTexts (TagPos p (TagText x):xs) = newTagPos p (TagText $ concat $ x:texts) : warns ++ mergeTexts rest
     where
         (texts,warns,rest) = f xs
-    
-        f (TagText x:xs) = (x:a,b,c)
+
+        f (TagPos p (TagText x):xs) = (x:a,b,c)
             where (a,b,c) = f xs
-        f (TagWarning x:xs) = (a,TagWarning x:b,c)
+        f (TagPos p (TagWarning x):xs) = (a,newTagPos p (TagWarning x):b,c)
             where (a,b,c) = f xs
         f xs = ([],[],xs)
 
-mergeTexts (x:xs) = x : mergeTexts xs
+mergeTexts (TagPos p x:xs) = newTagPos p x : mergeTexts xs
 mergeTexts [] = []
 
 
@@ -87,14 +89,14 @@ dropSpaces = do
     consume n
 
 
-tagPos :: CharType char => Position -> Tag char -> Tag char
-tagPos _ x = x
+tagPos :: (TagType tag, CharType char) => Position -> Tag char -> tag char
+tagPos = newTagPos
 
 
 ---------------------------------------------------------------------
 -- * Parser
 
-parse :: CharType char => Parser [Tag char]
+parse :: (TagType tag, CharType char) => Parser [tag char]
 parse = do
     Value s p <- get
     case s of
@@ -107,7 +109,7 @@ parse = do
             consume 1
             ~(s,warn) <- entity p
             rest <- parse
-            return $ tagPos p (TagText s) : rest
+            return $ tagPos p (TagText s) : warn ++ rest
         s:ss              -> do
             consume 1
             rest <- parse
@@ -166,7 +168,7 @@ open p1 = do
                  warns ++ rest
 
 
-attribs :: CharType char => Position -> Parser ([Attribute char],Bool,[Tag char])
+attribs :: (TagType tag, CharType char) => Position -> Parser ([Attribute char],Bool,[tag char])
 attribs p1 = do
     dropSpaces
     Value s p <- get
@@ -177,7 +179,7 @@ attribs p1 = do
         _ -> attrib p1
 
 
-attrib :: CharType char => Position -> Parser ([Attribute char],Bool,[Tag char])
+attrib :: (TagType tag, CharType char) => Position -> Parser ([Attribute char],Bool,[tag char])
 attrib p1 = do
     name <- breakName
     if null name then do
@@ -197,7 +199,7 @@ attrib p1 = do
                 return ((name,[]):atts,shut,warns)
 
 
-value :: CharType char => Parser ([char],[Tag char])
+value :: (TagType tag, CharType char) => Parser ([char],[tag char])
 value = do
     Value s p <- get
     case s of
@@ -223,7 +225,7 @@ value = do
                 [] -> return ([],[tagPos p1 $ TagWarning "Unexpected end in attibute value"])
 
 
-entity :: CharType char => Position -> Parser ([char],[Tag char])
+entity :: (TagType tag, CharType char) => Position -> Parser ([char],[tag char])
 entity p1 = do
     Value s p <- get
     ~(res,bad) <- case s of
