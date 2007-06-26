@@ -79,13 +79,13 @@ updateOnString pos string =
    foldl' updateOnChar pos string
 
 updateOnChar   :: Position -> Char -> Position
-updateOnChar pos@(Position _ r c) char =
-   let (newRow, newColumn) =
-          case char of
-            '\n' -> (succ r, 0)
-            '\t' -> (r, c + 8 - mod c 8)
-            _    -> (r, succ c)
-   in  setRow newRow $ setColumn newColumn pos
+updateOnChar pos@(Position _ r c) char = case res of
+        (newRow, newColumn) -> setRow newRow $ setColumn newColumn pos
+    where
+        res = case char of
+                  '\n' -> (succ r, 0)
+                  '\t' -> (r, c + 8 - mod c 8)
+                  _    -> (r, succ c)
 
 
 -- * update position according to read characters
