@@ -18,10 +18,10 @@
 
 module Text.HTML.TagSoup(
     -- * Data structures and parsing
-    Tag(..), PosTag, Attribute, CharType, HTMLChar(..),
-    parseTags, parsePosTags, parseFilePosTags,
-    parseTag, parseInnerOfTag,
-    canonicalizeTags, canonicalizePosTags,
+    Tag(..), Attribute, CharType, HTMLChar(..),
+    TagPos(..), TagType,
+    parseTags, parseTagsGenerics,
+    canonicalizeTags,
 
     -- * Tag identification
     isTagOpen, isTagClose, isTagText, isTagWarning,
@@ -41,6 +41,7 @@ module Text.HTML.TagSoup(
 
 import Text.HTML.TagSoup.Parser
 import Text.HTML.TagSoup.Type
+import Text.HTML.TagSoup.TagPos
 import Data.Char
 import Data.List
 
@@ -49,22 +50,16 @@ import Data.List
 Turns all tag names to lower case and
 converts DOCTYPE to upper case.
 -}
-canonicalizePosTags :: [PosTag char] -> [PosTag char]
-canonicalizePosTags =
-   map (\(i,tag) -> (i, canonicalizeTag tag))
+canonicalizeTags :: TagType tag => [tag char] -> [tag char]
+canonicalizeTags = map canonicalizeTag
 
-canonicalizeTags :: [Tag char] -> [Tag char]
-canonicalizeTags =
-   map canonicalizeTag
-
-canonicalizeTag :: Tag char -> Tag char
-canonicalizeTag t =
-   case t of
-      TagOpen  name attrs  -> TagOpen  (map toLower name) attrs
-      TagClose name        -> TagClose (map toLower name)
-      TagSpecial name info -> TagSpecial (map toUpper name) info
-      _ -> t
-
+canonicalizeTag :: TagType tag => tag char -> tag char
+canonicalizeTag x = setTag x $ f $ getTag x
+    where
+        f (TagOpen  name attrs ) = TagOpen    (map toLower name) attrs
+        f (TagClose name       ) = TagClose   (map toLower name)
+        f (TagSpecial name info) = TagSpecial (map toUpper name) info
+        f x = x
 
 
 -- | Performs an inexact match, the first item should be the thing to match.
