@@ -3,12 +3,13 @@ module Main(main) where
 
 import System.Environment
 import Example.Example
+import Example.Regress
 import System.Exit
 
 
 type Test = (String,IO ())
 
-allTests = tests ++ regress
+allTests = tests ++ regression
 
 tests = [("hitcount",("Haskell Hit Count",haskellHitCount))
         ,("google",("Google Tech News",googleTechNews))
@@ -17,7 +18,7 @@ tests = [("hitcount",("Haskell Hit Count",haskellHitCount))
         ,("time",("Current Time",currentTime))
         ]
 
-regress = [("regress",("Regression Tests",haskellHitCount))]
+regression = [("regress",("Regression Tests",regress))]
 
 
 main = do
