@@ -155,8 +155,8 @@ close p1 = do
             ~(_,bad) <- breakOn ">"
             rest <- parse
             return $ tagPos p1 (TagClose name) :
-                     (tagPos p1 $ TagWarning $ if bad then "Unexpected end when looking for \">\""
-                                                      else "Junk in closing tag") :
+                     (tagPos p1 $ TagWarning "Junk in closing tag") :
+                     [tagPos p1 $ TagWarning "Unexpected end when looking for \">\"" | bad] ++
                      rest
 
 
