@@ -141,21 +141,23 @@ special p1 = do
 
 
 close p1 = do
-    name <- breakName
-    dropSpaces
-    Value s p <- get
-    case s of
-        '>':s -> do
+        name <- breakName
+        dropSpaces
+        ~(Value s p) <- get
+        rest <- f s
+        return $ tagPos p1 (TagClose name) :
+                 [tagPos p1 $ TagWarning "Empty name in close tag" | null name] ++
+                 rest
+    where
+        f ('>':s) = do
             consume 1
             rest <- parse
-            return $ tagPos p1 (TagClose name) :
-                     [tagPos p1 $ TagWarning "Empty name in close tag" | null name] ++
-                     rest
-        _ -> do
+            return rest
+
+        f _ = do
             ~(_,bad) <- breakOn ">"
             rest <- parse
-            return $ tagPos p1 (TagClose name) :
-                     (tagPos p1 $ TagWarning "Junk in closing tag") :
+            return $ (tagPos p1 $ TagWarning "Junk in closing tag") :
                      [tagPos p1 $ TagWarning "Unexpected end when looking for \">\"" | bad] ++
                      rest
 

@@ -51,15 +51,16 @@ lazyTags =
       ("<html name="++cycle "val!ue") :
       --("<html name="++cycle "val&ue") :
       --("<html name="++cycle "va&l!ue") :
-      --("</"++cycle "html") :
-      
-      -- i don't see how this can work unless the junk gets into the AST?
-      --("</html "++cycle "junk") :
+      ("</"++cycle "html") :
       
       ("<!-- "++cycle "comment") :
       ("<!"++cycle "doctype") :
       ("<!DOCTYPE"++cycle " description") :
       (cycle "1<2 ") :
+      
+      -- i don't see how this can work unless the junk gets into the AST?
+      --("</html "++cycle "junk") :
+
       []
 
 lazyWarnings :: [Char]
