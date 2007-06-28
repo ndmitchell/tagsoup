@@ -44,20 +44,22 @@ lazyTags =
       (cycle "Rhabarber") :
       (repeat '&') :
       ("<"++cycle "html") :
-      -- ("<html "++cycle "name") :
       ("<html "++cycle "na!me=value ") :
       ("<html name="++cycle "value") :
       ("<html name=\""++cycle "value") :
       ("<html name="++cycle "val!ue") :
-      --("<html name="++cycle "val&ue") :
-      --("<html name="++cycle "va&l!ue") :
       ("</"++cycle "html") :
-      
       ("<!-- "++cycle "comment") :
       ("<!"++cycle "doctype") :
       ("<!DOCTYPE"++cycle " description") :
       (cycle "1<2 ") :
       
+      -- need further analysis
+      --("<html "++cycle "name") :
+      --("<html name="++cycle "val&ue") :
+      --("<html name="++cycle "va&l!ue") :
+      --("&" ++ cycle "t") :
+
       -- i don't see how this can work unless the junk gets into the AST?
       --("</html "++cycle "junk") :
 
