@@ -48,6 +48,7 @@ lazyTags =
       ("<html name="++cycle "value") :
       ("<html name=\""++cycle "value") :
       ("<html name="++cycle "val!ue") :
+      ("<html "++cycle "name") :
       ("</"++cycle "html") :
       ("<!-- "++cycle "comment") :
       ("<!"++cycle "doctype") :
@@ -55,7 +56,6 @@ lazyTags =
       (cycle "1<2 ") :
       
       -- need further analysis
-      --("<html "++cycle "name") :
       --("<html name="++cycle "val&ue") :
       --("<html name="++cycle "va&l!ue") :
       --("&" ++ cycle "t") :

@@ -194,16 +194,13 @@ attrib p1 = do
         ~(atts,shut,warns) <- attribs p1
         return (atts,shut,tagPos p1 (TagWarning "Junk character in tag") : warns)
      else do
-        Value s p <- get
-        case s of
-            '=':s -> do
-                consume 1
-                ~(val,warns1) <- value
-                ~(atts,shut,warns2) <- attribs p1
-                return ((name,val):atts,shut,warns1++warns2)
-            _ -> do
-                ~(atts,shut,warns) <- attribs p1
-                return ((name,[]):atts,shut,warns)
+        ~(Value s p) <- get
+        ~(val,warns1) <- f s
+        ~(atts,shut,warns2) <- attribs p1
+        return ((name,val):atts,shut,warns1++warns2)
+    where
+        f ('=':s) = consume 1 >> value
+        f _ = return ([],[])
 
 
 value :: (TagType tag, CharType char) => Parser ([char],[tag char])
