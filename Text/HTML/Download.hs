@@ -20,6 +20,7 @@
 module Text.HTML.Download(openURL) where
 
 import System.IO
+import System.IO.Unsafe
 import Network
 import Data.List
 
@@ -66,5 +67,5 @@ readResponse hndl = do
         then return []
         else do
             c <- hGetChar hndl
-            cs <- readResponse hndl
+            cs <- unsafeInterleaveIO $ readResponse hndl
             return (c:cs)
