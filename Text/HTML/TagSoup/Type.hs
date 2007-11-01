@@ -52,7 +52,8 @@ class CharType a where
 instance CharType Char where
     fromHTMLChar (Char c) = c
     fromHTMLChar (NumericRef c) = chr c
-    fromHTMLChar (NamedRef c) = maybe (error ("TagSoup: Can't find named entity: "++c)) id $ lookupNamedEntity c
+    fromHTMLChar (NamedRef c) = fromMaybe (error msg) $ lookupNamedEntity c
+        where msg = "TagSoup: Can't find named entity: " ++ c
 
     toHTMLChar x = case escapeXMLChar x of
                         Nothing -> Char x
