@@ -1,6 +1,6 @@
 -- this should be in Text.HTML but then we provoke name clashes
 module Text.HTML.TagSoup.Entity(
-    lookupNamedEntity, lookupNumericEntity,
+    lookupEntity, lookupNamedEntity, lookupNumericEntity,
     escapeXMLChar,
     xmlEntities, htmlEntities
     ) where
@@ -10,6 +10,12 @@ import Data.Ix
 import Control.Monad
 import Numeric
 
+
+-- | Lookup an entity, using 'lookupNumericEntity' if it starts with
+--   @#@ and 'lookupNamedEntity' otherwise
+lookupEntity :: String -> Maybe Char
+lookupEntity ('#':xs) = lookupNumericEntity xs
+lookupEntity xs = lookupNamedEntity xs
 
 -- | Lookup a numeric entity, the leading '#' must have already been removed.
 --
