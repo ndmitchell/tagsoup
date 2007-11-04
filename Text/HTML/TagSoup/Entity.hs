@@ -1,11 +1,43 @@
 -- this should be in Text.HTML but then we provoke name clashes
 module Text.HTML.TagSoup.Entity(
-    lookupNamedEntity, escapeXMLChar,
+    lookupNamedEntity, lookupNumericEntity,
+    escapeXMLChar,
     xmlEntities, htmlEntities
     ) where
 
 import Data.Char
+import Data.Ix
 import Control.Monad
+import Numeric
+
+
+-- | Lookup a numeric entity, the leading '#' must have already been removed.
+--
+-- > lookupNumericEntity "65" == Just 'A'
+-- > lookupNumericEntity "x41" == Just 'A'
+-- > lookupNumericEntity "Haskell" == Nothing
+-- > lookupNumericEntity "" == Nothing
+-- > lookupNumericEntity "89439085908539082" == Nothing
+lookupNumericEntity :: String -> Maybe Char
+lookupNumericEntity = f
+        -- entity = '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
+    where
+        f ('x':xs) = g [('0','9'),('a','f'),('a','f')] readHex xs
+        f xs = g [('0','9')] reads xs
+
+        g :: [(Char,Char)] -> ReadS Integer -> String -> Maybe Char
+        g valid reader xs = do
+            let test b = if b then Just () else Nothing
+            test $ isValid valid xs
+            test $ not $ null xs
+            case reader xs of
+                [(a,"")] -> do
+                    test $ inRange (toInteger $ ord minBound, toInteger $ ord maxBound) a
+                    return $ chr $ fromInteger a
+                _ -> Nothing
+
+        isValid :: [(Char,Char)] -> String -> Bool
+        isValid valid xs = all (\x -> any (`inRange` x) valid) xs
 
 
 -- | Lookup a named entity, using 'htmlTable'
