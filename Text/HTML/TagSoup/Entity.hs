@@ -1,22 +1,35 @@
 -- this should be in Text.HTML but then we provoke name clashes
-module Text.HTML.TagSoup.Entity where
+module Text.HTML.TagSoup.Entity(
+    lookupNamedEntity, escapeXMLChar,
+    xmlEntities, htmlEntities
+    ) where
 
 import Data.Char
 import Control.Monad
 
 
+-- | Lookup a named entity, using 'htmlTable'
+--
+-- > lookupNamedEntity "amp" == Just '&'
+-- > lookupNamedEntity "haskell" == Nothing
 lookupNamedEntity :: String -> Maybe Char
-lookupNamedEntity x = liftM chr $ lookup x table
+lookupNamedEntity x = liftM chr $ lookup x htmlEntities
 
 
+-- | Escape a character before writing it out to XML.
+--
+-- > escapeXMLChar 'a' == Nothing
+-- > escapeXMLChar '&' == "amp"
 escapeXMLChar :: Char -> Maybe String
-escapeXMLChar x = case [a | (a,b) <- xmlTable, b == ord x] of
+escapeXMLChar x = case [a | (a,b) <- xmlEntities, b == ord x] of
                        (y:_) -> Just y
                        _ -> Nothing
 
 
-xmlTable :: [(String, Int)]
-xmlTable =
+-- | A table mapping XML entity names to code points.
+--   Does /not/ include @apos@ as Internet Explorer does not know about it.
+xmlEntities :: [(String, Int)]
+xmlEntities =
    ("quot",     ord '"') :
    ("amp",      ord '&') :
 --   ("apos",   ord '\'') :   Internet Explorer does not know that
@@ -24,9 +37,12 @@ xmlTable =
    ("gt",       ord '>') :
    []
 
-table :: [(String, Int)]
-table =
-   xmlTable ++
+-- | A table mapping HTML entity names to code points
+htmlEntities :: [(String, Int)]
+htmlEntities =
+   xmlEntities ++
+   ("apos",   ord '\'') : -- quirky IE!!!
+
    ("nbsp",     160) :
    ("iexcl",    161) :
    ("cent",     162) :
