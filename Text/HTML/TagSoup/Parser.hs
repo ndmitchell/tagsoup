@@ -1,5 +1,33 @@
 {-# OPTIONS_GHC -w #-}
 
+{-
+The XML spec is done mainly from memory. The only special bits are:
+
+Attributes
+----------
+
+"foo" as an attribute comes out as an attribute with a value and no text
+to allow DOCTYPE tags to get parsed as normal.
+
+References (aka Character and Entity References)
+----------
+
+A character reference is one of:
+
+entity = '&#' [0-9]+ ';' 
+       | '&#x' [0-9a-fA-F]+ ';'
+       | '&' name ';'
+
+The maximum character reference is 0x10FFFF
+
+name = (letter | '_' | ':') (namechar)*
+namechar = letter | digit | '.' | '-' | '_' | ':' | combiningchar | extender
+combiningchar and extender are assumed to be empty
+letter = isAlpha
+digit = isDigit
+-}
+
+
 module Text.HTML.TagSoup.Parser(parseTags, parseTagsGeneric) where
 
 import Text.HTML.TagSoup.Type
