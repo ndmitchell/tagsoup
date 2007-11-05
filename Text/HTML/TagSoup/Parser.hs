@@ -28,7 +28,10 @@ digit = isDigit
 -}
 
 
-module Text.HTML.TagSoup.Parser(parseTags, parseTagsOptions) where
+module Text.HTML.TagSoup.Parser(
+    parseTags, parseTagsOptions,
+    Options(..), options
+    ) where
 
 import Text.HTML.TagSoup.Type
 import Text.HTML.TagSoup.Entity
