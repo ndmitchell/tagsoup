@@ -28,39 +28,110 @@ digit = isDigit
 -}
 
 
-module Text.HTML.TagSoup.Parser(parseTags, parseTagsGeneric) where
+module Text.HTML.TagSoup.Parser(parseTags, parseTagsOptions) where
 
 import Text.HTML.TagSoup.Type
-import Text.HTML.TagSoup.TagPos
-import Text.HTML.TagSoup.Position
+import Text.HTML.TagSoup.Entity
 import Control.Monad.State
 import Data.Char
 import Data.List
+import Data.Maybe
 
+
+infix 9 ?->
+
+(?->) :: Bool -> [x] -> [x]
+(?->) b true = if b then true else []
+
+---------------------------------------------------------------------
+-- * Options
+
+data Options = Options
+    {optTagPosition :: Bool -- ^ Should 'TagPosition' values be given before every item
+    ,optTagWarning :: Bool -- ^ Should 'TagWarning' values be given
+    ,optLookupEntity :: String -> [Tag] -- ^ How to lookup an entity
+    ,optMaxEntityLength :: Maybe Int -- ^ The maximum length of an entities content
+                                     --   (Nothing for no maximum, default to 10)
+    }
+
+
+-- Default 'Options' structure
+options :: Options
+options = Options False False f (Just 10)
+    where
+        f x = case lookupEntity x of
+                  Nothing -> [TagText $ "&" ++ x ++ ";", TagWarning $ "Unknown entity: &" ++ x ++ ";"]
+                  Just x -> [TagText [x]]
+
+
+parseTags :: String -> [Tag]
+parseTags = parseTagsOptions options
+
+tagWarn :: Options -> String -> [Tag]
+tagWarn opts x = [TagWarning x | optTagWarning opts]
+
+---------------------------------------------------------------------
+-- * Positions
+
+-- All positions are stored as a row and a column, with (1,1) being the
+-- top-left position
+
+data Position = Position !Row !Column
+
+
+updateOnString :: Position -> String -> Position
+updateOnString = foldl' updateOnChar
+
+updateOnChar   :: Position -> Char -> Position
+updateOnChar (Position r c) x = case x of
+    '\n' -> Position (r+1) c
+    '\t' -> Position r (c + 8 - mod (c-1) 8)
+    _    -> Position r (c+1)
+
+
+tagPos :: Options -> Position -> [Tag]
+tagPos opts (Position r c) = [TagPosition r c | optTagPosition opts]
+
+tagPosWarn :: Options -> Position -> String -> [Tag]
+tagPosWarn opts p x = optTagWarning opts ?-> (tagPos opts p ++ [TagWarning x])
+
+tagPosWarnFix :: Options -> Position -> [Tag] -> [Tag]
+tagPosWarnFix opts p = addPositions . remWarnings
+    where
+        remWarnings = if optTagWarning opts then id else filter (not . isTagWarning)
+        addPositions = concatMap (\x -> tagPos opts p ++ [x])
+    
 
 ---------------------------------------------------------------------
 -- * Driver
 
-parseTags :: String -> [Tag Char]
-parseTags = parseTagsGeneric
-
-parseTagsGeneric :: (TagType tag, CharType char) => String -> [tag char]
-parseTagsGeneric x = mergeTexts $ evalState parse $ Value x (initialize "")
+parseTagsOptions :: Options -> String -> [Tag]
+parseTagsOptions opts x = mergeTexts $ evalState (parse opts) $ Value x (Position 0 0)
 
 
-
-mergeTexts :: (TagType tag, CharType char) => [TagPos char] -> [tag char]
-mergeTexts (TagPos p (TagText x):xs) = newTagPos p (TagText $ concat $ x:texts) : warns ++ mergeTexts rest
+-- | Combine adjacent text nodes.
+--
+--   If two text nodes are separated only a position node, delete the position.
+--   If two text nodes are separated only by a warning, move the warning afterwards.
+--   If a position immediately proceeds a warning, count that into the warning.
+mergeTexts :: [Tag] -> [Tag]
+mergeTexts (TagText x:xs) = (TagText $ concat $ x:texts) : warns ++ mergeTexts rest
     where
         (texts,warns,rest) = f xs
 
-        f (TagPos _ (TagText x):xs) = (x:a,b,c)
+        f (TagText x:xs) = (x:a,b,c)
             where (a,b,c) = f xs
-        f (TagPos p (TagWarning x):xs) = (a,newTagPos p (TagWarning x):b,c)
+        f (TagPosition _ _:TagText x:xs) = (x:a,b,c)
             where (a,b,c) = f xs
+
+        f (p@TagPosition{}:TagWarning y:xs) = (a,p:TagWarning y:b,c)
+            where (a,b,c) = f xs
+        f (TagWarning x:xs) = (a,TagWarning x:b,c)
+            where (a,b,c) = f xs
+
         f xs = ([],[],xs)
 
-mergeTexts (TagPos p x:xs) = newTagPos p x : mergeTexts xs
+mergeTexts (x:xs) = x : mergeTexts xs
 mergeTexts [] = []
 
 
@@ -72,8 +143,11 @@ data Value = Value String !Position
 type Parser a = State Value a
 
 
-isNameChar x = isAlphaNum x || x `elem` "-_:"
+isNameCharFirst x = isAlphaNum x || x `elem` "_:"
+isNameChar x = isAlphaNum x || x `elem` "-_:."
 
+-- Read and consume n characters from the stream, updating the position.
+-- Highly likely to be a potential for space leaks from this, unless @n@ is bounded.
 consume :: Int -> Parser ()
 consume n = do
     Value s p <- get
@@ -81,6 +155,8 @@ consume n = do
     put $ Value b (updateOnString p a)
 
 
+-- Break once an end string is encountered.
+-- Return the string before, and a boolean indicating if the end was matched.
 breakOn :: String -> Parser (String,Bool)
 breakOn end = do
     Value s p <- get
@@ -93,17 +169,20 @@ breakOn end = do
         ~(a,b) <- breakOn end
         return (head s:a,b)
 
-
+-- Break after an HTML name (entity, attribute or tag name)
+-- Note: potential space leak with consume at the end
 breakName :: Parser String
 breakName = do
     Value s p <- get
-    if not (null s) && isAlpha (head s) then do
+    if not (null s) && isNameCharFirst (head s) then do
         let (a,b) = span isNameChar s
         consume (length a)
         return a
      else
         return ""
 
+-- Break after a number has been read
+-- Note: potential space leak with consume at the end
 breakNumber :: Parser (Maybe Int)
 breakNumber = do
     Value s p <- get
@@ -115,6 +194,8 @@ breakNumber = do
         return Nothing
 
 
+-- Drop a number of spaces
+-- Note: potential space leak with consume at the end
 dropSpaces :: Parser ()
 dropSpaces = do
     Value s p <- get
@@ -122,117 +203,110 @@ dropSpaces = do
     consume n
 
 
-tagPos :: (TagType tag, CharType char) => Position -> Tag char -> tag char
-tagPos = newTagPos
-
-
 ---------------------------------------------------------------------
 -- * Parser
 
-parse :: (TagType tag, CharType char) => Parser [tag char]
-parse = do
+parse :: Options -> Parser [Tag]
+parse opts = do
     Value s p <- get
     case s of
-        '<':'!':'-':'-':_ -> consume 4 >> comment p
-        '<':'!':_         -> consume 2 >> special p
-        '<':'/':_         -> consume 2 >> close p
-        '<':_             -> consume 1 >> open p
+        '<':'!':'-':'-':_ -> consume 4 >> comment opts p
+        '<':'/':_         -> consume 2 >> close opts p
+        '<':_             -> consume 1 >> open opts p
         []                -> return []
         '&':_             -> do
             consume 1
-            ~(s,warn) <- entity p
-            rest <- parse
-            return $ tagPos p (TagText s) : warn ++ rest
+            s <- entity opts p
+            rest <- parse opts
+            return $ s ++ rest
         s:ss              -> do
             consume 1
-            rest <- parse
-            return $ tagPos p (TagText [fromHTMLChar $ Char s]) : rest
+            rest <- parse opts
+            return $ tagPos opts p ++ [TagText [s]] ++ rest
 
-
-comment p1 = do
+-- have read "<!--"
+comment opts p1 = do
     ~(inner,bad) <- breakOn "-->"
-    rest <- parse
-    return $ tagPos p1 (TagComment inner) :
-             [tagPos p1 $ TagWarning "Unexpected end when looking for \"-->\"" | bad] ++
+    rest <- parse opts
+    return $ tagPos opts p1 ++ [TagComment inner] ++
+             (bad ?-> tagPosWarn opts p1 "Unexpected end when looking for \"-->\"") ++
              rest
 
 
-special p1 = do
-    name <- breakName
-    dropSpaces
-    ~(inner,bad) <- breakOn ">"
-    rest <- parse
-    return $ tagPos p1 (TagSpecial name inner) :
-             [tagPos p1 $ TagWarning "Empty name in special" | null name] ++
-             [tagPos p1 $ TagWarning "Unexpected end when looking for \">\"" | bad] ++
-             rest
-
-
-close p1 = do
+close opts p1 = do
         name <- breakName
         dropSpaces
         ~(Value s p) <- get
         rest <- f s
-        return $ tagPos p1 (TagClose name) :
-                 [tagPos p1 $ TagWarning "Empty name in close tag" | null name] ++
+        return $ tagPos opts p1 ++ [TagClose name] ++
+                 (null name ?-> tagPosWarn opts p1 "Empty name in close tag") ++
                  rest
     where
         f ('>':s) = do
             consume 1
-            rest <- parse
+            rest <- parse opts
             return rest
 
         f _ = do
             ~(_,bad) <- breakOn ">"
-            rest <- parse
-            return $ (tagPos p1 $ TagWarning "Junk in closing tag") :
-                     [tagPos p1 $ TagWarning "Unexpected end when looking for \">\"" | bad] ++
+            rest <- parse opts
+            return $ tagPosWarn opts p1 "Junk in closing tag" ++
+                     bad ?-> tagPosWarn opts p1 "Unexpected end when looking for \">\"" ++
                      rest
 
 
-open p1 = do
-    name <- breakName
+-- an open tag, perhaps <? or <!
+open opts p1 = do
+    Value s p <- get
+    prefix <- if take 1 s `elem` ["!","?"] then consume 1 >> return [head s] else return ""
+    name <- liftM (prefix++) breakName
     if null name then do
-        rest <- parse
-        return $ tagPos p1 (TagText [fromHTMLChar $ Char '<']) : rest
+        rest <- parse opts
+        return $ tagPos opts p1 ++ [TagText ('<':prefix)] ++ tagPosWarn opts p1 "Expected name of tag" ++ rest
      else do
-        ~(atts,shut,warns) <- attribs p1
-        rest <- parse
-        return $ tagPos p1 (TagOpen name atts) :
-                 [tagPos p1 (TagClose name) | shut] ++
+        ~(atts,shut,warns) <- attribs opts p1
+        rest <- parse opts
+        return $ tagPos opts p1 ++ [TagOpen name atts] ++
+                 shut ?-> (tagPos opts p1 ++ [TagClose name]) ++
                  warns ++ rest
 
 
-attribs :: (TagType tag, CharType char) => Position -> Parser ([Attribute char],Bool,[tag char])
-attribs p1 = do
+-- read a list of attributes
+-- return (the attributes read, if the tag is self-shutting, any warnings) 
+attribs :: Options -> Position -> Parser ([Attribute],Bool,[Tag])
+attribs opts p1 = do
     dropSpaces
     Value s p <- get
     case s of
         '/':'>':_ -> consume 2 >> return ([],True ,[])
         '>':_     -> consume 1 >> return ([],False,[])
-        []        -> return ([],False,[tagPos p1 $ TagWarning "Unexpected end when looking for \">\""])
-        _ -> attrib p1
+        []        -> return ([],False,tagPosWarn opts p1 "Unexpected end when looking for \">\"")
+        _ -> attrib opts p1
 
 
-attrib :: (TagType tag, CharType char) => Position -> Parser ([Attribute char],Bool,[tag char])
-attrib p1 = do
+-- read a single attribute
+-- return (the attributes read, if the tag is self-shutting, any warnings) 
+attrib :: Options -> Position -> Parser ([Attribute],Bool,[Tag])
+attrib opts p1 = do
     name <- breakName
     if null name then do
         consume 1
-        ~(atts,shut,warns) <- attribs p1
-        return (atts,shut,tagPos p1 (TagWarning "Junk character in tag") : warns)
+        ~(atts,shut,warns) <- attribs opts p1
+        return (atts,shut,tagPosWarn opts p1 "Junk character in tag" ++ warns)
      else do
         ~(Value s p) <- get
         ~(val,warns1) <- f s
-        ~(atts,shut,warns2) <- attribs p1
+        ~(atts,shut,warns2) <- attribs opts p1
         return ((name,val):atts,shut,warns1++warns2)
     where
-        f ('=':s) = consume 1 >> value
+        f ('=':s) = consume 1 >> value opts
         f _ = return ([],[])
 
 
-value :: (TagType tag, CharType char) => Parser ([char],[tag char])
-value = do
+-- read a single value
+-- return (value,warnings)
+value :: Options -> Parser (String,[Tag])
+value opts = do
     Value s p <- get
     case s of
         '\"':_ -> consume 1 >> f p True "\""
@@ -244,7 +318,7 @@ value = do
             case s of
                 '&':_ -> do
                     consume 1
-                    ~(cs1,warns1) <- entity p
+                    ~(cs1,warns1) <- entityString opts p
                     ~(cs2,warns2) <- f p1 quote end
                     return (cs1++cs2,warns1++warns2)
                 c:_ | c `elem` end -> do
@@ -253,30 +327,43 @@ value = do
                 c:_ -> do
                     consume 1
                     ~(cs,warns) <- f p1 quote end
-                    return (fromHTMLChar (Char c):cs,warns)
-                [] -> return ([],[tagPos p1 $ TagWarning "Unexpected end in attibute value"])
+                    return (c:cs,warns)
+                [] -> return ([],tagPosWarn opts p1 "Unexpected end in attibute value")
 
 
-entity :: (TagType tag, CharType char) => Position -> Parser ([char],[tag char])
-entity p1 = do
-    Value s _ <- get
-    ~(res,bad) <- case s of
-        '#':_ -> do
-            consume 1
-            num <- breakNumber
-            case num of
-                Nothing -> return ([Char '&',Char '#'],True)
-                Just y -> return ([NumericRef y],False)
-        _ -> do
-            name <- breakName
-            if null name then
-                return ([Char '&'],True)
-             else
-                return ([NamedRef name], False)
-    if bad then
-        return (map fromHTMLChar res,[tagPos p1 $ TagWarning "Unquoted & found"])
-     else do
-        Value s _ <- get
-        case s of
-            ';':_ -> consume 1 >> return (map fromHTMLChar res,[])
-            _ -> return (map fromHTMLChar res,[tagPos p1 $ TagWarning "Missing closing \";\" in entity"])
+
+-- have seen an &, and have consumed it
+-- return a [Tag] to go in a tag stream
+entity :: Options -> Position -> Parser [Tag]
+entity opts p1 = do
+    Value s p <- get
+    case s of
+        '#':'x':_ -> f "#x" isHexDigit 
+        '#':_     -> f "#"  isDigit
+        _         -> f ""   isNameChar
+    where
+        f prefix match = do
+            consume (length prefix)
+            g match (reverse prefix) (fromMaybe maxBound (optMaxEntityLength opts))
+        
+        g match buf bound | bound < 0 = return $
+            tagPos opts p1 ++ [TagText ('&':reverse buf)] ++
+            tagPosWarn opts p1 "Unexpected '&' not in an entity"
+
+        g match buf bound = do
+            Value s p <- get
+            case s of
+                ';':_ -> do
+                    consume 1
+                    return $ tagPosWarnFix opts p1 $ optLookupEntity opts (reverse buf)
+                x:xs | match x -> consume 1 >> g match (x:buf) (bound-1) 
+                _ -> g match buf (-1)
+            
+
+
+-- return the tag and some position information
+entityString :: Options -> Position -> Parser (String,[Tag])
+entityString opts p = do
+    tags <- entity opts p
+    let warnings = tagPosWarnFix opts p $ filter isTagWarning tags
+    return (innerText tags, warnings)
