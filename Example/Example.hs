@@ -58,7 +58,7 @@ spjPapers = do
                     drop 5 $ dropWhile (~/= "<a name=current>") tags
         putStr $ unlines links
     where
-        f :: [Tag Char] -> String
+        f :: [Tag] -> String
         f = dequote . unwords . words . fromTagText . head . filter isTagText
 
         dequote ('\"':xs) | last xs == '\"' = init xs
@@ -71,7 +71,7 @@ ndmPapers = do
         let papers = map f $ sections (~== "<li class=paper>") tags
         putStr $ unlines papers
     where
-        f :: [Tag Char] -> String
+        f :: [Tag] -> String
         f xs = fromTagText (xs !! 2)
 
 
