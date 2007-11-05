@@ -283,6 +283,10 @@ attribs opts p1 = do
     case s of
         '/':'>':_ -> consume 2 >> return ([],True ,[])
         '>':_     -> consume 1 >> return ([],False,[])
+        x:xs | x `elem` "'\"" -> do
+            ~(val,warns1) <- value opts
+            ~(atts,shut,warns2) <- attribs opts p1
+            return (("",val):atts,shut,warns1++warns2)
         []        -> return ([],False,tagPosWarn opts p1 "Unexpected end when looking for \">\"")
         _ -> attrib opts p1
 
