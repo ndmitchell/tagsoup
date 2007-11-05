@@ -4,7 +4,7 @@
     License     :  BSD-style
 
     Maintainer  :  http://www.cs.york.ac.uk/~ndm/
-    Stability   :  moving towards stable
+    Stability   :  unstable
     Portability :  portable
 
     This module is for extracting information out of unstructured HTML code,
@@ -18,9 +18,9 @@
 
 module Text.HTML.TagSoup(
     -- * Data structures and parsing
-    Tag(..), Attribute, CharType, HTMLChar(..),
-    TagPos(..), TagType,
-    parseTags, parseTagsGeneric,
+    Tag(..), Attribute,
+    Options(..), options,
+    parseTags, parseTagsOptions,
     canonicalizeTags,
 
     -- * Tag identification
@@ -41,7 +41,6 @@ module Text.HTML.TagSoup(
 
 import Text.HTML.TagSoup.Parser
 import Text.HTML.TagSoup.Type
-import Text.HTML.TagSoup.TagPos
 import Data.Char
 import Data.List
 
@@ -50,32 +49,26 @@ import Data.List
 Turns all tag names to lower case and
 converts DOCTYPE to upper case.
 -}
-canonicalizeTags :: TagType tag => [tag char] -> [tag char]
-canonicalizeTags = map canonicalizeTag
-
-canonicalizeTag :: TagType tag => tag char -> tag char
-canonicalizeTag x = setTag x $ f $ getTag x
+canonicalizeTags :: [Tag] -> [Tag]
+canonicalizeTags = map f
     where
-        f (TagOpen  name attrs ) = TagOpen    (map toLower name) attrs
-        f (TagClose name       ) = TagClose   (map toLower name)
-        f (TagSpecial name info) = TagSpecial (map toUpper name) info
+        f (TagOpen name attrs) | "!" `isPrefixOf` name = TagOpen (map toUpper name) attrs
+        f (TagOpen name attrs) | otherwise             = TagOpen (map toLower name) attrs
+        f (TagClose name) = TagClose (map toLower name)
         f a = a
 
 
 -- | Define a class to allow String's or Tag's to be used as matches
 class TagRep a where
-    toTagRep :: a -> Tag HTMLChar
-
-instance CharType char => TagRep (Tag char) where
-    toTagRep = tagToHTMLChar
+    toTagRep :: a -> Tag
 
 class    IsChar a    where toChar :: a -> Char
 instance IsChar Char where toChar =  id
 
 instance IsChar c => TagRep [c] where
-    toTagRep x = case parseTagsGeneric s of
-                    [a] -> a
-                    _ -> error $ "When using a TagRep it must be exactly one tag, you gave: " ++ s
+    toTagRep x = case parseTags s of
+                     [a] -> a
+                     _ -> error $ "When using a TagRep it must be exactly one tag, you gave: " ++ s
         where s = map toChar x
 
 
@@ -89,8 +82,8 @@ instance IsChar c => TagRep [c] where
 -- > (TagText "test" ~== TagText "soup") == False
 --
 -- For 'TagOpen' missing attributes on the right are allowed.
-(~==) :: (CharType char, TagRep t) => Tag char -> t -> Bool
-(~==) a b = f (tagToHTMLChar a) (toTagRep b)
+(~==) :: TagRep t => Tag -> t -> Bool
+(~==) a b = f a (toTagRep b)
     where
         f (TagText y) (TagText x) = null x || x == y
         f (TagClose y) (TagClose x) = null x || x == y
@@ -102,7 +95,7 @@ instance IsChar c => TagRep [c] where
         f _ _ = False
 
 -- | Negation of '~=='
-(~/=) :: (CharType char, TagRep t) => Tag char -> t -> Bool
+(~/=) :: TagRep t => Tag -> t -> Bool
 (~/=) a b = not (a ~== b)
 
 
