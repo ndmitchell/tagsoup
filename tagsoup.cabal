@@ -15,8 +15,6 @@ Exposed-modules:
         Text.HTML.TagSoup.Entity
         Text.HTML.TagSoup.Match
         Text.HTML.TagSoup.Parser
-        Text.HTML.TagSoup.Position
-        Text.HTML.TagSoup.TagPos
         Text.HTML.TagSoup.Type
         Text.HTML.Download
 
