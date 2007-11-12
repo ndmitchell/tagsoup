@@ -8,8 +8,8 @@ import Text.HTML.TagSoup
 import System.Environment
 
 
-validate :: FilePath -> String -> String
-validate file = unlines . f . parseTagsOptions opts
+validate :: String -> String
+validate = unlines . f . parseTagsOptions opts
     where
         opts = options{optTagPosition=True, optTagWarning=True}
 
@@ -23,7 +23,7 @@ validate file = unlines . f . parseTagsOptions opts
 validateIO :: FilePath -> IO ()
 validateIO file =
    do text <- readFile file
-      putStrLn (validate file text)
+      putStrLn (validate text)
 
 
 main :: IO ()
