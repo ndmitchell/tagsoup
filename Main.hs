@@ -4,44 +4,49 @@ module Main(main) where
 import System.Environment
 import Example.Example
 import Example.Regress
-import System.Exit
+import Data.Char(toLower)
 
 
-type Test = (String,IO ())
+helpMsg = putStr $ unlines $
+    ["TagSoup, copyright Neil Mitchell 2006"
+    ,"  tagsoup arguments"
+    ,""
+    ,"<url> may either be a local file, or a http:// page"
+    ,""
+    ] ++ map f res
+    where
+        width = maximum $ map (length . fst) res
+        res = map g actions
 
-allTests = tests ++ regression
+        g (name,msg,Left  _) = (name,msg)
+        g (name,msg,Right _) = (name ++ " <url>",msg)
 
-tests = [("hitcount",("Haskell Hit Count",haskellHitCount))
-        ,("google",("Google Tech News",googleTechNews))
-        ,("spj",("Simon Peyton Jones' papers",spjPapers))
-        ,("ndm",("Neil Mitchell's papers",ndmPapers))
-        ,("time",("Current Time",currentTime))
-        ]
+        f (lhs,rhs) = "  " ++ lhs ++ replicate (4 + width - length lhs) ' ' ++ rhs
+            
 
-regression = [("regress",("Regression Tests",regress))]
-
+actions :: [(String, String, Either (IO ()) (String -> IO ()))]
+actions = [("regress","Run the regression tests",Left regress)
+          ,("grab","Grab a web page",Right grab)
+          ,("validate","Validate a page",Right validate)
+          ,("hitcount","Get the Haskell.org hit count",Left haskellHitCount)
+          ,("spj","Simon Peyton Jones' papers",Left spjPapers)
+          ,("ndm","Neil Mitchell's papers",Left ndmPapers)
+          ,("time","Current time",Left currentTime)
+          ,("google","Google Tech News",Left googleTechNews)
+          ,("sequence","Creators on sequence.complete.org",Left rssCreators)
+          ,("help","This help message",Left helpMsg)
+          ]
 
 main = do
     args <- getArgs
-    todo <- if null args then do
-                putStrLn "Running all tests"
-                return $ map snd tests
-            else 
-                mapM getTest args
-    mapM doTest todo
-
-
-getTest :: String -> IO Test
-getTest x = case lookup x allTests of 
-                 Just y -> return y
-                 Nothing -> do
-                    putStrLn $ "Unrecognised test: " ++ x
-                    putStrLn $ "Expected one of: " ++ unwords (map fst allTests)
-                    exitFailure
-
-
-doTest :: Test -> IO ()
-doTest (name,act) = do
-    putStrLn $ "= " ++ name ++ "="
-    act
-    putStrLn ""
+    case (args, lookup (map toLower $ head args) $ map (\(a,b,c) -> (a,c)) actions) of
+        ([],_) -> helpMsg
+        (x:_,Nothing) -> putStrLn ("Error: unknown command " ++ x) >> helpMsg
+        ([x],Just (Left a)) -> a
+        (x:xs,Just (Left a)) -> do
+            putStrLn $ "Warning: expected no arguments to " ++ x ++ " but got: " ++ unwords xs
+            a
+        ([x,y],Just (Right a)) -> a y
+        (x:xs,Just (Right _)) -> do
+            putStrLn $ "Error: expected exactly one argument to " ++ x ++ " but got: " ++ unwords xs
+            helpMsg
