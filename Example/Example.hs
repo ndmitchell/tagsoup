@@ -4,13 +4,12 @@ module Example.Example where
 import Text.HTML.TagSoup
 import Text.HTML.Download
 
-import qualified Text.HTML.TagSoup.Match as Match
+import Control.Monad
+import Data.List
+import Data.Char
 
-import Control.Monad (liftM)
-import Data.Maybe (mapMaybe)
-import Data.List (isPrefixOf, findIndex)
-import Data.Char (isDigit)
 
+grab x = openItem x >>= putStr
 
 {-
 <div class="printfooter">
@@ -40,14 +39,10 @@ haskellHitCount = do
 googleTechNews :: IO ()
 googleTechNews = do
         tags <- liftM parseTags $ openURL "http://news.google.com/?ned=us&topic=t"
-        let links = mapMaybe extract $ sections match tags
+        let links = [ x
+                    | TagOpen "a" atts:_:TagText x:_ <- tails tags
+                    , ("id",'r':val) <- atts, 'i' `notElem` val]
         putStr $ unlines links
-    where
-        extract xs = maybeTagText (xs !! 2)
-
-        match =
-           Match.tagOpenAttrNameLit "a" "id"
-              (\value -> "r" `isPrefixOf` value && 'i' `notElem` value)
 
 
 spjPapers :: IO ()
@@ -106,16 +101,23 @@ hackage = do
 -- rssCreators Example: prints names of story contributors on
 -- sequence.complete.org. This content is RSS (not HTML), and the selected
 -- tag uses a different XML namespace "dc:creator".
-rssCreators :: IO [String]
+rssCreators :: IO ()
 rssCreators = do
     tags <- liftM parseTags $ openURL "http://sequence.complete.org/node/feed"
-    return $ map names $ partitions (isTagOpenName "dc:creator") tags
+    putStrLn $ unlines $ map names $ partitions (~== "<dc:creator>") tags
     where
       names xs = fromTagText $ xs !! 1
 
--- getTagContent Example ( prints content of first td as text )
--- should print "header"
-getTagContentExample :: String
-getTagContentExample =
-   innerText . Match.getTagContent "tr" (const True) $
-   parseTags "<table><tr><td><th>header</th></td><td></tr><tr><td>2</td></tr>...</table>"
+
+validate :: String -> IO ()
+validate x = putStr . unlines . f . parseTagsOptions opts =<< openItem x
+    where
+        opts = options{optTagPosition=True, optTagWarning=True}
+
+        f :: [Tag] -> [String]
+        f (TagPosition row col:TagWarning warn:rest) =
+            ("Warning (" ++ show row ++ "," ++ show col ++ "): " ++ warn) : f rest
+        f (TagWarning warn:rest) =
+            ("Warning (?,?): " ++ warn) : f rest
+        f (x:xs) = f xs
+        f [] = []
