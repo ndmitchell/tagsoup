@@ -54,7 +54,6 @@ maybeTagText :: Tag -> Maybe String
 maybeTagText (TagText x) = Just x
 maybeTagText _ = Nothing
 
-{-# DEPRECATED fromTagText "use innerText instead" #-}
 -- | Extract the string from within 'TagText', crashes if not a 'TagText'
 fromTagText :: Tag -> String
 fromTagText (TagText x) = x
