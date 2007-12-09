@@ -17,7 +17,7 @@
     <http://thread.gmane.org/gmane.comp.lang.haskell.cafe/18443/>
 -}
 
-module Text.HTML.Download(openURL) where
+module Text.HTML.Download(openURL, openItem) where
 
 import System.IO
 import System.IO.Unsafe
@@ -69,3 +69,9 @@ readResponse hndl = do
             c <- hGetChar hndl
             cs <- unsafeInterleaveIO $ readResponse hndl
             return (c:cs)
+
+
+-- | Open a URL (if it starts with @http://@) or a file otherwise
+openItem :: String -> IO String
+openItem x | "http://" `isPrefixOf` x = openURL x
+           | otherwise = readFile x
