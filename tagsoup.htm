@@ -63,8 +63,7 @@ p.rule {
 </p>
 
 <p>
-	TagSoup is a library for extracting information out of unstructured HTML code, sometimes known as tag-soup. The HTML does not have to be well formed, or render properly within any particular framework. This library is for situations where the author of the HTML is not cooperating with the person trying to extract the information,
-    but is also not trying to hide the information.
+	TagSoup is a library for extracting information out of unstructured HTML code, sometimes known as tag-soup. The HTML does not have to be well formed, or render properly within any particular framework. This library is for situations where the author of the HTML is not cooperating with the person trying to extract the information, but is also not trying to hide the information.
 </p>
 <p>
 	This document gives two particular examples, and two more may be found in the <a href="http://www.cs.york.ac.uk/fp/darcs/tagsoup/Example/Example.hs">Example</a> file from the darcs repository. The examples we give are:
@@ -78,7 +77,7 @@ p.rule {
 	The intial version of this library was written in Javascript and has been used for various commercial projects involving screen scraping. In the examples general hints on screen scraping are included, learnt from bitter experience. It should be noted that if you depend on data which someone else may change at any given time, you may be in for a shock!
 </p>
 <p>
-	This library was written without knowledge of the Java version of <a href="http://home.ccil.org/~cowan/XML/tagsoup/">TagSoup</a>. They have made a very different design decision, to ensure default attributes are present and to properly nest parsed tags. We do not do this - tags are merely a list devoid of nesting information.
+	This library was written without knowledge of the Java version of <a href="http://home.ccil.org/~cowan/XML/tagsoup/">TagSoup</a>. They have made a very different design decision: to ensure default attributes are present and to properly nest parsed tags. We do not do this - tags are merely a list devoid of nesting information.
 </p>
 
 <h3>Acknowledgements</h3>
@@ -134,14 +133,27 @@ title="HaskellWiki:Copyrights"&gt;a simple permissive license&lt;/a&gt;.&lt;/p&g
 	Some web servers will serve different content depending on the user agent, some browsers will have scripting modify their displayed HTML, some pages will display differently depending on your cookies. Before you can start to figure out how to start scraping, first decide what the input to your program will be. The usual step is to write a simple program:
 </p>
 <pre>
-import Data.Html.TagSoup
+import Text.HTML.Download
 
 main = do src <- openURL "http://haskell.org/haskellwiki/Haskell"
-	      writeFile "temp.htm" src
+          writeFile "temp.htm" src
 </pre>
 <p>
-	The function <tt>openURL</tt> comes from Data.Html.Download, part of the TagSoup library. Now open <tt>temp.htm</tt>, check this fragment of HTML is in it, and see what has been returned. Only now do we consider how to extract the information.
+    The function <tt>openURL</tt> comes from Text.HTML.Download, part of the TagSoup library. Now open <tt>temp.htm</tt>, check this fragment of HTML is in it, and see what has been returned. Only now do we consider how to extract the information.
 </p>
+<p>
+    An alternative fragment of text for reading in the original web page, using the network library, can be written as:
+</p>
+<pre>
+import qualified Data.ByteString.Lazy.Char8 as BS
+import Network.HTTP (rspBody)
+import Network.HTTP.UserAgent as UA
+
+main :: IO ()
+main = do rsp <- UA.get "http://haskell.org/haskellwiki/Haskell"
+          let src = BS.unpack $ rspBody rsp
+          writeFile "temp.htm" src
+</pre>
 
 <h3>Finding the Information</h3>
 
@@ -160,12 +172,12 @@ main = do src <- openURL "http://haskell.org/haskellwiki/Haskell"
 </p>
 <pre>
 haskellHitCount = do
-	tags <- liftM parseTags $ openURL "http://haskell.org/haskellwiki/Haskell"
-	let count = fromFooter $ head $ sections (~== TagOpen "div" [("class","printfooter")]) tags
-	putStrLn $ "haskell.org has been hit " ++ show count ++ " times"
+    tags <- liftM parseTags $ openURL "http://haskell.org/haskellwiki/Haskell"
+    let count = fromFooter $ head $ sections (~== "&lt;div class=printfooter&gt;") tags
+    putStrLn $ "haskell.org has been hit " ++ show count ++ " times"
 </pre>
 <p>
-	Now we start writing the code! The first thing to do is open the required URL, then we parse the code into a list of <tt>Tag</tt>s. We then apply the <tt>sections</tt> function, which returns all the lists whose first element matches the query. We use the <tt>(~==)</tt> operator to construct the query - in this case asking for the "div" we mentioned earlier. This <tt>(~==)</tt> operator is very different from standard equality, it allows additional attributes to be present but does not match them. If we just wanted any open tag with the given class we could have written <tt>(~== TagOpen "" [("class","printfooter")])</tt> and this would have matched. Any empty strings in the second element of the match are considered as wildcards.
+    Now we start writing the code! The first thing to do is open the required URL, then we parse the code into a list of <tt>Tag</tt>s. We then apply the <tt>sections</tt> function, which returns all the lists whose first element matches the query. We use the <tt>(~==)</tt> operator to construct the query - in this case asking for the "div" we mentioned earlier. This <tt>(~==)</tt> operator is very different from standard equality, it allows additional attributes to be present but does not match them. We write <tt>"&lt;div class=printfooter&gt;"</tt> as syntactic sugar for <tt>TagOpen "div" [("class","printfooter")]</tt>. If we just wanted any open tag with the given class we could have written <tt>(~== TagOpen "" [("class","printfooter")])</tt> and this would have matched. Any empty strings in the second element of the match are considered as wildcards.
 </p>
 <p>
 	Once we have a list of all matching prefixes, we take the <tt>head</tt> - assuming that only one will match. Then we apply <tt>fromFooter</tt> which needs to perform the traversal from the "printfooter" attribute onwards to the actual hit count data.
@@ -182,7 +194,7 @@ fromFooter x = read (filter isDigit num) :: Int
 		num = ss !! (i - 1)
 		Just i = findIndex (== "times.") ss
 		ss = words s
-		TagText s = sections (isTagOpenName "p") x !! 1 !! 1
+		TagText s = sections (~== "&lt;p&gt;") x !! 1 !! 1
 </pre>
 <p>
 	This code finds <tt>s</tt>, the text inside the appropriate paragraph by knowing that its the second (<tt>!! 1</tt>) paragraph, and within that paragraph, its the second tag - the actual text. We then split up the text using <tt>words</tt>, find the message that comes after hit count, and read all the digits we can find - filtering out the comma. This code may seem slightly messy, and indeed it is - often that is the nature of extracting information from a tag soup.
@@ -205,17 +217,17 @@ fromFooter x = read (filter isDigit num) :: Int
 	First we spot that the page helpfully has named anchors, there is a current work anchor, and after that is one for Haskell. We can extract all the information between them with a simple <tt>take</tt>/<tt>drop</tt> pair:
 </p>
 <pre>
-takeWhile (~/= TagOpen "a" [("name","haskell")]) $
-drop 5 $ dropWhile (~/= TagOpen "a" [("name","current")]) tags
+takeWhile (~/= "&lt;a name=haskell&gt;") $
+drop 5 $ dropWhile (~/= "&lt;a name=current&gt;") tags
 </pre>
 <p>
 	This code drops until you get to the "current" section, then takes until you get to the "haskell" section, ensuring we only look at the important bit of the page. Next we want to find all hyperlinks within this section:
 </p>
 <pre>
-map f $ sections (isTagOpenName "a") $ ...
+map f $ sections (~== "&lt;a&gt;") $ ...
 </pre>
 <p>
-	The function to select all tags with name "a" could have been written as <tt>(~== TagOpen "a" [])</tt>, but we choose to use <tt>isTagOpenName</tt> instead. Afterwards we map each item with an <tt>f</tt> function. This function needs to take the tags starting just after the link, and find the text inside the link.
+	Remember that the function to select all tags with name "a" could have been written as <tt>(~== TagOpen "a" [])</tt>, or alternatively <tt>isTagOpenName "a"</tt>. Afterwards we map each item with an <tt>f</tt> function. This function needs to take the tags starting just after the link, and find the text inside the link.
 </p>
 <pre>
 f = dequote . unwords . words . fromTagText . head . filter isTagText
@@ -230,9 +242,9 @@ f = dequote . unwords . words . fromTagText . head . filter isTagText
 spjPapers :: IO ()
 spjPapers = do
         tags <- liftM parseTags $ openURL "http://research.microsoft.com/~simonpj/"
-        let links = map f $ sections (isTagOpenName "a") $
-                    takeWhile (~/= TagOpen "a" [("name","haskell")]) $
-                    drop 5 $ dropWhile (~/= TagOpen "a" [("name","current")]) tags
+        let links = map f $ sections (~== "&lt;a&gt;") $
+                    takeWhile (~/= "&lt;a name=haskell&gt;") $
+                    drop 5 $ dropWhile (~/= "&lt;a name=current&gt;") tags
         putStr $ unlines links
     where
         f :: [Tag] -> String
@@ -246,7 +258,7 @@ spjPapers = do
 <h2>Other Examples</h2>
 
 <p>
-	Two more examples are given in the Example file, obtaining the (short) list of papers from my site, and getting the current time. Both use very much the same style as presented here - writing screen scrapers follow a standard pattern. We present the code for enjoyment only.
+	Several more examples are given in the Example file, including obtaining the (short) list of papers from my site, and getting the current time. Both use very much the same style as presented here - writing screen scrapers follow a standard pattern. We present the code for enjoyment only.
 </p>
 
 <h3>My Papers</h3>
@@ -255,7 +267,7 @@ spjPapers = do
 ndmPapers :: IO ()
 ndmPapers = do
         tags <- liftM parseTags $ openURL "http://www-users.cs.york.ac.uk/~ndm/downloads/"
-        let papers = map f $ sections (~== TagOpen "li" [("class","paper")]) tags
+        let papers = map f $ sections (~== "&lt;li class=paper&gt;") tags
         putStr $ unlines papers
     where
         f :: [Tag] -> String
@@ -268,7 +280,7 @@ ndmPapers = do
 currentTime :: IO ()
 currentTime = do
         tags <- liftM parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
-        let time = fromTagText (dropWhile (~/= TagOpen "strong" [("id","ct")]) tags !! 1)
+        let time = fromTagText (dropWhile (~/= "&lt;strong id=ct&gt;") tags !! 1)
         putStrLn time
 </pre>
 
