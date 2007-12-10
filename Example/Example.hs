@@ -48,7 +48,7 @@ googleTechNews = do
 spjPapers :: IO ()
 spjPapers = do
         tags <- liftM parseTags $ openURL "http://research.microsoft.com/~simonpj/"
-        let links = map f $ sections (isTagOpenName "a") $
+        let links = map f $ sections (~== "<a>") $
                     takeWhile (~/= "<a name=haskell>") $
                     drop 5 $ dropWhile (~/= "<a name=current>") tags
         putStr $ unlines links
