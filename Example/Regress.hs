@@ -11,10 +11,15 @@ import Control.Exception
 data Test a = Pass
 instance Monad Test where
     a >> b = a `seq` b
+    return = error "No return for Monad Test"
+    (>>=) = error "No bind (>>=) for Monad Test"
 instance Show (Test a) where
     show x = x `seq` "All tests passed"
+
 pass :: Test ()
 pass = Pass
+
+(===) :: (Show a, Eq a) => a -> a -> Test ()
 a === b = if a == b then pass else fail $ "Does not equal: " ++ show a ++ " =/= " ++ show b
 
 -- * The Main section

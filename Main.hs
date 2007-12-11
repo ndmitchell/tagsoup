@@ -7,6 +7,7 @@ import Example.Regress
 import Data.Char(toLower)
 
 
+helpMsg :: IO ()
 helpMsg = putStr $ unlines $
     ["TagSoup, copyright Neil Mitchell 2006"
     ,"  tagsoup arguments"
@@ -18,8 +19,8 @@ helpMsg = putStr $ unlines $
         width = maximum $ map (length . fst) res
         res = map g actions
 
-        g (name,msg,Left  _) = (name,msg)
-        g (name,msg,Right _) = (name ++ " <url>",msg)
+        g (nam,msg,Left  _) = (nam,msg)
+        g (nam,msg,Right _) = (nam ++ " <url>",msg)
 
         f (lhs,rhs) = "  " ++ lhs ++ replicate (4 + width - length lhs) ' ' ++ rhs
             
@@ -37,16 +38,17 @@ actions = [("regress","Run the regression tests",Left regress)
           ,("help","This help message",Left helpMsg)
           ]
 
+main :: IO ()
 main = do
     args <- getArgs
-    case (args, lookup (map toLower $ head args) $ map (\(a,b,c) -> (a,c)) actions) of
+    case (args, lookup (map toLower $ head args) $ map (\(a,_,c) -> (a,c)) actions) of
         ([],_) -> helpMsg
         (x:_,Nothing) -> putStrLn ("Error: unknown command " ++ x) >> helpMsg
-        ([x],Just (Left a)) -> a
+        ([_],Just (Left a)) -> a
         (x:xs,Just (Left a)) -> do
             putStrLn $ "Warning: expected no arguments to " ++ x ++ " but got: " ++ unwords xs
             a
-        ([x,y],Just (Right a)) -> a y
+        ([_,y],Just (Right a)) -> a y
         (x:xs,Just (Right _)) -> do
             putStrLn $ "Error: expected exactly one argument to " ++ x ++ " but got: " ++ unwords xs
             helpMsg

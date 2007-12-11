@@ -9,6 +9,7 @@ import Data.List
 import Data.Char
 
 
+grab :: String -> IO ()
 grab x = openItem x >>= putStr
 
 {-
@@ -119,5 +120,5 @@ validate x = putStr . unlines . f . parseTagsOptions opts =<< openItem x
             ("Warning (" ++ show row ++ "," ++ show col ++ "): " ++ warn) : f rest
         f (TagWarning warn:rest) =
             ("Warning (?,?): " ++ warn) : f rest
-        f (x:xs) = f xs
+        f (_:rest) = f rest
         f [] = []
