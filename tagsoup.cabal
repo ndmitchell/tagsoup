@@ -1,28 +1,25 @@
 Name:           tagsoup
-Version:        0.1
-License:        BSD3
+Version:        0.3
+Copyright:      2006-7, Neil Mitchell
+Maintainer:     ndmitchell@gmail.com
 Author:         Neil Mitchell
 Homepage:       http://www-users.cs.york.ac.uk/~ndm/projects/libraries.php
+License:        BSD3
+License-File:   LICENSE
 Build-Depends:  base, network, mtl
--- network needed for Download
--- mtl for StateT monad transformer
---    you can omit it and the module Text.HTML.TagSoup.Parser.MTL,
---    falling back to Text.HTML.TagSoup.Parser.Custom
 Synopsis:       Parsing and extracting information from (possibly malformed) HTML documents
-GHC-Options: -Wall -O
+GHC-Options:    -Wall -O
 Exposed-modules:
-        Text.HTML.TagSoup
-        Text.HTML.TagSoup.Entity
-        Text.HTML.TagSoup.Match
-        Text.HTML.TagSoup.Parser
-        Text.HTML.TagSoup.Type
-        Text.HTML.Download
+    Text.HTML.TagSoup
+    Text.HTML.TagSoup.Entity
+    Text.HTML.TagSoup.Match
+    Text.HTML.TagSoup.Parser
+    Text.HTML.TagSoup.Type
+    Text.HTML.Download
 
-Executable: tagsouptest
-GHC-Options: -Wall -O
-other-modules: Example.Example
-main-is:        Main.hs
-
-Executable: validate
-GHC-Options: -Wall -O
-main-is:     Example/Validate.hs
+Executable:     tagsoup
+GHC-Options:    -Wall -O
+Main-Is:        Main.hs
+Other-Modules:
+    Example.Example
+    Example.Regress
