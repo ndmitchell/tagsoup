@@ -103,3 +103,8 @@ parseTests = do
         [TagOpen "!DOCTYPE" [("HTML",""),("PUBLIC",""),("","-//W3C//DTD HTML 4.01//EN"),("","http://www.w3.org/TR/html4/strict.dtd")]]
     parseTags "<script src=\"http://edge.jobthread.com/feeds/jobroll/?s_user_id=100540&subtype=slashdot\">" ===
         [TagOpen "script" [("src","http://edge.jobthread.com/feeds/jobroll/?s_user_id=100540&subtype=slashdot")]]
+
+    parseTags "<a title='foo'bar' href=correct>text" === [TagOpen "a" [("title", "foo"),
+                                                                       ("bar",   ""),
+                                                                       ("href", "correct")],
+                                                         TagText "text"]
