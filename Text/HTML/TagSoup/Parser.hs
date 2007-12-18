@@ -290,17 +290,6 @@ attribs opts p1 = do
         []        -> return ([],False,tagPosWarn opts p1 "Unexpected end when looking for \">\"")
         _ -> attrib opts p1
 
-dropAttribJunk :: Parser ()
-dropAttribJunk = do
-    Value s p <- get
-    let n = junkLength s
-    consume n
-        where junkLength ('/':'>':_) = 0
-              junkLength ('>':_) = 0
-              junkLength (c : cs)
-                  | isSpace c = 0
-                  | otherwise = 1 + junkLength cs
-
 
 -- read a single attribute
 -- return (the attributes read, if the tag is self-shutting, any warnings) 
@@ -318,8 +307,20 @@ attrib opts p1 = do
         return ((name,val):atts,shut,warns1++warns2)
     where
         f ('=':s) = consume 1 >> value opts
-        f _ = dropAttribJunk >> return ([],tagPosWarn opts p1 "Junk character in tag")
-        --f _ = return ([], [])
+        f xs | not $ junk xs = return ([], [])
+             | otherwise = do
+                ~(Value s p) <- get
+                dropJunk
+                return ([], tagPosWarn opts p "Junk character in tag")
+
+        junk ('/':'>':_) = False
+        junk ('>':_) = False
+        junk (c:cs) | not $ isSpace c = True
+        junk _ = False
+        
+        dropJunk = do
+            ~(Value s p) <- get
+            when (junk s) $ consume 1 >> dropJunk
 
 
 -- read a single value
