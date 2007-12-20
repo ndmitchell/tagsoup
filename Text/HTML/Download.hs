@@ -71,7 +71,7 @@ readResponse hndl = do
             return (c:cs)
 
 
--- | Open a URL (if it starts with @http://@) or a file otherwise
+-- | Open a URL (if it starts with @http:\/\/@) or a file otherwise
 openItem :: String -> IO String
 openItem x | "http://" `isPrefixOf` x = openURL x
            | otherwise = readFile x
