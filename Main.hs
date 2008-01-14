@@ -9,7 +9,8 @@ import Data.Char(toLower)
 
 helpMsg :: IO ()
 helpMsg = putStr $ unlines $
-    ["TagSoup, copyright Neil Mitchell 2006"
+    ["TagSoup, (C) Neil Mitchell 2006-2008"
+    ,""
     ,"  tagsoup arguments"
     ,""
     ,"<url> may either be a local file, or a http:// page"
