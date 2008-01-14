@@ -130,7 +130,12 @@ title="HaskellWiki:Copyrights"&gt;a simple permissive license&lt;/a&gt;.&lt;/p&g
 	Scrape from what the page returns, not what a browser renders, or what view-source gives.
 </p>
 <p>
-	Some web servers will serve different content depending on the user agent, some browsers will have scripting modify their displayed HTML, some pages will display differently depending on your cookies. Before you can start to figure out how to start scraping, first decide what the input to your program will be. The usual step is to write a simple program:
+	Some web servers will serve different content depending on the user agent, some browsers will have scripting modify their displayed HTML, some pages will display differently depending on your cookies. Before you can start to figure out how to start scraping, first decide what the input to your program will be. There are three ways to get the page as it will appear to your program.
+</p>
+
+<h4>Using <tt>Text.Html.Download</tt></h4>
+<p>
+    Tagsoup provides a module <tt>Text.Html.Download</tt>, which contains <tt>openURL</tt>.
 </p>
 <pre>
 import Text.HTML.Download
@@ -139,8 +144,18 @@ main = do src <- openURL "http://haskell.org/haskellwiki/Haskell"
           writeFile "temp.htm" src
 </pre>
 <p>
-    The function <tt>openURL</tt> comes from Text.HTML.Download, part of the TagSoup library. Now open <tt>temp.htm</tt>, check this fragment of HTML is in it, and see what has been returned. Only now do we consider how to extract the information.
+    Now open <tt>temp.htm</tt>, find the fragment of HTML containing the hit count, and examine it.
 </p>
+
+<h4>Using the <tt>tagsoup</tt> Program</h4>
+<p>
+    Tagsoup installs both as a library and a program. The program contains all the examples mentioned on this page, along with a few other useful functions. In order to download a URL to a file:
+</p>
+<pre>
+$ tagsoup grab http://haskell.org/haskellwiki/Haskell > temp.htm
+</pre>
+
+<h4>Using <tt>Network.HTTP</tt></h4>
 <p>
     An alternative fragment of text for reading in the original web page, using the network library, can be written as:
 </p>
@@ -258,7 +273,7 @@ spjPapers = do
 <h2>Other Examples</h2>
 
 <p>
-	Several more examples are given in the Example file, including obtaining the (short) list of papers from my site, and getting the current time. Both use very much the same style as presented here - writing screen scrapers follow a standard pattern. We present the code for enjoyment only.
+	Several more examples are given in the Example file, including obtaining the (short) list of papers from my site, getting the current time and a basic XML validator. All can be invoked using the <tt>tagsoup</tt> executable program. All use very much the same style as presented here - writing screen scrapers follow a standard pattern. We present the code from two for enjoyment only.
 </p>
 
 <h3>My Papers</h3>
