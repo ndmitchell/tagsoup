@@ -1,14 +1,15 @@
 Name:           tagsoup
 Version:        0.3
-Copyright:      2006-7, Neil Mitchell
+Copyright:      2006-8, Neil Mitchell
 Maintainer:     ndmitchell@gmail.com
 Author:         Neil Mitchell
 Homepage:       http://www-users.cs.york.ac.uk/~ndm/projects/libraries.php
 License:        BSD3
 License-File:   LICENSE
 Build-Depends:  base, network, mtl
+Build-type:     Simple
 Synopsis:       Parsing and extracting information from (possibly malformed) HTML documents
-GHC-Options:    -Wall -O
+GHC-Options:    -Wall -Werror -O2
 Exposed-modules:
     Text.HTML.TagSoup
     Text.HTML.TagSoup.Entity
@@ -18,7 +19,7 @@ Exposed-modules:
     Text.HTML.Download
 
 Executable:     tagsoup
-GHC-Options:    -Wall -O
+GHC-Options:    -Wall -Werror -O2
 Main-Is:        Main.hs
 Other-Modules:
     Example.Example
