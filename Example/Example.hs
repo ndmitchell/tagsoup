@@ -20,6 +20,7 @@ parse x = openItem x >>= putStr . show2 . parseTags
 
 
 -- the standard intersperse has a strictness bug which sucks!
+intersperseNotBroken :: a -> [a] -> [a]
 intersperseNotBroken _ [] = []
 intersperseNotBroken sep (x:xs) = x : is xs
     where
