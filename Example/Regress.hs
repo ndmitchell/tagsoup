@@ -64,6 +64,7 @@ lazyTags =
       ("<html name="++cycle "val&ue") :
       ("<html name="++cycle "va&l!ue") :
       ("&" ++ cycle "t") :
+      (cycle "&amp; test") :
 
       -- i don't see how this can work unless the junk gets into the AST?
       --("</html "++cycle "junk") :
