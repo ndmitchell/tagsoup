@@ -12,6 +12,13 @@ import Data.Char
 grab :: String -> IO ()
 grab x = openItem x >>= putStr
 
+parse :: String -> IO ()
+parse x = openItem x >>= putStr . show2 . parseTags
+    where
+        show2 [] = "[]"
+        show2 xs = "[" ++ concat (intersperse "\n," $ map show xs) ++ "\n]"
+
+
 {-
 <div class="printfooter">
 <p>Retrieved from "<a href="http://haskell.org/haskellwiki/Haskell">http://haskell.org/haskellwiki/Haskell</a>"</p>
