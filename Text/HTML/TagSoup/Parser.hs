@@ -117,6 +117,8 @@ parseTagsOptions opts x = mergeTexts $ evalState (parse opts) $ Value x (Positio
 --   If two text nodes are separated only a position node, delete the position.
 --   If two text nodes are separated only by a warning, move the warning afterwards.
 --   If a position immediately proceeds a warning, count that into the warning.
+--
+--   Note: this function leaks stack on Hugs.
 mergeTexts :: [Tag] -> [Tag]
 mergeTexts (TagText x:xs) = (TagText $ concat $ x:texts) : warns ++ mergeTexts rest
     where
