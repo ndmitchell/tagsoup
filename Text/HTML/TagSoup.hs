@@ -62,6 +62,8 @@ canonicalizeTags = map f
 class TagRep a where
     toTagRep :: a -> Tag
 
+instance TagRep Tag where toTagRep = id
+
 class    IsChar a    where toChar :: a -> Char
 instance IsChar Char where toChar =  id
 

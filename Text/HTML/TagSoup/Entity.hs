@@ -21,6 +21,8 @@ lookupEntity xs = lookupNamedEntity xs
 --
 -- > lookupNumericEntity "65" == Just 'A'
 -- > lookupNumericEntity "x41" == Just 'A'
+-- > lookupNumericEntity "x4E" === Just 'N'
+-- > lookupNumericEntity "x4e" === Just 'N'
 -- > lookupNumericEntity "Haskell" == Nothing
 -- > lookupNumericEntity "" == Nothing
 -- > lookupNumericEntity "89439085908539082" == Nothing
@@ -28,7 +30,7 @@ lookupNumericEntity :: String -> Maybe Char
 lookupNumericEntity = f
         -- entity = '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
     where
-        f ('x':xs) = g [('0','9'),('a','f'),('a','f')] readHex xs
+        f ('x':xs) = g [('0','9'),('a','f'),('A','F')] readHex xs
         f xs = g [('0','9')] reads xs
 
         g :: [(Char,Char)] -> ReadS Integer -> String -> Maybe Char
@@ -57,7 +59,7 @@ lookupNamedEntity x = liftM chr $ lookup x htmlEntities
 -- | Escape a character before writing it out to XML.
 --
 -- > escapeXMLChar 'a' == Nothing
--- > escapeXMLChar '&' == "amp"
+-- > escapeXMLChar '&' == Just "amp"
 escapeXMLChar :: Char -> Maybe String
 escapeXMLChar x = case [a | (a,b) <- xmlEntities, b == ord x] of
                        (y:_) -> Just y

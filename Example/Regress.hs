@@ -1,8 +1,8 @@
-module Example.Regress (
-    regress
-   ) where
+
+module Example.Regress (regress) where
 
 import Text.HTML.TagSoup
+import Text.HTML.TagSoup.Entity
 import qualified Text.HTML.TagSoup.Match as Match
 import Control.Exception
 
@@ -27,6 +27,8 @@ a === b = if a == b then pass else fail $ "Does not equal: " ++ show a ++ " =/= 
 regress :: IO ()
 regress = print $ do
     parseTests
+    combiTests
+    entityTests
     lazyTags == lazyTags `seq` pass
     matchCombinators
 
@@ -96,9 +98,12 @@ parseTests = do
     parseTags "<!DOCTYPE TEST>" === [TagOpen "!DOCTYPE" [("TEST","")]]
     parseTags "<test \"foo bar\">" === [TagOpen "test" [("","foo bar")]]
     parseTags "<test \'foo bar\'>" === [TagOpen "test" [("","foo bar")]]
+    parseTags "<:test \'foo bar\'>" === [TagOpen ":test" [("","foo bar")]]
     parseTags "hello &amp; world" === [TagText "hello & world"]
     parseTags "hello &#64; world" === [TagText "hello @ world"]
+    parseTags "hello &#x40; world" === [TagText "hello @ world"]
     parseTags "hello &haskell; world" === [TagText "hello &haskell; world"]
+    parseTags "hello \n\t world" === [TagText "hello \n\t world"]
 
     parseTags "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">" ===
         [TagOpen "!DOCTYPE" [("HTML",""),("PUBLIC",""),("","-//W3C//DTD HTML 4.01//EN"),("","http://www.w3.org/TR/html4/strict.dtd")]]
@@ -109,3 +114,30 @@ parseTests = do
                                                                        ("bar",   ""),
                                                                        ("href", "correct")],
                                                          TagText "text"]
+
+
+entityTests :: Test ()
+entityTests = do
+    lookupNumericEntity "65" === Just 'A'
+    lookupNumericEntity "x41" === Just 'A'
+    lookupNumericEntity "x4E" === Just 'N'
+    lookupNumericEntity "x4e" === Just 'N'
+    lookupNumericEntity "Haskell" === Nothing
+    lookupNumericEntity "" === Nothing
+    lookupNumericEntity "89439085908539082" === Nothing
+    lookupNamedEntity "amp" === Just '&'
+    lookupNamedEntity "haskell" === Nothing
+    escapeXMLChar 'a' === Nothing
+    escapeXMLChar '&' === Just "amp"
+
+
+combiTests :: Test ()
+combiTests = do
+    (TagText "test" ~== TagText ""    ) === True
+    (TagText "test" ~== TagText "test") === True
+    (TagText "test" ~== TagText "soup") === False
+    (TagText "test" ~== "test") === True
+    (TagOpen "test" [] ~== "<test>") === True
+    (TagOpen "test" [] ~== "<soup>") === False
+    (TagOpen "test" [] ~/= "<soup>") === True
+
