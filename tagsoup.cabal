@@ -3,7 +3,7 @@ Version:        0.3
 Copyright:      2006-8, Neil Mitchell
 Maintainer:     ndmitchell@gmail.com
 Author:         Neil Mitchell
-Homepage:       http://www-users.cs.york.ac.uk/~ndm/projects/libraries.php
+Homepage:       http://www-users.cs.york.ac.uk/~ndm/tagsoup/
 License:        BSD3
 License-File:   LICENSE
 Build-Depends:  base, network, mtl
