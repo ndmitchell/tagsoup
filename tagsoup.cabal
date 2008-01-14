@@ -9,7 +9,7 @@ License-File:   LICENSE
 Build-Depends:  base, network, mtl
 Build-type:     Simple
 Synopsis:       Parsing and extracting information from (possibly malformed) HTML documents
-GHC-Options:    -Wall -Werror -O2
+GHC-Options:    -Wall
 Exposed-modules:
     Text.HTML.TagSoup
     Text.HTML.TagSoup.Entity
@@ -19,7 +19,7 @@ Exposed-modules:
     Text.HTML.Download
 
 Executable:     tagsoup
-GHC-Options:    -Wall -Werror -O2
+GHC-Options:    -Wall
 Main-Is:        Main.hs
 Other-Modules:
     Example.Example
