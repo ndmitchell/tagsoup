@@ -17,7 +17,7 @@ lookupEntity :: String -> Maybe Char
 lookupEntity ('#':xs) = lookupNumericEntity xs
 lookupEntity xs = lookupNamedEntity xs
 
--- | Lookup a numeric entity, the leading '#' must have already been removed.
+-- | Lookup a numeric entity, the leading @\'#\'@ must have already been removed.
 --
 -- > lookupNumericEntity "65" == Just 'A'
 -- > lookupNumericEntity "x41" == Just 'A'
@@ -46,7 +46,7 @@ lookupNumericEntity = f
         isValid valid xs = all (\x -> any (`inRange` x) valid) xs
 
 
--- | Lookup a named entity, using 'htmlTable'
+-- | Lookup a named entity, using 'htmlEntities'
 --
 -- > lookupNamedEntity "amp" == Just '&'
 -- > lookupNamedEntity "haskell" == Nothing

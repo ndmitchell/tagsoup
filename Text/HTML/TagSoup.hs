@@ -12,7 +12,7 @@
     the HTML is not cooperating with the person trying to extract the information,
     but is also not trying to hide the information.
 
-    The standard practice is to parse a String to 'Tag's using 'parsePosTags',
+    The standard practice is to parse a String to 'Tag's using 'parseTags',
     then operate upon it to extract the necessary information.
 -}
 
@@ -36,7 +36,7 @@ module Text.HTML.TagSoup(
     sections, partitions,
     
     -- * Combinators
-    (~==),(~/=)
+    TagRep, IsChar, (~==),(~/=)
     ) where
 
 import Text.HTML.TagSoup.Parser
