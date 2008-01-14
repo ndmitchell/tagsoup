@@ -111,7 +111,7 @@ rssCreators = do
 
 
 validate :: String -> IO ()
-validate x = putStr . unlines . f . parseTagsOptions opts =<< openItem x
+validate x = putStr . unlines . g . f . parseTagsOptions opts =<< openItem x
     where
         opts = options{optTagPosition=True, optTagWarning=True}
 
@@ -122,3 +122,7 @@ validate x = putStr . unlines . f . parseTagsOptions opts =<< openItem x
             ("Warning (?,?): " ++ warn) : f rest
         f (_:rest) = f rest
         f [] = []
+
+        g xs = xs ++ [if n == 0 then "Success, no warnings"
+                      else "Failed, " ++ show n ++ " warning" ++ ['s'|n>1]]
+            where n = length xs
