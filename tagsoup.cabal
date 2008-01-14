@@ -5,10 +5,18 @@ Maintainer:     ndmitchell@gmail.com
 Author:         Neil Mitchell
 Homepage:       http://www-users.cs.york.ac.uk/~ndm/tagsoup/
 License:        BSD3
+Category:       XML
 License-File:   LICENSE
 Build-Depends:  base, network, mtl
 Build-type:     Simple
 Synopsis:       Parsing and extracting information from (possibly malformed) HTML documents
+Description:
+    TagSoup is a library for extracting information out of unstructured HTML code,
+    sometimes known as tag-soup. The HTML does not have to be well formed, or render
+    properly within any particular framework. This library is for situations where
+    the author of the HTML is not cooperating with the person trying to extract the
+    information, but is also not trying to hide the information.
+
 GHC-Options:    -Wall
 Exposed-modules:
     Text.HTML.TagSoup
