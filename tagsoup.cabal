@@ -1,3 +1,4 @@
+Cabal-Version:  >= 1.2
 Name:           tagsoup
 Version:        0.5
 Copyright:      2006-8, Neil Mitchell
@@ -7,7 +8,6 @@ Homepage:       http://www-users.cs.york.ac.uk/~ndm/tagsoup/
 License:        BSD3
 Category:       XML
 License-File:   LICENSE
-Build-Depends:  base, network, mtl
 Build-type:     Simple
 Synopsis:       Parsing and extracting information from (possibly malformed) HTML documents
 Description:
@@ -17,19 +17,28 @@ Description:
     the author of the HTML is not cooperating with the person trying to extract the
     information, but is also not trying to hide the information.
 
-GHC-Options:    -Wall
-Exposed-modules:
-    Text.HTML.TagSoup
-    Text.HTML.TagSoup.Entity
-    Text.HTML.TagSoup.Match
-    Text.HTML.TagSoup.Parser
-    Text.HTML.TagSoup.Render
-    Text.HTML.TagSoup.Type
-    Text.HTML.Download
+Flag splitBase
+    Description: Choose the new smaller, split-up base package.
 
-Executable:     tagsoup
-GHC-Options:    -Wall
-Main-Is:        Main.hs
-Other-Modules:
-    Example.Example
-    Example.Regress
+Library
+    if flag(splitBase)
+        build-depends: base >= 3, network, mtl, containers
+    else
+        build-depends: base <  3, network, mtl
+
+    GHC-Options: -Wall
+    Exposed-modules:
+        Text.HTML.TagSoup
+        Text.HTML.TagSoup.Entity
+        Text.HTML.TagSoup.Match
+        Text.HTML.TagSoup.Parser
+        Text.HTML.TagSoup.Render
+        Text.HTML.TagSoup.Type
+        Text.HTML.Download
+
+Executable tagsoup
+    Main-Is: Main.hs
+    GHC-Options: -Wall
+    Other-Modules:
+        Example.Example
+        Example.Regress
