@@ -37,6 +37,7 @@ renderTagsOptions opts xs = tags xs
         txt = concatMap (optEscape opts)
         open name atts shut = "<" ++ name ++ concatMap att atts ++ shut ++ ">"
         att (x,"") = " " ++ x
+        att ("",y) = " " ++ "\"" ++ txt y ++ "\""
         att (x,y) = " " ++ x ++ "=\"" ++ txt y ++ "\""
 
         com ('-':'-':'>':xs) = "-- >" ++ com xs
