@@ -19,7 +19,7 @@
 module Text.HTML.TagSoup(
     -- * Data structures and parsing
     Tag(..), Attribute,
-    Options(..), options,
+    ParseOptions(..), parseOptions,
     parseTags, parseTagsOptions,
     canonicalizeTags,
 

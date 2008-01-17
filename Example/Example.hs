@@ -129,7 +129,7 @@ rssCreators = do
 validate :: String -> IO ()
 validate x = putStr . unlines . g . f . parseTagsOptions opts =<< openItem x
     where
-        opts = options{optTagPosition=True, optTagWarning=True}
+        opts = parseOptions{optTagPosition=True, optTagWarning=True}
 
         f :: [Tag] -> [String]
         f (TagPosition row col:TagWarning warn:rest) =

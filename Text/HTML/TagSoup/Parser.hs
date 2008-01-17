@@ -30,7 +30,7 @@ digit = isDigit
 
 module Text.HTML.TagSoup.Parser(
     parseTags, parseTagsOptions,
-    Options(..), options
+    ParseOptions(..), parseOptions
     ) where
 
 import Text.HTML.TagSoup.Type
@@ -47,9 +47,9 @@ infix 9 ?->
 (?->) b true = if b then true else []
 
 ---------------------------------------------------------------------
--- * Options
+-- * ParseOptions
 
-data Options = Options
+data ParseOptions = ParseOptions
     {optTagPosition :: Bool -- ^ Should 'TagPosition' values be given before every item
     ,optTagWarning :: Bool -- ^ Should 'TagWarning' values be given
     ,optLookupEntity :: String -> [Tag] -- ^ How to lookup an entity
@@ -58,9 +58,9 @@ data Options = Options
     }
 
 
--- Default 'Options' structure
-options :: Options
-options = Options False False f (Just 10)
+-- Default 'ParseOptions' structure
+parseOptions :: ParseOptions
+parseOptions = ParseOptions False False f (Just 10)
     where
         f x = case lookupEntity x of
                   Nothing -> [TagText $ "&" ++ x ++ ";", TagWarning $ "Unknown entity: &" ++ x ++ ";"]
@@ -68,9 +68,9 @@ options = Options False False f (Just 10)
 
 
 parseTags :: String -> [Tag]
-parseTags = parseTagsOptions options
+parseTags = parseTagsOptions parseOptions
 
-tagWarn :: Options -> String -> [Tag]
+tagWarn :: ParseOptions -> String -> [Tag]
 tagWarn opts x = [TagWarning x | optTagWarning opts]
 
 ---------------------------------------------------------------------
@@ -92,13 +92,13 @@ updateOnChar (Position r c) x = case x of
     _    -> Position r (c+1)
 
 
-tagPos :: Options -> Position -> [Tag]
+tagPos :: ParseOptions -> Position -> [Tag]
 tagPos opts (Position r c) = [TagPosition r c | optTagPosition opts]
 
-tagPosWarn :: Options -> Position -> String -> [Tag]
+tagPosWarn :: ParseOptions -> Position -> String -> [Tag]
 tagPosWarn opts p x = optTagWarning opts ?-> (tagPos opts p ++ [TagWarning x])
 
-tagPosWarnFix :: Options -> Position -> [Tag] -> [Tag]
+tagPosWarnFix :: ParseOptions -> Position -> [Tag] -> [Tag]
 tagPosWarnFix opts p = addPositions . remWarnings
     where
         remWarnings = if optTagWarning opts then id else filter (not . isTagWarning)
@@ -108,7 +108,7 @@ tagPosWarnFix opts p = addPositions . remWarnings
 ---------------------------------------------------------------------
 -- * Driver
 
-parseTagsOptions :: Options -> String -> [Tag]
+parseTagsOptions :: ParseOptions -> String -> [Tag]
 parseTagsOptions opts x = mergeTexts $ evalState (parse opts) $ Value x (Position 0 0)
 
 
@@ -211,7 +211,7 @@ dropSpaces = do
 ---------------------------------------------------------------------
 -- * Parser
 
-parse :: Options -> Parser [Tag]
+parse :: ParseOptions -> Parser [Tag]
 parse opts = do
     Value s p <- get
     case s of
@@ -278,7 +278,7 @@ open opts p1 = do
 
 -- read a list of attributes
 -- return (the attributes read, if the tag is self-shutting, any warnings) 
-attribs :: Options -> Position -> Parser ([Attribute],Bool,[Tag])
+attribs :: ParseOptions -> Position -> Parser ([Attribute],Bool,[Tag])
 attribs opts p1 = do
     dropSpaces
     Value s p <- get
@@ -295,7 +295,7 @@ attribs opts p1 = do
 
 -- read a single attribute
 -- return (the attributes read, if the tag is self-shutting, any warnings) 
-attrib :: Options -> Position -> Parser ([Attribute],Bool,[Tag])
+attrib :: ParseOptions -> Position -> Parser ([Attribute],Bool,[Tag])
 attrib opts p1 = do
     name <- breakName
     if null name then do
@@ -327,7 +327,7 @@ attrib opts p1 = do
 
 -- read a single value
 -- return (value,warnings)
-value :: Options -> Parser (String,[Tag])
+value :: ParseOptions -> Parser (String,[Tag])
 value opts = do
     Value s p <- get
     case s of
@@ -356,7 +356,7 @@ value opts = do
 
 -- have seen an &, and have consumed it
 -- return a [Tag] to go in a tag stream
-entity :: Options -> Position -> Parser [Tag]
+entity :: ParseOptions -> Position -> Parser [Tag]
 entity opts p1 = do
     Value s p <- get
     case s of
@@ -384,7 +384,7 @@ entity opts p1 = do
 
 
 -- return the tag and some position information
-entityString :: Options -> Position -> Parser (String,[Tag])
+entityString :: ParseOptions -> Position -> Parser (String,[Tag])
 entityString opts p = do
     tags <- entity opts p
     let warnings = tagPosWarnFix opts p $ filter isTagWarning tags
