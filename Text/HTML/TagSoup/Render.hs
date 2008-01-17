@@ -31,7 +31,7 @@ renderTagsOptions opts xs = tags xs
         tag (TagOpen name atts) = open name atts ""
         tag (TagClose name) = "</" ++ name ++ ">"
         tag (TagText text) = txt text
-        tag (TagComment text) = com text
+        tag (TagComment text) = "<!--" ++ com text ++ "-->"
         tag _ = ""
 
         txt = concatMap (optEscape opts)
