@@ -4,6 +4,9 @@ module Text.HTML.TagSoup.Render(
     RenderOptions(..), renderOptions
     ) where
 
+import Data.Char
+import qualified Data.IntMap as IntMap
+import Text.HTML.TagSoup.Entity
 import Text.HTML.TagSoup.Type
 
 
@@ -12,7 +15,8 @@ data RenderOptions = RenderOptions
     }
 
 renderOptions :: RenderOptions
-renderOptions = RenderOptions (:[])
+renderOptions = RenderOptions (\x -> IntMap.findWithDefault [x] (ord x) esc)
+    where esc = IntMap.fromList [(b, "&"++a++";") | (a,b) <- htmlEntities]
 
 
 -- | Show a list of tags, as they might have been parsed
