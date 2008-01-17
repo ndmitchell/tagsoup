@@ -19,10 +19,8 @@
 module Text.HTML.TagSoup(
     -- * Data structures and parsing
     Tag(..), Attribute,
-    ParseOptions(..), parseOptions,
-    parseTags, parseTagsOptions,
-    RenderOptions(..), renderOptions,
-    renderTags, renderTagsOptions,
+    module Text.HTML.TagSoup.Parser,
+    module Text.HTML.TagSoup.Render,
     canonicalizeTags,
 
     -- * Tag identification
