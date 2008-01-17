@@ -21,6 +21,8 @@ module Text.HTML.TagSoup(
     Tag(..), Attribute,
     ParseOptions(..), parseOptions,
     parseTags, parseTagsOptions,
+    RenderOptions(..), renderOptions,
+    renderTags, renderTagsOptions,
     canonicalizeTags,
 
     -- * Tag identification
@@ -40,6 +42,7 @@ module Text.HTML.TagSoup(
     ) where
 
 import Text.HTML.TagSoup.Parser
+import Text.HTML.TagSoup.Render
 import Text.HTML.TagSoup.Type
 import Data.Char
 import Data.List
