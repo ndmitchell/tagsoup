@@ -9,6 +9,7 @@ import Text.HTML.TagSoup.Type
 -- | Invariants: there will be no TagOpen inside a TagLeaf
 data TagTree = TagBranch String [Attribute] Bool [TagTree]
              | TagLeaf Tag
+             deriving Show
 
 
 
@@ -29,7 +30,7 @@ tagTree = g
                 (inner,[]) -> (TagBranch name atts False inner:[], [])
                 (inner,TagClose x:xs)
                     | x == name -> let (a,b) = f xs in (TagBranch name atts True inner:a, b)
-                    | otherwise -> (TagBranch name atts False inner:[], TagClose x:xs)
+                    | otherwise -> (TagBranch name atts False []:inner, TagClose x:xs)
 
         f (TagClose x:xs) = ([], TagClose x:xs)
         f (x:xs) = (TagLeaf x:a,b)
