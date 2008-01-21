@@ -7,8 +7,7 @@ module Text.HTML.TagSoup.Tree (
 import Text.HTML.TagSoup.Type
 
 
--- | Invariants: there will be no TagOpen inside a TagLeaf
-data TagTree = TagBranch String [Attribute] Bool [TagTree]
+data TagTree = TagBranch String [Attribute] [TagTree]
              | TagLeaf Tag
              deriving Show
 
@@ -28,10 +27,10 @@ tagTree = g
         f :: [Tag] -> ([TagTree],[Tag])
         f (TagOpen name atts:xs) =
             case f xs of
-                (inner,[]) -> (TagBranch name atts False []:inner, [])
+                (inner,[]) -> (TagLeaf (TagOpen name atts):inner, [])
                 (inner,TagClose x:xs)
-                    | x == name -> let (a,b) = f xs in (TagBranch name atts True inner:a, b)
-                    | otherwise -> (TagBranch name atts False []:inner, TagClose x:xs)
+                    | x == name -> let (a,b) = f xs in (TagBranch name atts inner:a, b)
+                    | otherwise -> (TagLeaf (TagOpen name atts):inner, TagClose x:xs)
 
         f (TagClose x:xs) = ([], TagClose x:xs)
         f (x:xs) = (TagLeaf x:a,b)
@@ -42,20 +41,20 @@ tagTree = g
 flattenTree :: [TagTree] -> [Tag]
 flattenTree xs = concatMap f xs
     where
-        f (TagBranch name atts c inner) =
-            TagOpen name atts : flattenTree inner ++ [TagClose name | c]
+        f (TagBranch name atts inner) =
+            TagOpen name atts : flattenTree inner ++ [TagClose name]
         f (TagLeaf x) = [x]
 
 
 universeTags :: [TagTree] -> [TagTree]
 universeTags = concatMap f
     where
-        f t@(TagBranch _ _ _ inner) = t : universeTags inner
+        f t@(TagBranch _ _ inner) = t : universeTags inner
         f x = [x]
 
 
 transformTags :: (TagTree -> [TagTree]) -> [TagTree] -> [TagTree]
 transformTags act = concatMap f
     where
-        f (TagBranch a b c inner) = act $ TagBranch a b c (transformTags act inner)
+        f (TagBranch a b inner) = act $ TagBranch a b (transformTags act inner)
         f x = act x
