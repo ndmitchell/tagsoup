@@ -1,6 +1,7 @@
 
 module Text.HTML.TagSoup.Tree (
-    TagTree(..), tagTree
+    TagTree(..), tagTree, flattenTree,
+    transformTags, universeTags
     ) where
 
 import Text.HTML.TagSoup.Type
@@ -36,3 +37,25 @@ tagTree = g
         f (x:xs) = (TagLeaf x:a,b)
             where (a,b) = f xs
         f [] = ([], [])
+
+
+flattenTree :: [TagTree] -> [Tag]
+flattenTree xs = concatMap f xs
+    where
+        f (TagBranch name atts c inner) =
+            TagOpen name atts : flattenTree inner ++ [TagClose name | c]
+        f (TagLeaf x) = [x]
+
+
+universeTags :: [TagTree] -> [TagTree]
+universeTags = concatMap f
+    where
+        f t@(TagBranch _ _ _ inner) = t : universeTags inner
+        f x = [x]
+
+
+transformTags :: (TagTree -> [TagTree]) -> [TagTree] -> [TagTree]
+transformTags act = concatMap f
+    where
+        f (TagBranch a b c inner) = act $ TagBranch a b c (transformTags act inner)
+        f x = act x
