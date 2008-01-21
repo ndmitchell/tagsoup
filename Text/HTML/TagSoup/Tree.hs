@@ -28,7 +28,7 @@ tagTree = g
         f :: [Tag] -> ([TagTree],[Tag])
         f (TagOpen name atts:xs) =
             case f xs of
-                (inner,[]) -> (TagBranch name atts False inner:[], [])
+                (inner,[]) -> (TagBranch name atts False []:inner, [])
                 (inner,TagClose x:xs)
                     | x == name -> let (a,b) = f xs in (TagBranch name atts True inner:a, b)
                     | otherwise -> (TagBranch name atts False []:inner, TagClose x:xs)
