@@ -33,6 +33,7 @@ Library
         Text.HTML.TagSoup.Match
         Text.HTML.TagSoup.Parser
         Text.HTML.TagSoup.Render
+        Text.HTML.TagSoup.Tree
         Text.HTML.TagSoup.Type
         Text.HTML.Download
 
