@@ -25,12 +25,13 @@ tagTree = g
 
         -- the second tuple is either null or starts with a close
         f :: [Tag] -> ([TagTree],[Tag])
-        f (TagOpen name atts:xs) =
-            case f xs of
+        f (TagOpen name atts:rest) =
+            case f rest of
                 (inner,[]) -> (TagLeaf (TagOpen name atts):inner, [])
                 (inner,TagClose x:xs)
                     | x == name -> let (a,b) = f xs in (TagBranch name atts inner:a, b)
                     | otherwise -> (TagLeaf (TagOpen name atts):inner, TagClose x:xs)
+                _ -> error "TagSoup.Tree.tagTree: safe as - forall x . isTagClose (snd (f x))"
 
         f (TagClose x:xs) = ([], TagClose x:xs)
         f (x:xs) = (TagLeaf x:a,b)
