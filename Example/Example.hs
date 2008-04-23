@@ -58,7 +58,7 @@ googleTechNews = do
         tags <- liftM parseTags $ openURL "http://news.google.com/?ned=us&topic=t"
         let links = [ text
                     | TagOpen "a" atts:TagOpen "b" []:TagText text:_ <- tails tags,
-                    ("id",'u':'-':val) <- atts]
+                    ("id",'u':'-':_) <- atts]
         putStr $ unlines links
 
 
