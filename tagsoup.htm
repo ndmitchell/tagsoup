@@ -86,6 +86,21 @@ p.rule {
     Thanks to Mike Dodds for persuading me to write this up as a library. Thanks to many people for debugging and code contributions, including: Gleb Alexeev, Ketil Malde, Conrad Parker, Henning Thielemann.
 </p>
 
+<h3>Breaking API Changes</h3>
+
+<p>
+    This section lists the API changes that may cause programs to break between versions.
+</p>
+<h4>0.4-0.6</h4>
+
+<p>
+    0.6 supports rendering HTML with options, meaning the <tt>Options</tt> type used for parsing is no longer unambiguous, and has been changed to <tt>ParseOptions</tt>. This should only effect users of <tt>parseTagsOptions</tt>, not the more common users of <tt>parseTags</tt>.
+</p>
+<ul>
+    <li>In <tt>Text.HTML.TagSoup.Parser</tt>, the <tt>Options</tt> type has been renamed to <tt>ParseOptions</tt>.</li>
+    <li>In <tt>Text.HTML.TagSoup.Parser</tt>, the <tt>options</tt> function has been renamed to <tt>parseOptions</tt>.</li>
+</ul>
+
 <h2>Potential Bugs</h2>
 
 <p>
