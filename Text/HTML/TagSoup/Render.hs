@@ -32,7 +32,7 @@ renderTags = renderTagsOptions renderOptions
 
 
 renderTagsOptions :: RenderOptions -> [Tag] -> String
-renderTagsOptions opts xs = tags xs
+renderTagsOptions opts = tags
     where
         tags (TagOpen name atts:TagClose name2:xs)
             | name == name2 = open name atts " /" ++ tags xs
