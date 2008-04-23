@@ -1,7 +1,7 @@
 
-module Text.HTML.TagSoup.Tree (
-    TagTree(..), tagTree, flattenTree,
-    transformTags, universeTags
+module Text.HTML.TagSoup.Tree(
+    TagTree(..), tagTree,
+    flattenTree, transformTree, universeTree
     ) where
 
 import Text.HTML.TagSoup.Type
@@ -47,15 +47,15 @@ flattenTree xs = concatMap f xs
         f (TagLeaf x) = [x]
 
 
-universeTags :: [TagTree] -> [TagTree]
-universeTags = concatMap f
+universeTree :: [TagTree] -> [TagTree]
+universeTree = concatMap f
     where
-        f t@(TagBranch _ _ inner) = t : universeTags inner
+        f t@(TagBranch _ _ inner) = t : universeTree inner
         f x = [x]
 
 
-transformTags :: (TagTree -> [TagTree]) -> [TagTree] -> [TagTree]
-transformTags act = concatMap f
+transformTree :: (TagTree -> [TagTree]) -> [TagTree] -> [TagTree]
+transformTree act = concatMap f
     where
-        f (TagBranch a b inner) = act $ TagBranch a b (transformTags act inner)
+        f (TagBranch a b inner) = act $ TagBranch a b (transformTree act inner)
         f x = act x
