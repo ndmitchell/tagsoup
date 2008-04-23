@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-deprecations #-}
 {-|
     Module      :  Text.HTML.TagSoup
     Copyright   :  (c) Neil Mitchell 2006-2007
