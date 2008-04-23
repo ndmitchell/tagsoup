@@ -1,5 +1,12 @@
+{-|
+    This module is preliminary and may change at a future date.
+    If you wish to use its features, please email me and I will
+    help evolve an API that suits you.
+-}
 
-module Text.HTML.TagSoup.Tree(
+module Text.HTML.TagSoup.Tree
+    {-# DEPRECATED "Not quite ready for use yet, email me if it looks useful to you" #-}
+    (
     TagTree(..), tagTree,
     flattenTree, transformTree, universeTree
     ) where
