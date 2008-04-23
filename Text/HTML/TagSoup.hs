@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-deprecations #-}
 {-|
     Module      :  Text.HTML.TagSoup
     Copyright   :  (c) Neil Mitchell 2006-2007
@@ -21,8 +20,6 @@ module Text.HTML.TagSoup(
     -- * Data structures and parsing
     Tag(..), Attribute,
     module Text.HTML.TagSoup.Parser,
-    module Text.HTML.TagSoup.Render,
-    module Text.HTML.TagSoup.Tree,
     canonicalizeTags,
 
     -- * Tag identification
@@ -42,8 +39,6 @@ module Text.HTML.TagSoup(
     ) where
 
 import Text.HTML.TagSoup.Parser
-import Text.HTML.TagSoup.Render
-import Text.HTML.TagSoup.Tree
 import Text.HTML.TagSoup.Type
 import Data.Char
 import Data.List
