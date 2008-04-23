@@ -56,9 +56,9 @@ haskellHitCount = do
 googleTechNews :: IO ()
 googleTechNews = do
         tags <- liftM parseTags $ openURL "http://news.google.com/?ned=us&topic=t"
-        let links = [ x
-                    | TagOpen "a" atts:_:TagText x:_ <- tails tags
-                    , ("id",'r':val) <- atts, 'i' `notElem` val]
+        let links = [ text
+                    | TagOpen "a" atts:TagOpen "b" []:TagText text:_ <- tails tags,
+                    ("id",'u':'-':val) <- atts]
         putStr $ unlines links
 
 
