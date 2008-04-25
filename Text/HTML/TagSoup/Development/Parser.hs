@@ -44,13 +44,16 @@ import Data.Maybe
 ---------------------------------------------------------------------
 -- * ParseOptions
 
+isNameChar x = isAlphaNum x || x `elem` "-_:."
+
 data ParseOptions = ParseOptions
     {optTagPosition :: Bool -- ^ Should 'TagPosition' values be given before every item
     ,optTagWarning :: Bool -- ^ Should 'TagWarning' values be given
     ,optLookupEntity :: String -> [Tag] -- ^ How to lookup an entity
-    ,optMaxEntityLength :: Maybe Int -- ^ The maximum length of an entities content
-                                     --   (Nothing for no maximum, default to 10)
+    ,optMaxEntityLength :: Maybe Int -- ^ /DEPRECATED/: Always ignored
     }
+
+{-# DEPRECATED optMaxEntityLength "This option is now always ignored" #-}
 
 
 -- Default 'ParseOptions' structure
@@ -76,31 +79,62 @@ parseTagsOptions o = runParser (tag o)
 
 tag :: ParseOptions -> Parser [Tag]
 tag o = pick
-    ["</" |-> tagClose o & \ ~(a,b) -> TagClose a : b
-    ,cons $ tagText o
+    ["<!--" |-> comment o & \ ~(a,b)   -> TagComment a : b
+    ,"</"   |-> close   o & \ ~(a,b)   -> TagClose a : b
+    ,"<"    |-> open    o & \ ~(a,b,c) -> TagOpen a b : c
+    ,"&"    |-> entity  o
+    ,cons $ text o
     ,nil [] ]
 
 
-tagText :: ParseOptions -> Char -> PState -> [Tag]
-tagText o x s = TagText (x:xs) : rest
+text :: ParseOptions -> Char -> PState -> [Tag]
+text o x s = TagText (x:xs) : rest
     where
         (xs,rest) = case tag o s of
                          TagText xs : rest -> (xs,rest)
                          rest -> ("", rest)
 
 
-tagClose :: ParseOptions -> Parser (String,[Tag])
-tagClose o s0 = (name, rest)
+close :: ParseOptions -> Parser (String,[Tag])
+close o s0 = (name, rest)
     where
         (name,s1) = spanS isNameChar s0
         s2 = dropWhileS isSpace s1
 
         rest = pick [">" |-> tag o
-                    ,"" |-> tag o & (tagWarn o "moop" ++)] s2
+                    ,"" |-> tag o & (tagWarn o msg ++)] s2
+        msg = "Failed to find \">\" in closing tag"
+
+
+comment :: ParseOptions -> Parser (String,[Tag])
+comment o s0 = (text, if found then tag o s1 else tagWarn o msg)
+    where
+        (text, s1, found) = spanEndS "-->" s0
+        msg = "Failed to find \"-->\" in comment"
+
+
+entity :: ParseOptions -> Parser [Tag]
+entity o = pick ["#x" |-> f "#x" isHexDigit
+                ,"#"  |-> f "#"  isDigit
+                ,""   |-> f ""   isNameChar]
+    where
+        -- TODO: need to merge any generated TagText's with those in rest
+        -- TODO: need to filter out any warnings, and insert any TagPos's
+        f prefix test s0 = optLookupEntity o (prefix ++ text) ++ rest
+            where
+                (text,s1) = spanS test s0 
+                rest = pick [";" |-> \s -> tagWarn o msg ++ tag o s
+                            ,""  |-> tag o] s1
+        msg = "Failed to find \";\" in entity"
+
+
+open :: ParseOptions -> Parser (String, [(String,String)], [Tag])
+open = undefined
 
 
 
-isNameChar x = isAlphaNum x || x `elem` "-_:."
+
+
 
 
 
