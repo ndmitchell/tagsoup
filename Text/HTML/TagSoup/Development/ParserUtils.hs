@@ -1,5 +1,11 @@
 
-module Text.HTML.TagSoup.Development.ParserUtils where
+module Text.HTML.TagSoup.Development.ParserUtils
+    (PState, Parser, Pick, runParser
+    ,(&), (|->), cons, nil, pick
+    ,nullS, headS, tailS
+    ,dropS, spanS, dropWhileS
+    ,spanEndS
+    ) where
 
 import Data.List
 
@@ -85,3 +91,13 @@ spanS f s = ("", s)
 dropWhileS :: (Char -> Bool) -> PState -> PState
 dropWhileS f (PState (x:xs) r c) | f x = dropWhileS f $ update x xs r c
 dropWhileS f s = s
+
+
+-- keep reading until you reach some end text
+-- (x,y,True ) = spanEnd t s  ==> s == x ++ t ++ y
+-- (x,y,False) = spanEnd t s  ==> s == x  &&  y == ""
+spanEndS :: String -> PState -> (String, PState, Bool)
+spanEndS t s@(PState xs r c) | t `isPrefixOf` xs = ("", dropS (length t) s, True)
+spanEndS t s@(PState []     r c) = ("", s, False)
+spanEndS t s@(PState (x:xs) r c) = (x:r1,r2,r3)
+    where (r1,r2,r3) = spanEndS t $ update x xs r c
