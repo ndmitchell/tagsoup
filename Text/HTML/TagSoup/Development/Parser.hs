@@ -44,7 +44,8 @@ import Data.Maybe
 ---------------------------------------------------------------------
 -- * ParseOptions
 
-isNameChar x = isAlphaNum x || x `elem` "-_:."
+-- important: '"&<>/\ and space must not be in this list
+isNameChar x = isAlphaNum x || x `elem` "-_:.!?"
 
 data ParseOptions = ParseOptions
     {optTagPosition :: Bool -- ^ Should 'TagPosition' values be given before every item
