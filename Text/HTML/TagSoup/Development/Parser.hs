@@ -87,12 +87,24 @@ tag o = pick
     ,nil [] ]
 
 
+-- the first list of tags may be denormalised, the second is normal
+-- combine TagText as necessary, delete TagPos and TagWarn (if necessary)
+tagJoin :: ParseOptions -> [Tag] -> [Tag] -> [Tag]
+tagJoin o (TagText x:xs) ys = TagText (x++text) : rest
+    where (text,rest) = textRest $ tagJoin o xs ys
+tagJoin o (TagWarning{}:xs) ys | not $ optTagWarning o = tagJoin o xs ys
+tagJoin o (x:xs) ys = x : tagJoin o xs ys
+tagJoin o [] ys = ys
+
+
+textRest :: [Tag] -> (String, [Tag])
+textRest (TagText xs : rest) = (xs, rest)
+textRest rest = ("", rest)
+
+
 text :: ParseOptions -> Char -> PState -> [Tag]
 text o x s = TagText (x:xs) : rest
-    where
-        (xs,rest) = case tag o s of
-                         TagText xs : rest -> (xs,rest)
-                         rest -> ("", rest)
+    where (xs,rest) = textRest $ tag o s
 
 
 close :: ParseOptions -> Parser (String,[Tag])
@@ -118,9 +130,7 @@ entity o = pick ["#x" |-> f "#x" isHexDigit
                 ,"#"  |-> f "#"  isDigit
                 ,""   |-> f ""   isNameChar]
     where
-        -- TODO: need to merge any generated TagText's with those in rest
-        -- TODO: need to filter out any warnings, and insert any TagPos's
-        f prefix test s0 = optLookupEntity o (prefix ++ text) ++ rest
+        f prefix test s0 = tagJoin o (optLookupEntity o (prefix ++ text)) rest
             where
                 (text,s1) = spanS test s0 
                 rest = pick [";" |-> \s -> tagWarn o msg ++ tag o s
