@@ -7,6 +7,7 @@ import Text.HTML.Download
 import Control.Monad
 import Data.List
 import Data.Char
+import System.CPUTime
 
 
 grab :: String -> IO ()
@@ -142,3 +143,34 @@ validate x = putStr . unlines . g . f . parseTagsOptions opts =<< openItem x
         g xs = xs ++ [if n == 0 then "Success, no warnings"
                       else "Failed, " ++ show n ++ " warning" ++ ['s'|n>1]]
             where n = length xs
+
+
+-- figure out how many characters per second it can parse, based on a small sample
+-- try it with a default of 100 repititions, figure out what a better length might be
+-- and try again
+-- want to measure a time of > 1 second
+sample = "<this is a test with='attributes' and other=\"things&quot;tested\" /><neil> is </here>" ++
+         "<!-- comment --> and some just random &amp; test &gt;&lt;<foo></bar><bar><bob href=no>"
+
+pico = 1000000000000 :: Integer
+
+time :: IO ()
+time = putStrLn "Timing parseTags" >> f 100
+    where
+        f n = do
+            i <- timeN n
+            let cps = (genericLength sample * n * pico) `div` i
+                n2 = (n * pico * 11) `div` (i * 10)
+            if i > pico
+                then putStrLn $ "parseTags = " ++ show cps ++ " characters/second"
+                else f n2
+            
+
+-- number of repetitions, time in picoseconds
+timeN :: Integer -> IO Integer
+timeN n = do
+    start <- getCPUTime
+    let res = parseTags (concat $ genericReplicate n sample)
+    () <- length res `seq` return ()
+    end <- getCPUTime
+    return $ 1 + end - start

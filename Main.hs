@@ -30,6 +30,7 @@ actions :: [(String, String, Either (IO ()) (String -> IO ()))]
 actions = [("regress","Run the regression tests",Left regress)
           ,("grab","Grab a web page",Right grab)
           ,("parse","Parse a web page",Right parse)
+          ,("time","Time the parsing",Left time)
           ,("validate","Validate a page",Right validate)
           ,("hitcount","Get the Haskell.org hit count",Left haskellHitCount)
           ,("spj","Simon Peyton Jones' papers",Left spjPapers)
