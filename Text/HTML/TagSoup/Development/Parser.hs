@@ -142,11 +142,11 @@ entity o = pick ["#x" |-> f "#x" isHexDigit
                 ,""   |-> f ""   isNameChar]
     where
         -- should be "rest" here
-        f prefix test s0 = (optLookupEntity o (prefix ++ text), s1)
+        f prefix test s0 = (optLookupEntity o (prefix ++ text) ++ warn, s2)
             where
                 (text,s1) = spanS test s0 
-                rest = pick [";" |-> \s -> tagWarn o msg ++ tag o s
-                            ,""  |-> tag o] s1
+                (warn,s2) = pick [";" |-> \s -> ([], s)
+                                 ,""  |-> \s -> (tagWarn o msg, s)] s1
         msg = "Failed to find \";\" in entity"
 
 
