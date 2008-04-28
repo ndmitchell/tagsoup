@@ -30,6 +30,12 @@ runParser p s = p (PState s 1 1)
 ---------------------------------------------------------------------
 -- PARSER COMBINATORS
 
+{-# INLINE (&) #-}
+{-# INLINE (|->) #-}
+{-# INLINE cons #-}
+{-# INLINE nil #-}
+{-# INLINE pick #-}
+
 (&) :: Parser a -> (a -> b) -> Parser b
 (&) p f s = f (p s)
 
