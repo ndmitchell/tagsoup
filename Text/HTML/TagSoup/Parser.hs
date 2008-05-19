@@ -303,17 +303,19 @@ attrib opts p1 = do
         ~(atts,shut,warns) <- attribs opts p1
         return (atts,shut,tagPosWarn opts p1 "Junk character in tag" ++ warns)
      else do
+        ~(Value sold p) <- get
+        dropSpaces
         ~(Value s p) <- get
-        ~(val,warns1) <- f s
+        ~(val,warns1) <- f sold s
         ~(atts,shut,warns2) <- attribs opts p1
         return ((name,val):atts,shut,warns1++warns2)
     where
-        f ('=':s) = consume 1 >> value opts
-        f xs | not $ junk xs = return ([], [])
-             | otherwise = do
-                ~(Value s p) <- get
-                dropJunk
-                return ([], tagPosWarn opts p "Junk character in tag")
+        f sold ('=':s) = consume 1 >> dropSpaces >> value opts
+        f sold s | not $ junk sold = return ([], [])
+                 | otherwise = do
+                      ~(Value s p) <- get
+                      dropJunk
+                      return ([], tagPosWarn opts p "Junk character in tag")
 
         junk ('/':'>':_) = False
         junk ('>':_) = False
