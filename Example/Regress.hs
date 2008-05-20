@@ -126,6 +126,11 @@ renderTests = do
     let rp = renderTags . parseTags
     rp "<test>" === "<test>"
     rp "<br></br>" === "<br />"
+    rp "<script></script>" === "<script></script>"
+    rp "hello & world" === "hello &amp; world"
+    rp "<a href=test>" === "<a href=\"test\">"
+    rp "<a href>" === "<a href>"
+    rp "<!-- neil -->" === "<!-- neil -->"
 
 
 entityTests :: Test ()
