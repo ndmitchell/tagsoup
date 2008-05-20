@@ -1,7 +1,9 @@
+{-# OPTIONS_GHC -fno-warn-deprecations #-}
 
 module Example.Regress (regress) where
 
 import Text.HTML.TagSoup
+import Text.HTML.TagSoup.Render
 import Text.HTML.TagSoup.Entity
 import qualified Text.HTML.TagSoup.Match as Match
 import Control.Exception
@@ -27,6 +29,7 @@ a === b = if a == b then pass else fail $ "Does not equal: " ++ show a ++ " =/= 
 regress :: IO ()
 regress = print $ do
     parseTests
+    renderTests
     combiTests
     entityTests
     lazyTags == lazyTags `seq` pass
@@ -116,6 +119,13 @@ parseTests = do
                                                                        ("bar",   ""),
                                                                        ("href", "correct")],
                                                          TagText "text"]
+
+
+renderTests :: Test ()
+renderTests = do
+    let rp = renderTags . parseTags
+    rp "<test>" === "<test>"
+    rp "<br></br>" === "<br />"
 
 
 entityTests :: Test ()
