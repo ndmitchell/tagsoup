@@ -18,11 +18,14 @@ import Text.HTML.TagSoup.Type
 
 
 data RenderOptions = RenderOptions
-    {optEscape :: Char -> String
+    {optEscape :: Char -> String    -- ^ Escape a single character
+    ,optMinimize :: String -> Bool  -- ^ Minimise <b></b> -> <b/>, defaults to only for @br@
     }
 
 renderOptions :: RenderOptions
-renderOptions = RenderOptions (\x -> IntMap.findWithDefault [x] (ord x) esc)
+renderOptions = RenderOptions
+        (\x -> IntMap.findWithDefault [x] (ord x) esc)
+        (== "br")
     where esc = IntMap.fromList [(b, "&"++a++";") | (a,b) <- htmlEntities]
 
 
@@ -35,7 +38,7 @@ renderTagsOptions :: RenderOptions -> [Tag] -> String
 renderTagsOptions opts = tags
     where
         tags (TagOpen name atts:TagClose name2:xs)
-            | name == name2 = open name atts " /" ++ tags xs
+            | name == name2 && optMinimize opts name = open name atts " /" ++ tags xs
         tags (x:xs) = tag x ++ tags xs
         tags [] = []
 
