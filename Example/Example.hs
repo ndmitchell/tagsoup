@@ -91,8 +91,8 @@ ndmPapers = do
 currentTime :: IO ()
 currentTime = do
         tags <- liftM parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
-        let time = fromTagText (dropWhile (~/= "<strong id=ct>") tags !! 1)
-        putStrLn time
+        let res = fromTagText (dropWhile (~/= "<strong id=ct>") tags !! 1)
+        putStrLn res
 
 
 
@@ -149,10 +149,12 @@ validate x = putStr . unlines . g . f . parseTagsOptions opts =<< openItem x
 -- try it with a default of 100 repititions, figure out what a better length might be
 -- and try again
 -- want to measure a time of > 1 second
+sample :: String
 sample = "<this is a test with='attributes' and other=\"things&quot;tested\" /><neil> is </here>" ++
          "<!-- comment --> and some just random &amp; test &gt;&lt;<foo></bar><bar><bob href=no>"
 
-pico = 1000000000000 :: Integer
+pico :: Integer
+pico = 1000000000000
 
 time :: IO ()
 time = putStrLn "Timing parseTags" >> f 100
