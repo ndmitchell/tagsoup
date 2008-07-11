@@ -44,15 +44,13 @@ import Data.Char
 import Data.List
 
 
-{- |
-Turns all tag names to lower case and
-converts DOCTYPE to upper case.
--}
+-- | Turns all tag names and attributes to lower case and
+--   converts DOCTYPE to upper case.
 canonicalizeTags :: [Tag] -> [Tag]
 canonicalizeTags = map f
     where
-        f (TagOpen name attrs) | "!" `isPrefixOf` name = TagOpen (map toUpper name) attrs
-        f (TagOpen name attrs) | otherwise             = TagOpen (map toLower name) attrs
+        f (TagOpen ('!':name) attrs) = TagOpen ('!':map toUpper name) attrs
+        f (TagOpen name attrs) = TagOpen (map toLower name) [(map toLower k, v) | (k,v) <- attrs]
         f (TagClose name) = TagClose (map toLower name)
         f a = a
 
