@@ -335,7 +335,7 @@ value opts = do
     case s of
         '\"':_ -> consume 1 >> f p True "\""
         '\'':_ -> consume 1 >> f p True "\'"
-        _ -> f p False " />"
+        _ -> f p False ">"
     where
         f p1 quote end = do
             Value s p <- get
@@ -345,7 +345,9 @@ value opts = do
                     ~(cs1,warns1) <- entityString opts p
                     ~(cs2,warns2) <- f p1 quote end
                     return (cs1++cs2,warns1++warns2)
-                c:_ | c `elem` end -> do
+                '/':'>':_ | not quote -> do
+                    return ([],[])
+                c:_ | c `elem` end || (not quote && isSpace c) -> do
                     if quote then consume 1 else return ()
                     return ([],[])
                 c:_ -> do
