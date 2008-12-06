@@ -109,6 +109,7 @@ parseTests = do
     parseTags "hello &#x40; world" === [TagText "hello @ world"]
     parseTags "hello &haskell; world" === [TagText "hello &haskell; world"]
     parseTags "hello \n\t world" === [TagText "hello \n\t world"]
+    parseTags "<a href=http://www.google.com>" === [TagOpen "a" [("href","http://www.google.com")]]
 
     parseTags "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">" ===
         [TagOpen "!DOCTYPE" [("HTML",""),("PUBLIC",""),("","-//W3C//DTD HTML 4.01//EN"),("","http://www.w3.org/TR/html4/strict.dtd")]]
