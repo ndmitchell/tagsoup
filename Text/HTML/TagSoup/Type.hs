@@ -35,7 +35,7 @@ type Column = Int
 
 data Position = Position !Row !Column deriving Show
 
-nullPosition = (Position 0 0)
+nullPosition = (Position 1 1)
 
 positionString :: Position -> String -> Position
 positionString = foldl' positionChar
