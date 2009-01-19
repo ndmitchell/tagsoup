@@ -7,25 +7,25 @@
 main = {$warn} "" | {$warn ++ $pos ++ $1 ++ $2} _ clearWarn tag$1 main$2
 tag = "<!--" comment | "&" entity | "</" close | "<" open | _ text
 
-comment = {[TagComment $1]} endBy("-->")
+comment = {[Comment $1]} endBy("-->")
 
 entity = entity1 ";"
 entity1 = {entityNameHashX $1} "#x" name
 	| {entityNameHash  $1} "#"  name
 	| {entityName      $1} _    name
 
-close = {[TagClose $1]} spaces name$1 spaces ">"
+close = {[Close $1]} spaces name$1 spaces ">"
 
-open = {TagOpenStart $1 : $2} spaces name$1 spaces atts$2
+open = {OpenStart $1 : $2} spaces name$1 spaces atts$2
 
-atts = {[TagOpenShut]} "/>"
-     | {[TagOpenFinish]} ">"
+atts = {[OpenShut]} "/>"
+     | {[OpenFinish]} ">"
      | {$1 : $2} _ att$1 spaces atts$2
 
 # foo="bar"
-att = {TagAtt "" $1} """ str(""")
-    | {TagAtt "" $1} "'" str("'")
-    | {TagAtt $1 $2} _ name$1 spaces attEq$2
+att = {OpenAtt "" $1} """ str(""")
+    | {OpenAtt "" $1} "'" str("'")
+    | {OpenAtt $1 $2} _ name$1 spaces attEq$2
 
 # ="bar"
 attEq = {$1} "=" spaces attQuote$1
@@ -42,4 +42,4 @@ str(x) = {[]} "" x
        | {innerText $1 +++ $2} "&" entity$1 str(x)$2
        | {$1 +++ $2} _ takeWhileNot(""&")$1 str(x)$2
 
-text = {[TagText $1]} takeWhileNot("<&")
+text = {[Text $1]} takeWhileNot("<&")

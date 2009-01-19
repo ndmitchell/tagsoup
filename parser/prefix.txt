@@ -2,16 +2,18 @@
 import Data.List
 import Data.Char
 
-data Tag = TagComment String
-	 | TagOpenStart String
-	 | TagOpenShut
-	 | TagOpenFinish
-	 | TagAtt String String
-	 | TagText String
-	 | TagClose String
-	 | TagWarning String
+data Tag = Comment String
+	 | OpenStart String
+	 | OpenShut
+	 | OpenFinish
+	 | OpenAtt String String
+	 | Text String
+	 | Close String
+	 | Warning String
+	 | Pos Position
 	   deriving Show
 
+type Position = ()
 
 
 endBy str (s0,p0,w0)
@@ -21,7 +23,7 @@ endBy str (s0,p0,w0)
 		where (v,spw) = endBy str (tail s0,p0,w0)
 
 literal str (s0,p0,w0) | str `isPrefixOf` s0 = (str,(drop (length str) s0,p0,w0))
-		       | otherwise = ("",(s0,p0,w0++[TagWarning $ "Expected " ++ str]))
+		       | otherwise = ("",(s0,p0,w0++[Warning $ "Expected " ++ str]))
 
 clearWarn (s0,p0,w0) = ("",(s0,p0,[]))
 
@@ -35,7 +37,7 @@ spaces (s0,p0,w0) = (a,(b,p0,w0))
 
 entityNameHashX x = entityName ("#x" ++ x)
 entityNameHash x = entityName ("#" ++ x)
-entityName x = [TagText $ "&" ++ x ++ ";"]
+entityName x = [Text $ "&" ++ x ++ ";"]
 
 
 takeWhileNot str (s0,p0,w0) = (a,(b,p0,w0))
@@ -45,5 +47,5 @@ takeWhileNot str (s0,p0,w0) = (a,(b,p0,w0))
 
 innerText xs = concatMap f xs
 	where
-		f (TagText x) = x
+		f (Text x) = x
 		f _ = ""
