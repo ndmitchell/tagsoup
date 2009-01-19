@@ -4,7 +4,7 @@
 # xs ==> {$1} xs (if no command, make it $1)
 
 
-main = {$warn} "" | {$warn ++ $pos ++ $1 ++ $2} _ clearWarn tag$1 main$2
+tags = {$warn} "" | {$warn ++ [Pos $pos] ++ $1 ++ $2} _ clearWarn tag$1 tags$2
 tag = "<!--" comment | "&" entity | "</" close | "<" open | _ text
 
 comment = {[Comment $1]} endBy("-->")
@@ -18,7 +18,8 @@ close = {[Close $1]} spaces name$1 spaces ">"
 
 open = {OpenStart $1 : $2} spaces name$1 spaces atts$2
 
-atts = {[OpenShut]} "/>"
+atts = {[OpenShut]} "" ">"
+     | {[OpenShut]} "/>"
      | {[OpenFinish]} ">"
      | {$1 : $2} _ att$1 spaces atts$2
 
@@ -39,7 +40,8 @@ attQuote = """ str(""")
 # bar"
 str(x) = {[]} "" x
        | {[]} x 
-       | {innerText $1 ++ $2} "&" entity$1 str(x)$2
+       | {innerTexts $1 ++ $2} "&" entity$1 str(x)$2
        | {$1 ++ $2} _ takeWhileNot(""&")$1 str(x)$2
+# DOH ABOVE, takeWhileNot should use x, not " !!!
 
 text = {[Text $1]} takeWhileNot("<&")

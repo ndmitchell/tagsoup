@@ -33,7 +33,7 @@ type Column = Int
 --- All positions are stored as a row and a column, with (1,1) being the
 --- top-left position
 
-data Position = Position !Row !Column
+data Position = Position !Row !Column deriving Show
 
 nullPosition = (Position 0 0)
 
