@@ -1,9 +1,9 @@
 
 module Main where
 
-import Parser
-import Simplify
-import CodeGen
+import Compiler.Parser
+import Compiler.Simplify
+import Compiler.CodeGen
 
 main = do
     src <- readFile "tagsoup.txt"
