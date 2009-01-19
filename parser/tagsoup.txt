@@ -4,7 +4,7 @@
 # xs ==> {$1} xs (if no command, make it $1)
 
 
-tags = {$warn} "" | {$warn ++ [Pos $pos] ++ $1 ++ $2} _ clearWarn tag$1 tags$2
+tags = {$warn} "" | {$warn ++ $pos ++ $1 ++ $2} _ clearWarn tag$1 tags$2
 tag = "<!--" comment | "&" entity | "</" close | "<" open | _ text
 
 comment = {[Comment $1]} endBy("-->")

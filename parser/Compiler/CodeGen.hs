@@ -45,7 +45,7 @@ genItem i x = "(" ++ v ++ "," ++ spw i ++ ") = " ++ f x
 
 genOp ('$':x:xs) | isDigit x = 'v':x : genOp xs
 genOp ('$':'w':'a':'r':'n':xs) = "w0" ++ genOp xs
-genOp ('$':'p':'o':'s':xs) = "p0" ++ genOp xs
+genOp ('$':'p':'o':'s':xs) = "(tagPos opts p0)" ++ genOp xs
 genOp (x:xs) = x : genOp xs
 genOp [] = []
 
