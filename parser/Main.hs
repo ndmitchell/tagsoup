@@ -7,7 +7,7 @@ import Compiler.CodeGen
 
 main = do
     src <- readFile "tagsoup.txt"
-    pre <- readFile "prefix.txt"
+    pre <- readFile "Prefix.hs"
     let code = codeGen $ simplify $ parse src
     writeFile "generated.hs" (pre ++ code)
 
