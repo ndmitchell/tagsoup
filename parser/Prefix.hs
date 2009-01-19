@@ -43,8 +43,6 @@ entityName x = [Text $ "&" ++ x ++ ";"]
 takeWhileNot str (s0,p0,w0) = (a,(b,p0,w0))
 	where (a,b) = span (`notElem` str) s0
 
-(+++) = (++)
-
 innerText xs = concatMap f xs
 	where
 		f (Text x) = x

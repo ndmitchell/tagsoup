@@ -39,7 +39,7 @@ attQuote = """ str(""")
 # bar"
 str(x) = {[]} "" x
        | {[]} x 
-       | {innerText $1 +++ $2} "&" entity$1 str(x)$2
-       | {$1 +++ $2} _ takeWhileNot(""&")$1 str(x)$2
+       | {innerText $1 ++ $2} "&" entity$1 str(x)$2
+       | {$1 ++ $2} _ takeWhileNot(""&")$1 str(x)$2
 
 text = {[Text $1]} takeWhileNot("<&")
