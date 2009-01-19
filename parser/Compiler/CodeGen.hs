@@ -15,16 +15,16 @@ indent n = (++) (replicate n ' ')
 spw n = concat $ intersperse (show n) ["(s",",p",",w",")"]
 
 
-genStmt (Stmt2 name x) = "" : (name ++ " (s0,p0,w0) = " ++ a) : b
+genStmt (Stmt2 name x) = "" : (name ++ " opts (s0,p0,w0) = " ++ a) : b
     where (a:b) = genExp x
 
 
 genExp (Choice2 alts def) = "case s0 of" : map (indent 4) (map f alts ++ [d])
     where
-        f ("",rule) = "\"\" -> " ++ rule ++ " " ++ spw 0
-        f (str,rule) = pat ++ " -> " ++ rule ++ " (s1,p0,w0)"
+        f ("",rule) = "\"\" -> " ++ rule ++ " opts " ++ spw 0
+        f (str,rule) = pat ++ " -> " ++ rule ++ " opts (s1,p0,w0)"
             where pat = concat $ intersperse ":" $ map show str ++ ["s1"]
-        d = "_ -> " ++ def ++ " " ++ spw 0
+        d = "_ -> " ++ def ++ " opts " ++ spw 0
 
 
 genExp (Seq2 act []) = [genAct 0 act]
@@ -38,9 +38,9 @@ genItem i x = "(" ++ v ++ "," ++ spw i ++ ") = " ++ f x
     where
         v = maybe "_ " (\i -> "v" ++ show i) $ getBind x
 
-        f (Rule2 name _) = name ++ " " ++ spw (i-1)
-        f (Literal2 x) = "literal " ++ show x ++ " " ++ spw (i-1)
-        f (Prim2 name arg _) = name ++ " " ++ show arg ++ " " ++ spw (i-1)
+        f (Rule2 name _) = name ++ " opts " ++ spw (i-1)
+        f (Literal2 x) = "literal opts " ++ show x ++ " " ++ spw (i-1)
+        f (Prim2 name arg _) = name ++ " opts " ++ show arg ++ " " ++ spw (i-1)
 
 
 genOp ('$':x:xs) | isDigit x = 'v':x : genOp xs

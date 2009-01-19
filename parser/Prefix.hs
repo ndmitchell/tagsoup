@@ -20,22 +20,23 @@ data Tags
 
 
 
-endBy str (s0,p0,w0)
+endBy opts str (s0,p0,w0)
 	| str `isPrefixOf` s0 = ("",(drop (length str) s0,p0,w0))
 	| null s0 = ("",(s0,p0,w0))
 	| otherwise = (head s0:v,spw)
-		where (v,spw) = endBy str (tail s0,p0,w0)
+        where (v,spw) = endBy opts str (tail s0,p0,w0)
 
-literal str (s0,p0,w0) | str `isPrefixOf` s0 = (str,(drop (length str) s0,p0,w0))
-		       | otherwise = ("",(s0,p0,w0++[Warning $ "Expected " ++ str]))
+literal opts str (s0,p0,w0)
+    | str `isPrefixOf` s0 = (str,(drop (length str) s0,p0,w0))
+    | otherwise = ("",(s0,p0,w0++ tagPosWarn opts p0 ("Expected " ++ str)))
 
-clearWarn (s0,p0,w0) = ("",(s0,p0,[]))
+clearWarn opts (s0,p0,w0) = ("",(s0,p0,[]))
 
 
-name (s0,p0,w0) = (a,(b,p0,w0))
+name opts (s0,p0,w0) = (a,(b,p0,w0))
 	where (a,b) = span isAlphaNum s0
 
-spaces (s0,p0,w0) = (a,(b,p0,w0))
+spaces opts (s0,p0,w0) = (a,(b,p0,w0))
 	where (a,b) = span isSpace s0
 
 
@@ -44,7 +45,7 @@ entityNameHash x = entityName ("#" ++ x)
 entityName x = [Text $ "&" ++ x ++ ";"]
 
 
-takeWhileNot str (s0,p0,w0) = (a,(b,p0,w0))
+takeWhileNot opts str (s0,p0,w0) = (a,(b,p0,w0))
 	where (a,b) = span (`notElem` str) s0
 
 
@@ -100,7 +101,7 @@ isWarning Warning{} = True; isWarning _ = False
 -- * Driver
 
 parseTagsOptions :: ParseOptions -> String -> [Tags]
-parseTagsOptions opts x = fst $ tags (x,nullPosition,[])
+parseTagsOptions opts x = fst $ tags opts (x,nullPosition,[])
 
 {-
 -- | Combine adjacent text nodes.
