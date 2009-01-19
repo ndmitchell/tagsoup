@@ -1,0 +1,49 @@
+
+import Data.List
+import Data.Char
+
+data Tag = TagComment String
+	 | TagOpenStart String
+	 | TagOpenShut
+	 | TagOpenFinish
+	 | TagAtt String String
+	 | TagText String
+	 | TagClose String
+	 | TagWarning String
+	   deriving Show
+
+
+
+endBy str (s0,p0,w0)
+	| str `isPrefixOf` s0 = ("",(drop (length str) s0,p0,w0))
+	| null s0 = ("",(s0,p0,w0))
+	| otherwise = (head s0:v,spw)
+		where (v,spw) = endBy str (tail s0,p0,w0)
+
+literal str (s0,p0,w0) | str `isPrefixOf` s0 = (str,(drop (length str) s0,p0,w0))
+		       | otherwise = ("",(s0,p0,w0++[TagWarning $ "Expected " ++ str]))
+
+clearWarn (s0,p0,w0) = ("",(s0,p0,[]))
+
+
+name (s0,p0,w0) = (a,(b,p0,w0))
+	where (a,b) = span isAlphaNum s0
+
+spaces (s0,p0,w0) = (a,(b,p0,w0))
+	where (a,b) = span isSpace s0
+
+
+entityNameHashX x = entityName ("#x" ++ x)
+entityNameHash x = entityName ("#" ++ x)
+entityName x = [TagText $ "&" ++ x ++ ";"]
+
+
+takeWhileNot str (s0,p0,w0) = (a,(b,p0,w0))
+	where (a,b) = span (`notElem` str) s0
+
+(+++) = (++)
+
+innerText xs = concatMap f xs
+	where
+		f (TagText x) = x
+		f _ = ""
