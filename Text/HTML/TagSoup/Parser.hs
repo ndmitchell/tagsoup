@@ -76,24 +76,8 @@ tagWarn opts x = [TagWarning x | optTagWarning opts]
 ---------------------------------------------------------------------
 -- * Positions
 
--- All positions are stored as a row and a column, with (1,1) being the
--- top-left position
-
-data Position = Position !Row !Column
-
-
-updateOnString :: Position -> String -> Position
-updateOnString = foldl' updateOnChar
-
-updateOnChar   :: Position -> Char -> Position
-updateOnChar (Position r c) x = case x of
-    '\n' -> Position (r+1) c
-    '\t' -> Position r (c + 8 - mod (c-1) 8)
-    _    -> Position r (c+1)
-
-
 tagPos :: ParseOptions -> Position -> [Tag]
-tagPos opts (Position r c) = [TagPosition r c | optTagPosition opts]
+tagPos opts p = [tagPosition p | optTagPosition opts]
 
 tagPosWarn :: ParseOptions -> Position -> String -> [Tag]
 tagPosWarn opts p x = optTagWarning opts ?-> (tagPos opts p ++ [TagWarning x])
@@ -109,7 +93,7 @@ tagPosWarnFix opts p = addPositions . remWarnings
 -- * Driver
 
 parseTagsOptions :: ParseOptions -> String -> [Tag]
-parseTagsOptions opts x = mergeTexts $ evalState (parse opts) $ Value x (Position 0 0)
+parseTagsOptions opts x = mergeTexts $ evalState (parse opts) $ Value x nullPosition
 
 
 -- | Combine adjacent text nodes.
@@ -157,7 +141,7 @@ consume :: Int -> Parser ()
 consume n = do
     Value s p <- get
     let (a,b) = splitAt n s
-    put $ Value b (updateOnString p a)
+    put $ Value b (positionString p a)
 
 
 -- Break once an end string is encountered.

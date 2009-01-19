@@ -3,6 +3,9 @@
 module Text.HTML.TagSoup.Type(
     -- * Data structures and parsing
     Tag(..), Attribute, Row, Column,
+    
+    -- * Position manipulation
+    Position, tagPosition, nullPosition, positionChar, positionString,
 
     -- * Tag identification
     isTagOpen, isTagClose, isTagText, isTagWarning,
@@ -16,6 +19,7 @@ module Text.HTML.TagSoup.Type(
 
 
 import Data.Char
+import Data.List
 import Data.Maybe
 
 
@@ -24,6 +28,27 @@ type Attribute = (String,String)
 
 type Row = Int
 type Column = Int
+
+
+--- All positions are stored as a row and a column, with (1,1) being the
+--- top-left position
+
+data Position = Position !Row !Column
+
+nullPosition = (Position 0 0)
+
+positionString :: Position -> String -> Position
+positionString = foldl' positionChar
+
+positionChar :: Position -> Char -> Position
+positionChar (Position r c) x = case x of
+    '\n' -> Position (r+1) c
+    '\t' -> Position r (c + 8 - mod (c-1) 8)
+    _    -> Position r (c+1)
+
+tagPosition :: Position -> Tag
+tagPosition (Position r c) = TagPosition r c
+
 
 -- | An HTML element, a document is @[Tag]@.
 --   There is no requirement for 'TagOpen' and 'TagClose' to match
