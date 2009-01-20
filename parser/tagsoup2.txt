@@ -1,12 +1,12 @@
 
 # SYNTAX SUGAR
-# string x string ==> string res@1 string (if only one non-constant, make that $1)
-# xs ==> {res} xs (if no command, make it $1)
+# string x string ==> string res@x string (if only one non-constant, make that res@)
+# xs ==> {res} xs (if no command, make it res)
 
 
 tags
-    eof = {warn}
-    _ = clearWarn x@tag xs@tags {warn ++ pos ++ x ++ xs}
+    eof = {warn s0 []}
+    _ = clearWarn x@tag xs@tags {warn s0 $ pos s0 $ x ++ xs}
 
 tag
 	"<!--" = comment
@@ -15,7 +15,7 @@ tag
 	"<" = open
 	_ = text
 
-comment = (endBy "-->") {[Comment $1]}
+comment = (endBy "-->") {[Comment res]}
 
 entity = entity1 ";"
 entity1
@@ -25,20 +25,20 @@ entity1
 
 close = spaces res@name spaces ">" {[Close res]} 
 
-open = spaces x@name spaces xs@atts {OpenStart x : xs} 
+open = spaces x@name spaces xs@(atts x) {Open x xs : xs} 
 
-atts
-	eof = ">" {[OpenShut]}
-	"/>" = {[OpenShut]}
-	">" = {[OpenFinish]}
-	_ = x@att spaces xs@atts {x:xs} 
+atts param
+	eof  = ">" {[]}
+	"/>" = {[Close param]}
+	">"  = {[]}
+	_    = x@att spaces xs@(atts param) {x:xs} 
 
 # foo="bar"
 att
-	"\"" = (str "\"") {OpenAtt "" res} 
-	"'"  = (str "'")  {OpenAtt "" res} 
-    x@name = spaces xs@attEq {OpenAtt x xs} 
-    _ = (takeWhileNot (union "\" '" nameChar1)) {junk res}
+	"\"" = (str "\"") {("",res)} 
+	"'" = (str "'") {("",res)} 
+    x@name = spaces y@attEq {(x,y)} 
+    _ = (takeWhileNot "\"'" nameChar1) {junk res}
 
 # ="bar"
 attEq
@@ -56,6 +56,6 @@ str param
 	eof = param
     param = {[]}
     "&" = x@entity xs@(str param) {innerTexts x ++ xs}
-    _ = x@(takeWhileNot (union "\"&" param)) xs@(str param) {x ++ xs} 
+    _ = x@(takeWhileNot "\"&" param) xs@(str param) {x ++ xs} 
 
 text = (takeWhileNot "<&") {[Text res]} 
