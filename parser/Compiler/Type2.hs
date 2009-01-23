@@ -3,7 +3,7 @@
 module Compiler.Type2 where
 
 import Data.Data
-import Data.List
+import Compiler.Util
 
 
 prims = ["takeWhileNot","endBy"]
@@ -45,6 +45,9 @@ data Bind a = Bind (Maybe String) a
 
 asLit (Lit x) = Just x
 asLit _ = Nothing
+
+
+getRule xs name = fromJust $ find ((==) name . ruleName) xs
 
 
 -- $ = variable

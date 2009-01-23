@@ -13,8 +13,14 @@ optimise = deadCode . specialise
 -- Remove rules that are unreachable from root
 
 deadCode :: Program -> Program
-deadCode = id
-
+deadCode xs = filter (flip elem needed . ruleName) xs
+    where
+        needed = follow [] ["root"]
+        
+        follow done (t:odo) | t `elem` done = follow done odo
+        follow done (t:odo) = follow (t:done) (odo++new)
+            where new = [x | Call x _ <- universeBi $ getRule xs t]
+        follow done [] = done
 
 ---------------------------------------------------------------------
 -- Given parameter invokations of local rules, specialise them
@@ -46,7 +52,7 @@ useTemplate ts = transformBi f
 genTemplate :: [Rule] -> (Template,String) -> Rule
 genTemplate xs ((name,args),name2) = Rule name2 args2 bod2
     where
-        Rule _ as bod = fromJust $ find ((==) name . ruleName) xs
+        Rule _ as bod = getRule xs name
         args2 = concat $ zipWith (\i s -> [s | isNothing i]) args as
         rep = concat $ zipWith (\i s -> [(s,Lit $ fromJust i) | isJust i]) args as
         bod2 = transformBi f bod
