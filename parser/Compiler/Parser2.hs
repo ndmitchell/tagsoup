@@ -37,17 +37,13 @@ parseBind f x | "@" `isPrefixOf` b = Bind (Just a) $ f $ unround $ tail b
 parsePat :: String -> Pat
 parsePat "_" = PWildcard
 parsePat x@('\"':_) = PLit $ read x
-parsePat x = PVar x
+parsePat x = PPrim x
 
 
 parseExp :: String -> Exp
-parseExp x = Call name $ map parseVal args
+parseExp x@('\"':_) = Lit $ read x
+parseExp x = Prim name $ map parseExp args
     where (name:args) = words x
-
-
-parseVal :: String -> Val
-parseVal x@('\"':_) = Lit $ read x
-parseVal x = Var x
 
 
 ---------------------------------------------------------------------

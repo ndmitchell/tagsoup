@@ -4,9 +4,10 @@
 # xs ==> {res} xs (if no command, make it res)
 
 
-primRule  = clearWarn spaces name
+primRule  = clearWarn spaces name hexes digits
 primMatch = name
 
+root = tags
 
 tags
     eof = {warn s0 []}
@@ -23,7 +24,7 @@ comment = (endBy "-->") {[Comment res]}
 
 entity = entity1 ";"
 entity1
-    "#x" = hex    {entityNameHashX res}
+    "#x" = hexes  {entityNameHashX res}
     "#"  = digits {entityNameHash  res} 
     _    = name   {entityName      res} 
 
