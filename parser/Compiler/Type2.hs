@@ -38,8 +38,13 @@ data Pat = PVar RuleArg
 data Bind a = Bind (Maybe String) a
 
 
+
+-- $ = variable
+-- @ = rule
+-- ! = primitive
+
 instance Show Rule where
-    show (Rule name args x) = unwords $ name:args++["=",show x]
+    show (Rule name args x) = unwords $ name : map ('$':) args ++["=",show x]
     showList = showString . unlines . map show
 
 instance Show Choice where
@@ -50,17 +55,17 @@ instance Show Seq where
     show (Seq xs y) = unwords $ map show xs ++ ["{" ++ y ++ "}"]
 
 instance Show Exp where
-    show (Prim x ys) = show (Call x ys)
-    show (Call x ys) | null ys = x
-                     | otherwise = "(" ++ unwords (x:map show ys) ++ ")"
+    show (Prim x ys) = show $ Call ('#':x) ys
+    show (Call x []) = x
+    show (Call x ys) = "(" ++ unwords (x : map show ys) ++ ")"
 
 instance Show Val where
-    show (Var x) = x
+    show (Var x) = '$':x
     show (Lit x) = show x
 
 instance Show Pat where
-    show (PVar x) = x
-    show (PPrim x) = x
+    show (PVar x) = '$':x
+    show (PPrim x) = '#':x
     show (PLit x) = show x
     show PWildcard = "_"
 

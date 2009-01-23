@@ -4,6 +4,10 @@
 # xs ==> {res} xs (if no command, make it res)
 
 
+primRule  = clearWarn spaces name
+primMatch = name
+
+
 tags
     eof = {warn s0 []}
     _ = clearWarn x@tag xs@tags {warn s0 $ pos s0 $ x ++ xs}
@@ -25,20 +29,15 @@ entity1
 
 close = spaces res@name spaces ">" {[Close res]} 
 
-open = spaces x@name spaces xs@(atts x) {Open x xs : xs} 
+open = spaces x@name spaces xs@(atts x) {Open x (fst xs) : snd xs} 
 
 atts param
-    eof  = ">" {[]}
-    "/>" = {[Close param]}
-    ">"  = {[]}
-    _    = x@att spaces xs@(atts param) {x:xs} 
-
-# foo="bar"
-att
-    "\"" = (str "\"") {("",res)} 
-    "'" = (str "'") {("",res)} 
-    x@name = spaces y@attEq {(x,y)}
-    _ = (takeWhileNot "\"'" nameChar1) {junk res}
+    "/>" = {([],[Close param])}
+    ">"  = {([],[])}
+    "\"" = y@(str "\"") spaces res@(atts param) {first (("",y):) res}
+    "\'" = y@(str "\'") spaces res@(atts param) {first (("",y):) res}
+    x@name = spaces y@attEq spaces res@(atts param) {first ((x,y):) res}
+    _    = ">" {([],[])}
 
 # ="bar"
 attEq
