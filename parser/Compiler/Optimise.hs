@@ -6,8 +6,22 @@ import Compiler.Util
 
 
 optimise :: Program -> Program
-optimise = deadCode . specialise
+optimise = collapsePrimArgs . deadCode . specialise
 
+
+
+---------------------------------------------------------------------
+-- Remove adjacent strings for primitive calls
+
+collapsePrimArgs :: Program -> Program
+collapsePrimArgs = transformBi f
+    where
+        f (Prim name args) = Prim name (g args)
+        f x = x
+        
+        g (Lit x:Lit y:xs) = g $ Lit (x++y) : xs
+        g (x:xs) = x : g xs
+        g [] = []
 
 ---------------------------------------------------------------------
 -- Remove rules that are unreachable from root

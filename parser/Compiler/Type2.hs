@@ -39,12 +39,14 @@ data Pat = PVar RuleArg
          | PWildcard
            deriving (Eq,Ord,Typeable,Data)
 
-data Bind a = Bind (Maybe String) a
+data Bind a = Bind {bindVar :: Maybe String, bindBody :: a}
               deriving (Eq,Ord,Typeable,Data)
 
 
 asLit (Lit x) = Just x
 asLit _ = Nothing
+
+isCall Call{} = True; isCall _ = False
 
 
 getRule xs name = fromJust $ find ((==) name . ruleName) xs

@@ -16,7 +16,7 @@ data Names = Names {primMatch :: [String]
 
 
 resolve :: Program -> Program
-resolve xs = map (resolveRule names) real
+resolve xs = explicitRes $ map (resolveRule names) real
     where
         names = Names (primMatch_ ++ f "primMatch") (primRule_ ++ f "primRule") (map ruleName real)
         (prim,real) = partition (isPrefixOf "prim" . ruleName) xs
@@ -38,3 +38,17 @@ resolveRule names r@(Rule name args _) = transformBi fExp $ transformBi fPat r
         f x xs = case find (elem x . fst) xs of
             Nothing -> error $ "Can't resolve name " ++ x ++ " to one of: " ++ unwords (concatMap fst xs)
             Just y -> snd y
+
+
+explicitRes :: Program -> Program
+explicitRes = transformBi f
+    where
+        f (Seq xs act) | all (isNothing . bindVar) xs &&
+                         length (filter (isCall . bindBody) xs) == 1
+                       = Seq  (map g xs) act
+        f x = x
+
+        g (Bind Nothing x) | isCall x = Bind (Just "res") x
+        g x = x
+
+                         

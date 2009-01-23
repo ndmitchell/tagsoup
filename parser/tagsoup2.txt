@@ -56,6 +56,6 @@ str param
     eof = param
     param = {[]}
     "&" = x@entity xs@(str param) {innerTexts x ++ xs}
-    _ = x@(takeWhileNot "\"&" param) xs@(str param) {x ++ xs} 
+    _ = x@(takeWhileNot "&" param) xs@(str param) {x ++ xs} 
 
 text = (takeWhileNot "<&") {[Text res]} 
