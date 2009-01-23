@@ -38,31 +38,32 @@ data Pat = PVar RuleArg
 data Bind a = Bind (Maybe String) a
 
 
+instance Show Rule where
+    show (Rule name args x) = unwords $ name:args++["=",show x]
+    showList = showString . unlines . map show
 
-showProgram :: Program -> String
-showProgram = unlines . concatMap showRule
+instance Show Choice where
+    show (NoChoice x) = show x
+    show (Choice xs) = concat ["\n  " ++ show a ++ " = " ++ show b | (a,b) <- xs]
 
+instance Show Seq where
+    show (Seq xs y) = unwords $ map show xs ++ ["{" ++ y ++ "}"]
 
-showRule (Rule name args x) = unwords (name:args++["="])
-    where a:b = showChoice x
+instance Show Exp where
+    show (Prim x ys) = show (Call x ys)
+    show (Call x ys) | null ys = x
+                     | otherwise = "(" ++ unwords (x:map show ys) ++ ")"
 
-{- unlines . map showStmt2
+instance Show Val where
+    show (Var x) = x
+    show (Lit x) = show x
 
-showStmt2 (Stmt2 x y) = x ++ " = " ++ showExp2 y
+instance Show Pat where
+    show (PVar x) = x
+    show (PPrim x) = x
+    show (PLit x) = show x
+    show PWildcard = "_"
 
-showExp2 (Seq2 x ys) = "{" ++ x ++ "} " ++ unwords (map showItem2 ys)
-showExp2 (Choice2 xs y) = concat $ intersperse " | " $
-    [show a ++ " -> " ++ b | (a,b) <- xs] ++ ["_ -> " ++ y]
-
-showItem2 (Rule2 name pos) = name ++ showBind pos
-showItem2 (Prim2 name x pos) = name ++ "(" ++ show x ++ ")" ++ showBind pos
-showItem2 (Literal2 x) = show x
-
-showBind Nothing = ""
-showBind (Just i) = '$' : show i
-
-
-getBind (Rule2 _ x) = x
-getBind (Prim2 _ _ x) = x
-getBind _ = Nothing
--}
+instance Show a => Show (Bind a) where
+    show (Bind (Just a) b) = a ++ "@" ++ show b
+    show (Bind _ b) = show b

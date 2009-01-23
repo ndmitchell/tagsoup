@@ -9,51 +9,51 @@ tags
     _ = clearWarn x@tag xs@tags {warn s0 $ pos s0 $ x ++ xs}
 
 tag
-	"<!--" = comment
-	"&" = entity
-	"</" = close
-	"<" = open
-	_ = text
+    "<!--" = comment
+    "&" = entity
+    "</" = close
+    "<" = open
+    _ = text
 
 comment = (endBy "-->") {[Comment res]}
 
 entity = entity1 ";"
 entity1
-	"#x" = hex    {entityNameHashX res}
-	"#"  = digits {entityNameHash  res} 
-	_    = name   {entityName      res} 
+    "#x" = hex    {entityNameHashX res}
+    "#"  = digits {entityNameHash  res} 
+    _    = name   {entityName      res} 
 
 close = spaces res@name spaces ">" {[Close res]} 
 
 open = spaces x@name spaces xs@(atts x) {Open x xs : xs} 
 
 atts param
-	eof  = ">" {[]}
-	"/>" = {[Close param]}
-	">"  = {[]}
-	_    = x@att spaces xs@(atts param) {x:xs} 
+    eof  = ">" {[]}
+    "/>" = {[Close param]}
+    ">"  = {[]}
+    _    = x@att spaces xs@(atts param) {x:xs} 
 
 # foo="bar"
 att
-	"\"" = (str "\"") {("",res)} 
-	"'" = (str "'") {("",res)} 
-    x@name = spaces y@attEq {(x,y)} 
+    "\"" = (str "\"") {("",res)} 
+    "'" = (str "'") {("",res)} 
+    x@name = spaces y@attEq {(x,y)}
     _ = (takeWhileNot "\"'" nameChar1) {junk res}
 
 # ="bar"
 attEq
-	"=" = spaces res@attQuote
+    "=" = spaces res@attQuote
     _ = spaces {""}
 
 # "bar"
 attQuote
-	"\"" = (str "\"")
+    "\"" = (str "\"")
     "'" = (str "'")
-	_ = {""}
+    _ = {""}
 
 # bar"
 str param
-	eof = param
+    eof = param
     param = {[]}
     "&" = x@entity xs@(str param) {innerTexts x ++ xs}
     _ = x@(takeWhileNot "\"&" param) xs@(str param) {x ++ xs} 
