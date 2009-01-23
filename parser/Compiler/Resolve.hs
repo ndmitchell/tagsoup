@@ -1,7 +1,7 @@
 
-module Compiler.Resolve where
+module Compiler.Resolve(resolve) where
 
-import Compiler.Type2
+import Compiler.Lp
 import Compiler.Util
 
 
