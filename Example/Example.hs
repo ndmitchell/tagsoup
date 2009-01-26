@@ -8,6 +8,7 @@ import Control.Monad
 import Data.List
 import Data.Char
 import System.CPUTime
+import System.IO
 
 
 grab :: String -> IO ()
@@ -157,22 +158,43 @@ pico :: Integer
 pico = 1000000000000
 
 time :: IO ()
-time = putStrLn "Timing parseTags" >> f 100
+time = do
+        putStrLn "Timing parseTags"
+        hSetBuffering stdout NoBuffering
+        f 50
     where
+        nsample = genericLength sample
+    
         f n = do
             i <- timeN n
-            let cps = (genericLength sample * n * pico) `div` i
-                n2 = (n * pico * 11) `div` (i * 10)
-            if i > pico
-                then putStrLn $ "parseTags = " ++ show cps ++ " characters/second"
+            let cps = fromIntegral (nsample * n) / i
+                n2 = min (n*10) (floor $ (fromIntegral n*11) / (i*10))
+            if i > 1
+                then putStrLn $ "parseTags = " ++ showUnit (floor cps) ++ " characters/second"
                 else f n2
-            
+
 
 -- number of repetitions, time in picoseconds
-timeN :: Integer -> IO Integer
+timeN :: Integer -> IO Double
 timeN n = do
+    putStr $ show n ++ " repetitions = "
     start <- getCPUTime
     let res = parseTags (concat $ genericReplicate n sample)
     () <- length res `seq` return ()
     end <- getCPUTime
-    return $ 1 + end - start
+    let time = fromInteger (1 + end - start) / fromInteger pico
+    putStrLn $ show time ++ " seconds"
+    return time
+
+
+showUnit :: Integer -> String
+showUnit x = num ++ unit
+    where
+        units = " KMGTPEZY"
+        (use,skip) = splitAt 3 $ show x
+
+        unit = [units !! ((length skip + 2) `div` 3)]
+
+        dot = ((length skip - 1) `mod` 3) + 1
+        num = a ++ ['.' | b /= ""] ++ b
+            where (a,b) = splitAt dot use
