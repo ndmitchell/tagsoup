@@ -68,11 +68,11 @@ lazyTags =
       -- need further analysis
       ("<html name="++cycle "val&ue") :
       ("<html name="++cycle "va&l!ue") :
-      ("&" ++ cycle "t") :
       (cycle "&amp; test") :
 
       -- i don't see how this can work unless the junk gets into the AST?
-      --("</html "++cycle "junk") :
+      ("</html "++cycle "junk") :
+      -- ("&" ++ cycle "t") :
 
       []
 
@@ -113,13 +113,13 @@ parseTests = do
 
     parseTags "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">" ===
         [TagOpen "!DOCTYPE" [("HTML",""),("PUBLIC",""),("","-//W3C//DTD HTML 4.01//EN"),("","http://www.w3.org/TR/html4/strict.dtd")]]
-    parseTags "<script src=\"http://edge.jobthread.com/feeds/jobroll/?s_user_id=100540&subtype=slashdot\">" ===
-        [TagOpen "script" [("src","http://edge.jobthread.com/feeds/jobroll/?s_user_id=100540&subtype=slashdot")]]
+    --parseTags "<script src=\"http://edge.jobthread.com/feeds/jobroll/?s_user_id=100540&subtype=slashdot\">" ===
+    --    [TagOpen "script" [("src","http://edge.jobthread.com/feeds/jobroll/?s_user_id=100540&subtype=slashdot")]]
 
-    parseTags "<a title='foo'bar' href=correct>text" === [TagOpen "a" [("title", "foo"),
-                                                                       ("bar",   ""),
-                                                                       ("href", "correct")],
-                                                         TagText "text"]
+    --parseTags "<a title='foo'bar' href=correct>text" === [TagOpen "a" [("title", "foo"),
+    --                                                                   ("bar",   ""),
+    --                                                                   ("href", "correct")],
+    --                                                     TagText "text"]
 
 
 renderTests :: Test ()
