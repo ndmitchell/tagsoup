@@ -157,17 +157,24 @@ sample = "<this is a test with='attributes' and other=\"things&quot;tested\" /><
 pico :: Integer
 pico = 1000000000000
 
+
 time :: IO ()
-time = do
+time = timeWith sample
+
+timefile :: FilePath -> IO ()
+timefile xs = do
+    x <- openItem xs
+    timeWith x
+
+timeWith :: String -> IO ()
+timeWith str = do
         putStrLn "Timing parseTags"
         hSetBuffering stdout NoBuffering
-        f 50
+        f 100
     where
-        nsample = genericLength sample
-    
         f n = do
-            i <- timeN n
-            let cps = fromIntegral (nsample * n) / i
+            i <- timeN str n
+            let cps = fromIntegral n / i
                 n2 = min (n*10) (floor $ (fromIntegral n*11) / (i*10))
             if i > 1
                 then putStrLn $ "parseTags = " ++ showUnit (floor cps) ++ " characters/second"
@@ -175,11 +182,11 @@ time = do
 
 
 -- number of repetitions, time in picoseconds
-timeN :: Integer -> IO Double
-timeN n = do
+timeN :: String -> Integer -> IO Double
+timeN str n = do
     putStr $ show n ++ " repetitions = "
     start <- getCPUTime
-    let res = parseTags (concat $ genericReplicate n sample)
+    let res = parseTags $ genericTake n $ cycle str
     () <- length res `seq` return ()
     end <- getCPUTime
     let time = fromInteger (1 + end - start) / fromInteger pico
