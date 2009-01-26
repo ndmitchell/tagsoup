@@ -30,11 +30,11 @@ renderOptions = RenderOptions
 
 
 -- | Show a list of tags, as they might have been parsed
-renderTags :: [Tag] -> String
+renderTags :: [Tag String] -> String
 renderTags = renderTagsOptions renderOptions
 
 
-renderTagsOptions :: RenderOptions -> [Tag] -> String
+renderTagsOptions :: RenderOptions -> [Tag String] -> String
 renderTagsOptions opts = tags
     where
         tags (TagOpen name atts:TagClose name2:xs)

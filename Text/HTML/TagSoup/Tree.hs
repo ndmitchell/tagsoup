@@ -14,24 +14,24 @@ module Text.HTML.TagSoup.Tree
 import Text.HTML.TagSoup.Type
 
 
-data TagTree = TagBranch String [Attribute] [TagTree]
-             | TagLeaf Tag
+data TagTree = TagBranch String [Attribute String] [TagTree]
+             | TagLeaf (Tag String)
              deriving Show
 
 
 
 -- | Convert a list of tags into a tree. This version is not lazy at
 --   all, that is saved for version 2.
-tagTree :: [Tag] -> [TagTree]
+tagTree :: [Tag String] -> [TagTree]
 tagTree = g
     where
-        g :: [Tag] -> [TagTree]
+        g :: [Tag String] -> [TagTree]
         g [] = []
         g xs = a ++ map TagLeaf (take 1 b) ++ g (drop 1 b)
             where (a,b) = f xs
 
         -- the second tuple is either null or starts with a close
-        f :: [Tag] -> ([TagTree],[Tag])
+        f :: [Tag String] -> ([TagTree],[Tag String])
         f (TagOpen name atts:rest) =
             case f rest of
                 (inner,[]) -> (TagLeaf (TagOpen name atts):inner, [])
@@ -46,7 +46,7 @@ tagTree = g
         f [] = ([], [])
 
 
-flattenTree :: [TagTree] -> [Tag]
+flattenTree :: [TagTree] -> [Tag String]
 flattenTree xs = concatMap f xs
     where
         f (TagBranch name atts inner) =

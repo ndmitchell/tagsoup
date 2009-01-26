@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 {-|
     Module      :  Text.HTML.TagSoup
     Copyright   :  (c) Neil Mitchell 2006-2007
@@ -12,7 +14,7 @@
     the HTML is not cooperating with the person trying to extract the information,
     but is also not trying to hide the information.
 
-    The standard practice is to parse a String to 'Tag's using 'parseTags',
+    The standard practice is to parse a String to 'Tag String's using 'parseTags',
     then operate upon it to extract the necessary information.
 -}
 
@@ -22,7 +24,7 @@ module Text.HTML.TagSoup(
     module Parser,
     canonicalizeTags,
 
-    -- * Tag identification
+    -- * Tag String identification
     isTagOpen, isTagClose, isTagText, isTagWarning,
     isTagOpenName, isTagCloseName,
 
@@ -46,7 +48,7 @@ import Data.List
 
 -- | Turns all tag names and attributes to lower case and
 --   converts DOCTYPE to upper case.
-canonicalizeTags :: [Tag] -> [Tag]
+canonicalizeTags :: [Tag String] -> [Tag String]
 canonicalizeTags = map f
     where
         f (TagOpen ('!':name) attrs) = TagOpen ('!':map toUpper name) attrs
@@ -55,11 +57,11 @@ canonicalizeTags = map f
         f a = a
 
 
--- | Define a class to allow String's or Tag's to be used as matches
+-- | Define a class to allow String's or Tag String's to be used as matches
 class TagRep a where
-    toTagRep :: a -> Tag
+    toTagRep :: a -> Tag String
 
-instance TagRep Tag where toTagRep = id
+instance TagRep (Tag String) where toTagRep = id
 
 class    IsChar a    where toChar :: a -> Char
 instance IsChar Char where toChar =  id
@@ -81,7 +83,7 @@ instance IsChar c => TagRep [c] where
 -- > (TagText "test" ~== TagText "soup") == False
 --
 -- For 'TagOpen' missing attributes on the right are allowed.
-(~==) :: TagRep t => Tag -> t -> Bool
+(~==) :: TagRep t => Tag String -> t -> Bool
 (~==) a b = f a (toTagRep b)
     where
         f (TagText y) (TagText x) = null x || x == y
@@ -94,7 +96,7 @@ instance IsChar c => TagRep [c] where
         f _ _ = False
 
 -- | Negation of '~=='
-(~/=) :: TagRep t => Tag -> t -> Bool
+(~/=) :: TagRep t => Tag String -> t -> Bool
 (~/=) a b = not (a ~== b)
 
 

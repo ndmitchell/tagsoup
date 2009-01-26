@@ -17,11 +17,11 @@ import Debug.Trace
 ---------------------------------------------------------------------
 -- MAIN RUN FUNCTION
 
-parseTags :: String -> [Tag]
+parseTags :: String -> [Tag String]
 parseTags = parseTagsOptions parseOptions
 
 
-parseTagsOptions :: ParseOptions -> String -> [Tag]
+parseTagsOptions :: ParseOptions String -> String -> [Tag String]
 parseTagsOptions opts x = mergeTexts $ runParser tags $ S x nullPosition [] opts
 
 
@@ -32,7 +32,7 @@ parseTagsOptions opts x = mergeTexts $ runParser tags $ S x nullPosition [] opts
 --   If a position immediately proceeds a warning, count that into the warning.
 --
 --   Note: this function leaks stack on Hugs.
-mergeTexts :: [Tag] -> [Tag]
+mergeTexts :: [Tag String] -> [Tag String]
 mergeTexts (TagText x:xs) = (TagText $ concat $ x:texts) : warns ++ mergeTexts rest
     where
         (texts,warns,rest) = f xs
@@ -57,7 +57,7 @@ mergeTexts [] = []
 ---------------------------------------------------------------------
 -- PARAMETERISATION
 
-data S = S {string :: String, pos :: !Position, warn :: [(Position,String)], opts :: ParseOptions}
+data S = S {string :: String, pos :: !Position, warn :: [(Position,String)], opts :: ParseOptions String}
 
 instance Parse S where
     un s = case string s of
@@ -69,18 +69,18 @@ addWarn :: String -> Parser S ()
 addWarn msg = modify $ \s -> 
     if optTagWarning (opts s) then error "here" else s -- s{warn=(pos s,msg):warn s} else s
 
-outWarn :: Parser S [Tag] -> Parser S [Tag]
+outWarn :: Parser S [Tag String] -> Parser S [Tag String]
 outWarn p = do
     s <- get
     put s{warn=[]}
     res <- p
     return $ concat [position s{pos=p} [TagWarning w] | (p,w) <- warn s] ++ res
 
-position :: S -> [Tag] -> [Tag]
+position :: S -> [Tag String] -> [Tag String]
 position s xs | optTagPosition $ opts s = tagPosition (pos s) : xs
               | otherwise = xs
 
-tagPosWarnFix :: ParseOptions -> [Tag] -> [Tag]
+tagPosWarnFix :: ParseOptions String -> [Tag String] -> [Tag String]
 tagPosWarnFix opts = if optTagWarning opts then id else filter (not . isTagWarning)
 
 debug p = do
@@ -110,7 +110,7 @@ nameNow = do
 ---------------------------------------------------------------------
 -- THE PARSER
 
-tags :: Parser S [Tag]
+tags :: Parser S [Tag String]
 tags = do
     s <- get
     outWarn $ choice $ do
@@ -124,10 +124,10 @@ tag = choice $ do
     "<" ==> open
     def ==> text
 
-comment :: Parser S [Tag]
+comment :: Parser S [Tag String]
 comment = do res <- takesUntil "-->" ; nowLit "-->" ; return [TagComment res]
 
-entity :: Parser S [Tag]
+entity :: Parser S [Tag String]
 entity = do
     res <- choice $ do
         "#x" ==> many isHexDigit >>= entityName "#x"
@@ -144,7 +144,7 @@ close = do spaces ; res<-name ; spaces ; nowLit ">" ; return [TagClose res]
 
 open = do spaces ; b<-one (=='!') ; x<-name ; spaces ; xs<-atts x; return $ TagOpen (b++x) (fst xs) : snd xs
 
-atts :: String -> Parser S ([(String,String)],[Tag])
+atts :: String -> Parser S ([(String,String)],[Tag String])
 atts param = choice $ do
     "/>" ==> return ([],[TagClose param])
     ">"  ==> return ([],[])
@@ -174,5 +174,5 @@ str param = choice $ do
     "&" ==> do x<-entity ; xs<-str param ; return $ innerText x ++ xs
     def ==> do x <- many (`notElem` ("&"++param)) ; xs<-str param ; return $ x++xs
 
-text :: Parser S [Tag]
+text :: Parser S [Tag String]
 text = do res <- many (`notElem` "<&") ; return [TagText res]

@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -w -O2 #-}
+{-# OPTIONS_GHC -w #-}
 
 {-
 The XML spec is done mainly from memory. The only special bits are:
@@ -52,7 +52,7 @@ infix 9 ?->
 data ParseOptions = ParseOptions
     {optTagPosition :: Bool -- ^ Should 'TagPosition' values be given before every item
     ,optTagWarning :: Bool -- ^ Should 'TagWarning' values be given
-    ,optLookupEntity :: String -> [Tag] -- ^ How to lookup an entity
+    ,optLookupEntity :: String -> [Tag String] -- ^ How to lookup an entity
     ,optMaxEntityLength :: Maybe Int -- ^ The maximum length of an entities content
                                      --   (Nothing for no maximum, default to 10)
     }
@@ -67,22 +67,22 @@ parseOptions = ParseOptions False False f (Just 10)
                   Just x -> [TagText [x]]
 
 
-parseTags :: String -> [Tag]
+parseTags :: String -> [Tag String]
 parseTags = parseTagsOptions parseOptions
 
-tagWarn :: ParseOptions -> String -> [Tag]
+tagWarn :: ParseOptions -> String -> [Tag String]
 tagWarn opts x = [TagWarning x | optTagWarning opts]
 
 ---------------------------------------------------------------------
 -- * Positions
 
-tagPos :: ParseOptions -> Position -> [Tag]
+tagPos :: ParseOptions -> Position -> [Tag String]
 tagPos opts p = [tagPosition p | optTagPosition opts]
 
-tagPosWarn :: ParseOptions -> Position -> String -> [Tag]
+tagPosWarn :: ParseOptions -> Position -> String -> [Tag String]
 tagPosWarn opts p x = optTagWarning opts ?-> (tagPos opts p ++ [TagWarning x])
 
-tagPosWarnFix :: ParseOptions -> Position -> [Tag] -> [Tag]
+tagPosWarnFix :: ParseOptions -> Position -> [Tag String] -> [Tag String]
 tagPosWarnFix opts p = addPositions . remWarnings
     where
         remWarnings = if optTagWarning opts then id else filter (not . isTagWarning)
@@ -92,7 +92,7 @@ tagPosWarnFix opts p = addPositions . remWarnings
 ---------------------------------------------------------------------
 -- * Driver
 
-parseTagsOptions :: ParseOptions -> String -> [Tag]
+parseTagsOptions :: ParseOptions -> String -> [Tag String]
 parseTagsOptions opts x = mergeTexts $ evalState (parse opts) $ Value x nullPosition
 
 
@@ -103,7 +103,7 @@ parseTagsOptions opts x = mergeTexts $ evalState (parse opts) $ Value x nullPosi
 --   If a position immediately proceeds a warning, count that into the warning.
 --
 --   Note: this function leaks stack on Hugs.
-mergeTexts :: [Tag] -> [Tag]
+mergeTexts :: [Tag String] -> [Tag String]
 mergeTexts (TagText x:xs) = (TagText $ concat $ x:texts) : warns ++ mergeTexts rest
     where
         (texts,warns,rest) = f xs
@@ -195,7 +195,7 @@ dropSpaces = do
 ---------------------------------------------------------------------
 -- * Parser
 
-parse :: ParseOptions -> Parser [Tag]
+parse :: ParseOptions -> Parser [Tag String]
 parse opts = do
     Value s p <- get
     case s of
@@ -262,7 +262,7 @@ open opts p1 = do
 
 -- read a list of attributes
 -- return (the attributes read, if the tag is self-shutting, any warnings) 
-attribs :: ParseOptions -> Position -> Parser ([Attribute],Bool,[Tag])
+attribs :: ParseOptions -> Position -> Parser ([Attribute String],Bool,[Tag String])
 attribs opts p1 = do
     dropSpaces
     Value s p <- get
@@ -279,7 +279,7 @@ attribs opts p1 = do
 
 -- read a single attribute
 -- return (the attributes read, if the tag is self-shutting, any warnings) 
-attrib :: ParseOptions -> Position -> Parser ([Attribute],Bool,[Tag])
+attrib :: ParseOptions -> Position -> Parser ([Attribute String],Bool,[Tag String])
 attrib opts p1 = do
     name <- breakName
     if null name then do
@@ -313,7 +313,7 @@ attrib opts p1 = do
 
 -- read a single value
 -- return (value,warnings)
-value :: ParseOptions -> Parser (String,[Tag])
+value :: ParseOptions -> Parser (String,[Tag String])
 value opts = do
     Value s p <- get
     case s of
@@ -343,8 +343,8 @@ value opts = do
 
 
 -- have seen an &, and have consumed it
--- return a [Tag] to go in a tag stream
-entity :: ParseOptions -> Position -> Parser [Tag]
+-- return a [Tag String] to go in a tag stream
+entity :: ParseOptions -> Position -> Parser [Tag String]
 entity opts p1 = do
     Value s p <- get
     case s of
@@ -372,7 +372,7 @@ entity opts p1 = do
 
 
 -- return the tag and some position information
-entityString :: ParseOptions -> Position -> Parser (String,[Tag])
+entityString :: ParseOptions -> Position -> Parser (String,[Tag String])
 entityString opts p = do
     tags <- entity opts p
     let warnings = tagPosWarnFix opts p $ filter isTagWarning tags

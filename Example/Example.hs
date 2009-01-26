@@ -72,7 +72,7 @@ spjPapers = do
                     drop 5 $ dropWhile (~/= "<a name=current>") tags
         putStr $ unlines links
     where
-        f :: [Tag] -> String
+        f :: [Tag String] -> String
         f = dequote . unwords . words . fromTagText . head . filter isTagText
 
         dequote ('\"':xs) | last xs == '\"' = init xs
@@ -85,7 +85,7 @@ ndmPapers = do
         let papers = map f $ sections (~== "<li class=paper>") tags
         putStr $ unlines papers
     where
-        f :: [Tag] -> String
+        f :: [Tag String] -> String
         f xs = fromTagText (xs !! 2)
 
 
@@ -133,7 +133,7 @@ validate x = putStr . unlines . g . f . parseTagsOptions opts =<< openItem x
     where
         opts = parseOptions{optTagPosition=True, optTagWarning=True}
 
-        f :: [Tag] -> [String]
+        f :: [Tag String] -> [String]
         f (TagPosition row col:TagWarning warn:rest) =
             ("Warning (" ++ show row ++ "," ++ show col ++ "): " ++ warn) : f rest
         f (TagWarning warn:rest) =

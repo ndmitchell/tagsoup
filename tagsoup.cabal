@@ -24,9 +24,9 @@ Flag splitBase
 
 Library
     if flag(splitBase)
-        build-depends: base >= 3, network, mtl, containers
+        build-depends: base >= 3, network, mtl, containers, bytestring
     else
-        build-depends: base <  3, network, mtl
+        build-depends: base <  3, network, mtl, bytestring
 
     GHC-Options: -Wall
     Exposed-modules:

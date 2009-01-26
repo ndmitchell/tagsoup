@@ -21,10 +21,11 @@ module Text.HTML.TagSoup.Type(
 import Data.Char
 import Data.List
 import Data.Maybe
+import Text.HTML.TagSoup.String as Str
 
 
 -- | An HTML attribute @id=\"name\"@ generates @(\"id\",\"name\")@
-type Attribute = (String,String)
+type Attribute str = (str,str)
 
 type Row = Int
 type Column = Int
@@ -46,70 +47,70 @@ positionChar (Position r c) x = case x of
     '\t' -> Position r (c + 8 - mod (c-1) 8)
     _    -> Position r (c+1)
 
-tagPosition :: Position -> Tag
+tagPosition :: Position -> Tag str
 tagPosition (Position r c) = TagPosition r c
 
 
 -- | An HTML element, a document is @[Tag]@.
 --   There is no requirement for 'TagOpen' and 'TagClose' to match
-data Tag =
-     TagOpen String [Attribute]  -- ^ An open tag with 'Attribute's in their original order.
-   | TagClose String             -- ^ A closing tag
-   | TagText String              -- ^ A text node, guaranteed not to be the empty string
-   | TagComment String           -- ^ A comment
-   | TagWarning String           -- ^ Meta: Mark a syntax error in the input file
-   | TagPosition !Row !Column    -- ^ Meta: The position of a parsed element
+data Tag str =
+     TagOpen str [Attribute str]  -- ^ An open tag with 'Attribute's in their original order.
+   | TagClose str                 -- ^ A closing tag
+   | TagText str                  -- ^ A text node, guaranteed not to be the empty string
+   | TagComment str               -- ^ A comment
+   | TagWarning str               -- ^ Meta: Mark a syntax error in the input file
+   | TagPosition !Row !Column     -- ^ Meta: The position of a parsed element
      deriving (Show, Eq, Ord)
 
 
 -- | Test if a 'Tag' is a 'TagOpen'
-isTagOpen :: Tag -> Bool
+isTagOpen :: Tag str -> Bool
 isTagOpen (TagOpen {})  = True; isTagOpen  _ = False
 
 -- | Test if a 'Tag' is a 'TagClose'
-isTagClose :: Tag -> Bool
+isTagClose :: Tag str -> Bool
 isTagClose (TagClose {}) = True; isTagClose _ = False
 
 -- | Test if a 'Tag' is a 'TagText'
-isTagText :: Tag -> Bool
+isTagText :: Tag str -> Bool
 isTagText (TagText {})  = True; isTagText  _ = False
 
 -- | Extract the string from within 'TagText', otherwise 'Nothing'
-maybeTagText :: Tag -> Maybe String
+maybeTagText :: Tag str -> Maybe str
 maybeTagText (TagText x) = Just x
 maybeTagText _ = Nothing
 
 -- | Extract the string from within 'TagText', crashes if not a 'TagText'
-fromTagText :: Tag -> String
+fromTagText :: Show str => Tag str -> str
 fromTagText (TagText x) = x
-fromTagText x = error ("(" ++ show x ++ ") is not a TagText")
+fromTagText x = error $ "(" ++ show x ++ ") is not a TagText"
 
 -- | Extract all text content from tags (similar to Verbatim found in HaXml)
-innerText :: [Tag] -> String
-innerText = concat . mapMaybe maybeTagText
+innerText :: AsString str => [Tag str] -> str
+innerText = Str.concat . mapMaybe maybeTagText
 
 -- | Test if a 'Tag' is a 'TagWarning'
-isTagWarning :: Tag -> Bool
+isTagWarning :: Tag str -> Bool
 isTagWarning (TagWarning {})  = True; isTagWarning _ = False
 
 -- | Extract the string from within 'TagWarning', otherwise 'Nothing'
-maybeTagWarning :: Tag -> Maybe String
+maybeTagWarning :: Tag str -> Maybe str
 maybeTagWarning (TagWarning x) = Just x
 maybeTagWarning _ = Nothing
 
 -- | Extract an attribute, crashes if not a 'TagOpen'.
 --   Returns @\"\"@ if no attribute present.
-fromAttrib :: String -> Tag -> String
-fromAttrib att (TagOpen _ atts) = fromMaybe [] $ lookup att atts
+fromAttrib :: AsString str => str -> Tag str -> str
+fromAttrib att (TagOpen _ atts) = fromMaybe Str.empty $ lookup att atts
 fromAttrib _ x = error ("(" ++ show x ++ ") is not a TagOpen")
 
 
 -- | Returns True if the 'Tag' is 'TagOpen' and matches the given name
-isTagOpenName :: String -> Tag -> Bool
+isTagOpenName :: Eq str => str -> Tag str -> Bool
 isTagOpenName name (TagOpen n _) = n == name
 isTagOpenName _ _ = False
 
 -- | Returns True if the 'Tag' is 'TagClose' and matches the given name
-isTagCloseName :: String -> Tag -> Bool
+isTagCloseName :: Eq str => str -> Tag str -> Bool
 isTagCloseName name (TagClose n) = n == name
 isTagCloseName _ _ = False
