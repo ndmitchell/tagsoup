@@ -5,6 +5,7 @@ import System.Environment
 import Example.Example
 import Example.Regress
 import Data.Char(toLower)
+import Text.HTML.TagSoup
 
 
 helpMsg :: IO ()

@@ -18,4 +18,4 @@ parseOptions = ParseOptions False False f
     where
         f x = case lookupEntity x of
                   Nothing -> [TagText $ "&" ++ x ++ [';'|x/=""], TagWarning $ "Unknown entity: &" ++ x ++ ";"]
-                  Just x -> [TagText [x]]
+                  Just y -> [TagText [y]]

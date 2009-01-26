@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -w #-}
+{-# OPTIONS_GHC -w -O2 #-}
 
 {-
 The XML spec is done mainly from memory. The only special bits are:

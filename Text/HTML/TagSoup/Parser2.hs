@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -O2 #-}
 
 module Text.HTML.TagSoup.Parser2(
     parseTags, parseTagsOptions,

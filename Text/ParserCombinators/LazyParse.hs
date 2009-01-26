@@ -1,6 +1,7 @@
+{-# OPTIONS_GHC -O2 #-}
 
 module Text.ParserCombinators.LazyParse
-    (Parser, Parse, runParser
+    (Parser, Parse(..), runParser
     ,get, put, modify
     ,eof, def, (==>), choice
     ,takesUntil, many, one, lit
