@@ -2,6 +2,7 @@
 module Example.Example where
 
 import Text.HTML.TagSoup
+import Text.StringLike(StringLike)
 import Text.HTML.Download
 
 import Control.Monad
@@ -9,6 +10,7 @@ import Data.List
 import Data.Char
 import System.CPUTime
 import System.IO
+import qualified Data.ByteString.Lazy.Char8 as BS
 
 
 grab :: String -> IO ()
@@ -159,14 +161,17 @@ pico = 1000000000000
 
 
 time :: IO ()
-time = timeWith sample
+time = BS.length v `seq`
+        timeWith (\n -> BS.take (fromIntegral n) $ BS.concat $ repeat v)
+    where v = BS.pack sample
 
 timefile :: FilePath -> IO ()
 timefile xs = do
-    x <- openItem xs
-    timeWith x
+    v <- BS.readFile xs
+    BS.length v `seq` do
+        timeWith (\n -> v) -- BS.take (fromIntegral n) $ BS.concat $ repeat v)
 
-timeWith :: String -> IO ()
+timeWith :: StringLike s => (Int -> s) -> IO ()
 timeWith str = do
         putStrLn "Timing parseTags"
         hSetBuffering stdout NoBuffering
@@ -175,18 +180,18 @@ timeWith str = do
         f n = do
             i <- timeN str n
             let cps = fromIntegral n / i
-                n2 = min (n*10) (floor $ (fromIntegral n*11) / (i*10))
+                n2 = min (n*10) (abs $ floor $ (fromIntegral n*11) / (i*10))
             if i > 1
                 then putStrLn $ "parseTags = " ++ showUnit (floor cps) ++ " characters/second"
                 else f n2
 
 
--- number of repetitions, time in picoseconds
-timeN :: String -> Integer -> IO Double
+-- number of repetitions, time in seconds
+timeN :: StringLike s => (Int -> s) -> Int -> IO Double
 timeN str n = do
     putStr $ show n ++ " repetitions = "
     start <- getCPUTime
-    let res = parseTags $ genericTake n $ cycle str
+    let res = parseTags $ str n
     () <- length res `seq` return ()
     end <- getCPUTime
     let time = fromInteger (1 + end - start) / fromInteger pico

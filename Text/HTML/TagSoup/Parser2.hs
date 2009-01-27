@@ -19,11 +19,11 @@ import Debug.Trace
 ---------------------------------------------------------------------
 -- MAIN RUN FUNCTION
 
-parseTags :: String -> [Tag String]
+parseTags :: StringLike str => str -> [Tag str]
 parseTags = parseTagsOptions parseOptions
 
 
-parseTagsOptions :: ParseOptions String -> String -> [Tag String]
+parseTagsOptions :: StringLike str => ParseOptions str -> str -> [Tag str]
 parseTagsOptions opts x = mergeTexts $ runParser tags $ S x nullPosition [] opts
 
 
@@ -34,8 +34,8 @@ parseTagsOptions opts x = mergeTexts $ runParser tags $ S x nullPosition [] opts
 --   If a position immediately proceeds a warning, count that into the warning.
 --
 --   Note: this function leaks stack on Hugs.
-mergeTexts :: [Tag String] -> [Tag String]
-mergeTexts (TagText x:xs) = (TagText $ concat $ x:texts) : warns ++ mergeTexts rest
+mergeTexts :: StringLike str => [Tag str] -> [Tag str]
+mergeTexts (TagText x:xs) = (TagText $ Str.concat $ x:texts) : warns ++ mergeTexts rest
     where
         (texts,warns,rest) = f xs
 
