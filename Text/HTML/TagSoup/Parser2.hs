@@ -120,14 +120,14 @@ spaces = do
 ---------------------------------------------------------------------
 -- THE PARSER
 
-tags :: StringLike str => Parser (S str) [Tag str]
+tags, tag, comment, entity, close, open, text :: StringLike str => Parser (S str) [Tag str]
+
 tags = do
     s <- get
     outWarn $ choice $ do
         eof ==> return []
         def ==> do x<-tag ; xs<-tags ; return $ position s $ x ++ xs
 
-tag :: StringLike str => Parser (S str) [Tag str]
 tag = choice $ do
     "<!--" ==> comment
     "&" ==> entity
@@ -135,10 +135,8 @@ tag = choice $ do
     "<" ==> open
     def ==> text
 
-comment :: StringLike str => Parser (S str) [Tag str]
 comment = do res <- takesUntil "-->" ; nowLit "-->" ; return [TagComment res]
 
-entity :: StringLike str => Parser (S str) [Tag str]
 entity = do
     res <- choice $ do
         "#x" ==> many isHexDigit >>= entityName "#x"
@@ -152,11 +150,15 @@ entity = do
             return $ tagPosWarnFix (opts s) $ optLookupEntity (opts s) $
                 fromString prefix `append` x
 
-close :: StringLike str => Parser (S str) [Tag str]
 close = do spaces ; res<-nowName ; spaces ; nowLit ">" ; return [TagClose res]
 
-open :: StringLike str => Parser (S str) [Tag str]
+text = do res <- many (`notElem` "<&") ; return [TagText res]
+
 open = do spaces ; x<-nowName ; spaces ; xs<-atts x; return $ TagOpen x (fst xs) : snd xs
+
+
+---------------------------------------------------------------------
+-- PARSING ATTRIBUTES
 
 atts :: StringLike str => str -> Parser (S str) ([(str,str)],[Tag str])
 atts param = choice $ do
@@ -190,6 +192,3 @@ str param = choice $ do
     param ==> return empty
     "&" ==> do x<-entity ; xs<-str param ; return $ innerText x `append` xs
     def ==> do x <- many (`notElem` ("&"++param)) ; xs<-str param ; return $ x `append` xs
-
-text :: StringLike str => Parser (S str) [Tag str]
-text = do res <- many (`notElem` "<&") ; return [TagText res]
