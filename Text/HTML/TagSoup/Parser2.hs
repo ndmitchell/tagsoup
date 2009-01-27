@@ -11,6 +11,8 @@ import Control.Monad
 import Control.Arrow
 import Text.HTML.TagSoup.Type
 import Text.HTML.TagSoup.Options
+import qualified Text.StringLike as Str(concat)
+import Text.StringLike hiding(concat)
 import Debug.Trace
 
 
@@ -57,30 +59,30 @@ mergeTexts [] = []
 ---------------------------------------------------------------------
 -- PARAMETERISATION
 
-data S = S {string :: String, pos :: !Position, warn :: [(Position,String)], opts :: ParseOptions String}
+data S str = S {string :: str, pos :: !Position, warn :: [(Position,str)], opts :: ParseOptions str}
 
-instance Parse S where
-    un s = case string s of
-        [] -> Nothing
-        x:xs -> Just (x, s{string=xs, pos=positionChar (pos s) x})
+instance StringLike s => StringLike (S s) where
+    uncons s = case uncons (string s) of
+        Nothing -> Nothing
+        Just (x,xs) -> Just (x, s{string=xs, pos=positionChar (pos s) x})
 
 
-addWarn :: String -> Parser S ()
+addWarn :: str -> Parser (S str) ()
 addWarn msg = modify $ \s -> 
-    if optTagWarning (opts s) then error "here" else s -- s{warn=(pos s,msg):warn s} else s
+    if optTagWarning (opts s) then s{warn=(pos s,msg):warn s} else s
 
-outWarn :: Parser S [Tag String] -> Parser S [Tag String]
+outWarn :: Parser (S str) [Tag str] -> Parser (S str) [Tag str]
 outWarn p = do
     s <- get
     put s{warn=[]}
     res <- p
     return $ concat [position s{pos=p} [TagWarning w] | (p,w) <- warn s] ++ res
 
-position :: S -> [Tag String] -> [Tag String]
+position :: S str -> [Tag str] -> [Tag str]
 position s xs | optTagPosition $ opts s = tagPosition (pos s) : xs
               | otherwise = xs
 
-tagPosWarnFix :: ParseOptions String -> [Tag String] -> [Tag String]
+tagPosWarnFix :: ParseOptions str -> [Tag str] -> [Tag str]
 tagPosWarnFix opts = if optTagWarning opts then id else filter (not . isTagWarning)
 
 debug p = do
@@ -93,30 +95,39 @@ debug p = do
 isNameChar x = not $ isSpace x || x `elem` "><&'\"="
 
 
-nowLit :: String -> Parser S ()
+nowLit :: StringLike str => String -> Parser (S str) ()
 nowLit s = do
     r <- lit s
-    when (null r) $ addWarn $ "Expected but not found: " ++ s
+    when (r == "") $ addWarn $ fromString $ "Expected but not found: " ++ s
 
 
-name :: Parser S String
+name :: StringLike str => Parser (S str) str
 name = many isNameChar
 
-nameNow = do
+nowName :: StringLike str => Parser (S str) str
+nowName = do
     r <- name
-    when (null r) $ addWarn $ "Expected but not found: a name"
+    when (isEmpty r) $ addWarn $ fromString $ "Expected but not found: a name"
+    return r
+
+spaces :: StringLike str => Parser (S str) ()
+spaces = do
+    x <- many isSpace
+    let _ = x :: String
+    return ()
 
 
 ---------------------------------------------------------------------
 -- THE PARSER
 
-tags :: Parser S [Tag String]
+tags :: StringLike str => Parser (S str) [Tag str]
 tags = do
     s <- get
     outWarn $ choice $ do
         eof ==> return []
         def ==> do x<-tag ; xs<-tags ; return $ position s $ x ++ xs
 
+tag :: StringLike str => Parser (S str) [Tag str]
 tag = choice $ do
     "<!--" ==> comment
     "&" ==> entity
@@ -124,10 +135,10 @@ tag = choice $ do
     "<" ==> open
     def ==> text
 
-comment :: Parser S [Tag String]
+comment :: StringLike str => Parser (S str) [Tag str]
 comment = do res <- takesUntil "-->" ; nowLit "-->" ; return [TagComment res]
 
-entity :: Parser S [Tag String]
+entity :: StringLike str => Parser (S str) [Tag str]
 entity = do
     res <- choice $ do
         "#x" ==> many isHexDigit >>= entityName "#x"
@@ -138,41 +149,47 @@ entity = do
     where
         entityName prefix x = do
             s <- get
-            return $ tagPosWarnFix (opts s) $ optLookupEntity (opts s) (prefix ++ x)
+            return $ tagPosWarnFix (opts s) $ optLookupEntity (opts s) $
+                fromString prefix `append` x
 
-close = do spaces ; res<-name ; spaces ; nowLit ">" ; return [TagClose res]
+close :: StringLike str => Parser (S str) [Tag str]
+close = do spaces ; res<-nowName ; spaces ; nowLit ">" ; return [TagClose res]
 
-open = do spaces ; b<-one (=='!') ; x<-name ; spaces ; xs<-atts x; return $ TagOpen (b++x) (fst xs) : snd xs
+open :: StringLike str => Parser (S str) [Tag str]
+open = do spaces ; x<-nowName ; spaces ; xs<-atts x; return $ TagOpen x (fst xs) : snd xs
 
-atts :: String -> Parser S ([(String,String)],[Tag String])
+atts :: StringLike str => str -> Parser (S str) ([(str,str)],[Tag str])
 atts param = choice $ do
     "/>" ==> return ([],[TagClose param])
     ">"  ==> return ([],[])
-    "\"" ==> do y<-str "\"" ; spaces ; res<-atts param ; return $ first (("",y):) res
-    "\'" ==> do y<-str "\'" ; spaces ; res<-atts param ; return $ first (("",y):) res
+    "\"" ==> do y<-str "\"" ; spaces ; res<-atts param ; return $ first ((empty,y):) res
+    "\'" ==> do y<-str "\'" ; spaces ; res<-atts param ; return $ first ((empty,y):) res
     def ==> do
         x<-name
-        if not $ null x
-            then do spaces ; y<-attEq ; spaces ; res<-atts param; return $ first ((x,y):) res
-            else do nowLit ">" ; return ([],[])
+        if isEmpty x
+            then do nowLit ">" ; return ([],[])
+            else do spaces ; y<-attEq ; spaces ; res<-atts param; return $ first ((x,y):) res
 
 -- ="bar"
+attEq :: StringLike str => Parser (S str) str
 attEq = choice $ do
     "=" ==> do spaces ; attQuote
-    def ==> do spaces ; return ""
+    def ==> do spaces ; return empty
 
 -- "bar"
+attQuote :: StringLike str => Parser (S str) str
 attQuote = choice $ do
     "\"" ==> str "\""
     "'"  ==> str "'"
     def ==> name
 
 -- bar"
+str :: StringLike str => String -> Parser (S str) str
 str param = choice $ do
-    eof ==> do nowLit param ; return []
-    param ==> return []
-    "&" ==> do x<-entity ; xs<-str param ; return $ innerText x ++ xs
-    def ==> do x <- many (`notElem` ("&"++param)) ; xs<-str param ; return $ x++xs
+    eof ==> do nowLit param ; return empty
+    param ==> return empty
+    "&" ==> do x<-entity ; xs<-str param ; return $ innerText x `append` xs
+    def ==> do x <- many (`notElem` ("&"++param)) ; xs<-str param ; return $ x `append` xs
 
-text :: Parser S [Tag String]
+text :: StringLike str => Parser (S str) [Tag str]
 text = do res <- many (`notElem` "<&") ; return [TagText res]

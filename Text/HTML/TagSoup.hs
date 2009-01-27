@@ -40,7 +40,7 @@ module Text.HTML.TagSoup(
     TagRep, IsChar, (~==),(~/=)
     ) where
 
-import Text.HTML.TagSoup.Parser as Parser
+import Text.HTML.TagSoup.Parser2 as Parser
 import Text.HTML.TagSoup.Type
 import Data.Char
 import Data.List

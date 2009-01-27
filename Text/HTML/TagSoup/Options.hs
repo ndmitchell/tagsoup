@@ -1,8 +1,8 @@
 
 module Text.HTML.TagSoup.Options where
 
+import Text.StringLike
 import Text.HTML.TagSoup.Type
-import Text.HTML.TagSoup.String
 import Text.HTML.TagSoup.Entity
 
 
@@ -14,7 +14,7 @@ data ParseOptions str = ParseOptions
 
 
 -- Default 'ParseOptions' structure
-parseOptions :: AsString str => ParseOptions str
+parseOptions :: StringLike str => ParseOptions str
 parseOptions = ParseOptions False False (f . toString)
     where
         f x = case lookupEntity x of

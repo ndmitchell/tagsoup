@@ -1,25 +1,18 @@
 {-# OPTIONS_GHC -O2 #-}
 
 module Text.ParserCombinators.LazyParse
-    (Parser, Parse(..), runParser
+    (Parser, runParser
     ,get, put, modify
     ,eof, def, (==>), choice
     ,takesUntil, many, one, lit
-    ,space, spaces
     ) where
 
 import Control.Monad.State
 import Data.Maybe
 import Data.Char
+import Text.StringLike
 
 infix 0 ==>
-
-class AsChar a where
-    asChar :: a -> Char
-
-instance AsChar Char where
-    asChar = id
-
 
 
 type Parser s a = State s a
@@ -27,19 +20,11 @@ type Parser s a = State s a
 runParser :: Parser s a -> s -> a
 runParser = evalState
 
-class Parse s where
-    un :: s -> Maybe (Char,s)
 
-
-instance AsChar a => Parse [a] where
-    un [] = Nothing
-    un (x:xs) = Just (asChar x, xs) 
-
-
-uns :: Parse s => String -> s -> Maybe s
-uns [] s = Just s
-uns (x:xs) s = case un s of
-    Just (c,s2) | c == x -> uns xs s2
+unstr :: StringLike s => String -> s -> Maybe s
+unstr [] s = Just s
+unstr (x:xs) s = case uncons s of
+    Just (c,s2) | c == x -> unstr xs s2
     _ -> Nothing
 
 
@@ -61,72 +46,63 @@ class AsLhs a where
 instance AsLhs Lhs where
     asLhs = id
 
-instance AsChar a => AsLhs [a] where
-    asLhs = Lit . map asChar
+instance CharLike a => AsLhs [a] where
+    asLhs = Lit . map toChar
 
 eof = EOF
 def = Def
 
 
-(==>) :: (AsLhs l, Parse s) => l -> Parser s a -> Choice (Parser s a) b
+(==>) :: (AsLhs l, StringLike s) => l -> Parser s a -> Choice (Parser s a) b
 xs ==> p = Choice [(asLhs xs,p)]
 
-choice :: Parse s => Choice (Parser s a) b -> Parser s a
+choice :: StringLike s => Choice (Parser s a) b -> Parser s a
 choice (Choice xs) = do
     s <- get
     f s xs
     where
         f s [] = error "Failed to match choice"
         f s ((Def,x):xs) = x
-        f s ((EOF,x):xs) | isNothing (un s) = x
-        f s ((Lit y,x):xs) = case uns y s of
+        f s ((EOF,x):xs) | isEmpty s = x
+        f s ((Lit y,x):xs) = case unstr y s of
             Nothing -> f s xs
             Just s2 -> do put s2; x
         f s (x:xs) = f s xs
 
 
-takesUntil :: Parse s => String -> Parser s String
+takesUntil :: (StringLike s, StringLike r) => String -> Parser s r
 takesUntil xs = do
     s <- get
-    case uns xs s of
-        Just s -> do put s; return ""
-        Nothing -> case un s of
-            Nothing -> return ""
+    case unstr xs s of
+        Just s -> do put s; return empty
+        Nothing -> case uncons s of
+            Nothing -> return empty
             Just (c,s2) -> do
                 put s2
                 cs <- takesUntil xs
-                return $ c:cs
+                return $ cons c cs
 
 
-many :: Parse s => (Char -> Bool) -> Parser s String
+many :: (StringLike s, StringLike r) => (Char -> Bool) -> Parser s r
 many f = do
     s <- get
-    case un s of
+    case uncons s of
         Just (c,s2) | f c -> do
             put s2
             res <- many f
-            return $ c:res
-        _ -> return ""
+            return $ cons c res
+        _ -> return empty
 
-
-one :: Parse s => (Char -> Bool) -> Parser s String
+one :: (StringLike s, StringLike r) => (Char -> Bool) -> Parser s r
 one f = do
     s <- get
-    case un s of
-        Just (c,s2) | f c -> do put s2 ; return [c]
-        _ -> return ""
+    case uncons s of
+        Just (c,s2) | f c -> do put s2 ; return $ cons c empty
+        _ -> return empty
 
-
-space :: Parse s => Parser s String
-space = one isSpace
-
-spaces :: Parse s => Parser s String
-spaces = many isSpace
-
-
-lit :: Parse s => String -> Parser s String
+lit :: (StringLike s, StringLike r) => String -> Parser s r
 lit xs = do
     s <- get
-    case uns xs s of
-        Nothing -> return ""
-        Just s2 -> do put s2 ; return xs
+    case unstr xs s of
+        Nothing -> return empty
+        Just s2 -> do put s2 ; return $ fromString xs
