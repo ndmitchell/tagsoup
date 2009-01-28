@@ -160,38 +160,49 @@ pico :: Integer
 pico = 1000000000000
 
 
-time :: IO ()
-time = BS.length v `seq`
-        timeWith (\n -> BS.take (fromIntegral n) $ BS.concat $ repeat v)
-    where v = BS.pack sample
+stringLength x = fromIntegral (BS.length x) :: Int
+stringReadFile = BS.readFile
+stringRep i s = BS.take (fromIntegral i) $ BS.concat $ repeat s
+stringPack = BS.pack
+
 
 timefile :: FilePath -> IO ()
 timefile xs = do
-    v <- BS.readFile xs
-    BS.length v `seq` do
-        timeWith (\n -> v) -- BS.take (fromIntegral n) $ BS.concat $ repeat v)
+    s <- stringReadFile xs
+    let n = stringLength s
+    r <- n `seq` timeN n s
+    printCps n r
 
-timeWith :: StringLike s => (Int -> s) -> IO ()
-timeWith str = do
+
+time :: IO ()
+time = do
         putStrLn "Timing parseTags"
-        hSetBuffering stdout NoBuffering
         f 100
     where
+        str = stringPack sample
+    
         f n = do
-            i <- timeN str n
+            let s = stringRep n str
+            i <- stringLength s `seq` timeN n s
             let cps = fromIntegral n / i
                 n2 = min (n*10) (abs $ floor $ (fromIntegral n*11) / (i*10))
             if i > 1
-                then putStrLn $ "parseTags = " ++ showUnit (floor cps) ++ " characters/second"
+                then printCps n i
                 else f n2
 
 
+printCps :: Int -> Double -> IO ()
+printCps n i = putStrLn $ "parseTags = " ++ showUnit (floor cps) ++ " characters/second"
+    where cps = fromIntegral n / i
+
+
 -- number of repetitions, time in seconds
-timeN :: StringLike s => (Int -> s) -> Int -> IO Double
-timeN str n = do
+timeN :: StringLike s => Int -> s -> IO Double
+timeN n str = do
+    hSetBuffering stdout NoBuffering
     putStr $ show n ++ " repetitions = "
     start <- getCPUTime
-    let res = parseTags $ str n
+    let res = parseTags str
     () <- length res `seq` return ()
     end <- getCPUTime
     let time = fromInteger (1 + end - start) / fromInteger pico
