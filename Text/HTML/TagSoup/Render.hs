@@ -16,24 +16,28 @@ import qualified Data.IntMap as IntMap
 import Text.HTML.TagSoup.Entity
 import Text.HTML.TagSoup.Type
 
-
 data RenderOptions = RenderOptions
     {optEscape :: Char -> String    -- ^ Escape a single character
     ,optMinimize :: String -> Bool  -- ^ Minimise <b></b> -> <b/>, defaults to only for @br@
     }
 
+-- | A configuration which escapes apostrophes and rewrites <br> tags.
 renderOptions :: RenderOptions
 renderOptions = RenderOptions
         (\x -> IntMap.findWithDefault [x] (ord x) esc)
         (== "br")
     where esc = IntMap.fromList [(b, "&"++a++";") | (a,b) <- htmlEntities]
 
-
--- | Show a list of tags, as they might have been parsed
+-- | Show a list of tags, as they might have been parsed. Note that this makes use of
+--   'renderOptions'. If you do not desire renderOption's behavior, try instead 'renderTagsOptions'.
 renderTags :: [Tag String] -> String
 renderTags = renderTagsOptions renderOptions
 
-
+-- | Show a list of tags as a String. You need to supply a 'RenderOptions' configuration
+--   value. One is provided for you as 'renderOptions'; override it as necessary, eg. to avoid
+--   escaping apostrophes one could do:
+--
+-- > renderTagsOptions (renderOptions{optEscape = (:[])})
 renderTagsOptions :: RenderOptions -> [Tag String] -> String
 renderTagsOptions opts = tags
     where
