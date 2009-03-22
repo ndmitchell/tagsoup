@@ -3,7 +3,7 @@
     Copyright   :  (c) Neil Mitchell 2006-2007
     License     :  BSD-style
 
-    Maintainer  :  http://www.cs.york.ac.uk/~ndm/
+    Maintainer  :  http://community.haskell.org/~ndm/
     Stability   :  unstable
     Portability :  portable
 
