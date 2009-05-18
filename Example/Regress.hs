@@ -120,6 +120,12 @@ parseTests = do
     --                                                                   ("bar",   ""),
     --                                                                   ("href", "correct")],
     --                                                     TagText "text"]
+    parseTags "<test><![CDATA[Anything goes, <em>even hidden markup</em> &amp; entities]]> but this is outside</test>" ===
+        [ TagOpen "test" []
+        , TagCData "Anything goes, <em>even hidden markup</em> &amp; entities"
+        , TagText " but this is outside"
+        , TagClose "test"
+        ]
 
 
 renderTests :: Test ()

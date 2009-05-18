@@ -120,7 +120,7 @@ spaces = do
 ---------------------------------------------------------------------
 -- THE PARSER
 
-tags, tag, comment, entity, close, open, text :: StringLike str => Parser (S str) [Tag str]
+tags, tag, comment, entity, close, open, text, cdata :: StringLike str => Parser (S str) [Tag str]
 
 tags = do
     s <- get
@@ -131,6 +131,7 @@ tags = do
 tag = choice $ do
     "<!--" ==> comment
     "&" ==> entity
+    "<![CDATA[" ==> cdata
     "</" ==> close
     "<" ==> open
     def ==> text
@@ -155,6 +156,8 @@ close = do spaces ; res<-nowName ; spaces ; nowLit ">" ; return [TagClose res]
 text = do res <- many (`notElem` "<&") ; return [TagText res]
 
 open = do spaces ; x<-nowName ; spaces ; xs<-atts x; return $ TagOpen x (fst xs) : snd xs
+
+cdata = do res <- takesUntil "]]>" ; return [TagCData res]
 
 
 ---------------------------------------------------------------------

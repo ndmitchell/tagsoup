@@ -58,6 +58,7 @@ data Tag str =
    | TagClose str                 -- ^ A closing tag
    | TagText str                  -- ^ A text node, guaranteed not to be the empty string
    | TagComment str               -- ^ A comment
+   | TagCData str                 -- ^ CData text
    | TagWarning str               -- ^ Meta: Mark a syntax error in the input file
    | TagPosition !Row !Column     -- ^ Meta: The position of a parsed element
      deriving (Show, Eq, Ord)
