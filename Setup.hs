@@ -1,3 +1,3 @@
-#!/usr/bin/runhaskell
+#! /usr/bin/env runhaskell
 import Distribution.Simple
 main = defaultMain
