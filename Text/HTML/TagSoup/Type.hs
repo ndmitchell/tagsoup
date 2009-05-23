@@ -8,12 +8,12 @@ module Text.HTML.TagSoup.Type(
     Position, tagPosition, nullPosition, positionChar, positionString,
 
     -- * Tag identification
-    isTagOpen, isTagClose, isTagText, isTagWarning,
+    isTagOpen, isTagClose, isTagText, isTagCData, isTagWarning,
     isTagOpenName, isTagCloseName,
 
     -- * Extraction
-    fromTagText, fromAttrib,
-    maybeTagText, maybeTagWarning,
+    fromTagText, fromTagCData, fromAttrib,
+    maybeTagText, maybeTagCData, maybeTagWarning,
     innerText,
     ) where
 
@@ -89,6 +89,20 @@ fromTagText x = error $ "(" ++ show x ++ ") is not a TagText"
 -- | Extract all text content from tags (similar to Verbatim found in HaXml)
 innerText :: StringLike str => [Tag str] -> str
 innerText = Str.concat . mapMaybe maybeTagText
+
+-- | Test if a 'Tag' is a 'TagCData'
+isTagCData :: Tag str -> Bool
+isTagCData (TagCData {})  = True; isTagCData  _ = False
+
+-- | Extract the string from within 'TagCData', otherwise 'Nothing'
+maybeTagCData :: Tag str -> Maybe str
+maybeTagCData (TagCData x) = Just x
+maybeTagCData _ = Nothing
+
+-- | Extract the string from within 'TagCData', crashes if not a 'TagCData'
+fromTagCData :: Show str => Tag str -> str
+fromTagCData (TagCData x) = x
+fromTagCData x = error $ "(" ++ show x ++ ") is not a TagCData"
 
 -- | Test if a 'Tag' is a 'TagWarning'
 isTagWarning :: Tag str -> Bool
