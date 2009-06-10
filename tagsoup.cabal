@@ -31,13 +31,17 @@ Library
     GHC-Options: -Wall
     Exposed-modules:
         Text.HTML.TagSoup
+        Text.HTML.TagSoup.Options
         Text.HTML.TagSoup.Entity
         Text.HTML.TagSoup.Match
-        Text.HTML.TagSoup.Parser
+        Text.HTML.TagSoup.Parser2
         Text.HTML.TagSoup.Render
         Text.HTML.TagSoup.Tree
         Text.HTML.TagSoup.Type
         Text.HTML.Download
+        Text.StringLike
+    Other-modules:
+        Text.ParserCombinators.LazyParse
 
 Executable tagsoup
     Main-Is: Main.hs
