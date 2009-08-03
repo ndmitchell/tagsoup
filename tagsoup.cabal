@@ -47,5 +47,6 @@ Executable tagsoup
     Main-Is: Main.hs
     GHC-Options: -Wall
     Other-Modules:
+        Example.Benchmark
         Example.Example
         Example.Test

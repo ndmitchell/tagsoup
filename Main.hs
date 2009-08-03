@@ -4,8 +4,8 @@ module Main(main) where
 import System.Environment
 import Example.Example
 import Example.Test
+import Example.Benchmark
 import Data.Char(toLower)
-import Text.HTML.TagSoup
 
 
 helpMsg :: IO ()
