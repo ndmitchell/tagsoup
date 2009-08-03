@@ -5,6 +5,7 @@ import Data.Maybe
 
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as LBS
+import Data.List
 
 
 class CharLike a where
@@ -17,16 +18,22 @@ instance CharLike Char where
 
 
 class StringLike a where
+    -- Primitive operations
+    empty :: a
+    cons :: Char -> a -> a
     uncons :: a -> Maybe (Char, a)
+
     toString :: a -> String
     fromString :: String -> a
     concat :: [a] -> a
-    empty :: a
     isEmpty :: a -> Bool
-    cons :: Char -> a -> a
     append :: a -> a -> a
     
-    isEmpty = isNothing . uncons 
+    toString = unfoldr uncons
+    fromString = foldr cons empty
+    concat = foldr append empty
+    isEmpty = isNothing . uncons
+    append x y = fromString $ toString x ++ toString y
 
 instance CharLike a => StringLike [a] where
     uncons [] = Nothing
