@@ -160,7 +160,7 @@ pico :: Integer
 pico = 1000000000000
 
 
-stringLength x = BS.length x
+stringLength x = fromIntegral $ BS.length x
 stringReadFile = BS.readFile
 stringRep i s = BS.concat (replicate (fromIntegral d) s) `BS.append` BS.take (fromIntegral m) s
     where (d,m) = i `divMod` stringLength s
