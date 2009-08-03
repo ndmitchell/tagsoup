@@ -3,7 +3,7 @@ module Main(main) where
 
 import System.Environment
 import Example.Example
-import Example.Regress
+import Example.Test
 import Data.Char(toLower)
 import Text.HTML.TagSoup
 
@@ -28,7 +28,7 @@ helpMsg = putStr $ unlines $
             
 
 actions :: [(String, String, Either (IO ()) (String -> IO ()))]
-actions = [("regress","Run the regression tests",Left regress)
+actions = [("test","Run the test suite",Left test)
           ,("grab","Grab a web page",Right grab)
           ,("parse","Parse a web page",Right parse)
           ,("time","Time the parsing",Left time)
