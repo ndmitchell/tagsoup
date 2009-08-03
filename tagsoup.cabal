@@ -48,4 +48,4 @@ Executable tagsoup
     GHC-Options: -Wall
     Other-Modules:
         Example.Example
-        Example.Regress
+        Example.Test
