@@ -160,10 +160,17 @@ pico :: Integer
 pico = 1000000000000
 
 
-stringLength x = fromIntegral (BS.length x) :: Int
+stringLength x = BS.length x
 stringReadFile = BS.readFile
-stringRep i s = BS.take (fromIntegral i) $ BS.concat $ repeat s
+stringRep i s = BS.concat (replicate (fromIntegral d) s) `BS.append` BS.take (fromIntegral m) s
+    where (d,m) = i `divMod` stringLength s
 stringPack = BS.pack
+{-
+stringLength x = length x
+stringReadFile = readFile
+stringRep i s = concat $ replicate i s
+stringPack = id
+-}
 
 
 timefile :: FilePath -> IO ()
