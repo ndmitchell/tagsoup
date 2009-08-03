@@ -68,7 +68,7 @@ instance StringLike s => StringLike (S s) where
 
 
 addWarn :: str -> Parser (S str) ()
-addWarn msg = modify $ \s -> 
+addWarn msg = modify $ \s ->
     if optTagWarning (opts s) then s{warn=(pos s,msg):warn s} else s
 
 outWarn :: Parser (S str) [Tag str] -> Parser (S str) [Tag str]
