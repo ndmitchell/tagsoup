@@ -48,9 +48,9 @@ h3 {
 
 p.rule {
     background-color: #ffb;
-	padding: 3px;
-	margin-left: 50px;
-	margin-right: 50px;
+    padding: 3px;
+    margin-left: 50px;
+    margin-right: 50px;
 }
         </style>
     </head>
@@ -63,10 +63,10 @@ p.rule {
 </p>
 
 <p>
-	TagSoup is a library for extracting information out of unstructured HTML code, sometimes known as tag-soup. The HTML does not have to be well formed, or render properly within any particular framework. This library is for situations where the author of the HTML is not cooperating with the person trying to extract the information, but is also not trying to hide the information.
+    TagSoup is a library for extracting information out of unstructured HTML code, sometimes known as tag-soup. The HTML does not have to be well formed, or render properly within any particular framework. This library is for situations where the author of the HTML is not cooperating with the person trying to extract the information, but is also not trying to hide the information.
 </p>
 <p>
-	This document gives two particular examples, and two more may be found in the <a href="http://community.haskell.org/~ndm/darcs/tagsoup/Example/Example.hs">Example</a> file from the darcs repository. The examples we give are:
+    This document gives two particular examples, and two more may be found in the <a href="http://community.haskell.org/~ndm/darcs/tagsoup/Example/Example.hs">Example</a> file from the darcs repository. The examples we give are:
 </p>
 <ol>
     <li>Obtaining the Hit Count from Haskell.org</li>
@@ -74,10 +74,10 @@ p.rule {
     <li>A brief overview of some other examples</li>
 </ol>
 <p>
-	The intial version of this library was written in Javascript and has been used for various commercial projects involving screen scraping. In the examples general hints on screen scraping are included, learnt from bitter experience. It should be noted that if you depend on data which someone else may change at any given time, you may be in for a shock!
+    The intial version of this library was written in Javascript and has been used for various commercial projects involving screen scraping. In the examples general hints on screen scraping are included, learnt from bitter experience. It should be noted that if you depend on data which someone else may change at any given time, you may be in for a shock!
 </p>
 <p>
-	This library was written without knowledge of the Java version of <a href="http://home.ccil.org/~cowan/XML/tagsoup/">TagSoup</a>. They have made a very different design decision: to ensure default attributes are present and to properly nest parsed tags. We do not do this - tags are merely a list devoid of nesting information.
+    This library was written without knowledge of the Java version of <a href="http://home.ccil.org/~cowan/XML/tagsoup/">TagSoup</a>. They have made a very different design decision: to ensure default attributes are present and to properly nest parsed tags. We do not do this - tags are merely a list devoid of nesting information.
 </p>
 
 <h3>Acknowledgements</h3>
@@ -124,7 +124,7 @@ p.rule {
 <h3>Finding the Page</h3>
 
 <p>
-	We first need to find where the information is displayed, and in what format. Taking a look at the <a href="http://www.haskell.org/haskellwiki/Haskell">front web page</a>, when not logged in, you may notice that there is no hit count. However, looking at the source shows us:
+    We first need to find where the information is displayed, and in what format. Taking a look at the <a href="http://www.haskell.org/haskellwiki/Haskell">front web page</a>, when not logged in, you may notice that there is no hit count. However, looking at the source shows us:
 </p>
 <pre>
 &lt;div class="printfooter"&gt;
@@ -137,14 +137,14 @@ Recent content is available under &lt;a href="/haskellwiki/HaskellWiki:Copyright
 title="HaskellWiki:Copyrights"&gt;a simple permissive license&lt;/a&gt;.&lt;/p&gt;
 </pre>
 <p>
-	So we see that the hit count is available, but not shown. This leads us to rule 1:
+    So we see that the hit count is available, but not shown. This leads us to rule 1:
 </p>
 <p class="rule">
-	<b>Rule 1:</b><br/>
-	Scrape from what the page returns, not what a browser renders, or what view-source gives.
+    <b>Rule 1:</b><br/>
+    Scrape from what the page returns, not what a browser renders, or what view-source gives.
 </p>
 <p>
-	Some web servers will serve different content depending on the user agent, some browsers will have scripting modify their displayed HTML, some pages will display differently depending on your cookies. Before you can start to figure out how to start scraping, first decide what the input to your program will be. There are three ways to get the page as it will appear to your program.
+    Some web servers will serve different content depending on the user agent, some browsers will have scripting modify their displayed HTML, some pages will display differently depending on your cookies. Before you can start to figure out how to start scraping, first decide what the input to your program will be. There are three ways to get the page as it will appear to your program.
 </p>
 
 <h4>Using <tt>Text.Html.Download</tt></h4>
@@ -187,17 +187,17 @@ main = do rsp <- UA.get "http://haskell.org/haskellwiki/Haskell"
 <h3>Finding the Information</h3>
 
 <p>
-	Now we examine both the fragment that contains our snippet of information, and the wider page. What does the fragment has that nothing else has? What algorithm would we use to obtain that particular element? How can we still return the element as the content changes? What if the design changes? But wait, before going any further:
+    Now we examine both the fragment that contains our snippet of information, and the wider page. What does the fragment has that nothing else has? What algorithm would we use to obtain that particular element? How can we still return the element as the content changes? What if the design changes? But wait, before going any further:
 </p>
 <p class="rule">
-	<b>Rule 2:</b><br/>
-	Do not be robust to design changes, do not even consider the possibility when writing the code.
+    <b>Rule 2:</b><br/>
+    Do not be robust to design changes, do not even consider the possibility when writing the code.
 </p>
 <p>
-	If the user changes their website, they will do so in unpredictable ways. They may move the page, they may put the information somewhere else, they may remove the information entirely. If you want something robust talk to the site owner, or buy the data from someone. If you try and think about design changes, you will complicate your design, and it still won't work. It is better to write an extraction method quickly, and happily rewrite it when things change.
+    If the user changes their website, they will do so in unpredictable ways. They may move the page, they may put the information somewhere else, they may remove the information entirely. If you want something robust talk to the site owner, or buy the data from someone. If you try and think about design changes, you will complicate your design, and it still won't work. It is better to write an extraction method quickly, and happily rewrite it when things change.
 </p>
 <p>
-	So now, lets consider the fragment from above. It is useful to find a tag which is unique just above your snippet - something with a nice "id" property, or a "class" - something which is unlikely to occur multiple times. In the above example, "printfooter" as the class seems perfect. We decide that to find the snippet, we will start at a "div" tag, with a "class" attribute with the value "printfooter".
+    So now, lets consider the fragment from above. It is useful to find a tag which is unique just above your snippet - something with a nice "id" property, or a "class" - something which is unlikely to occur multiple times. In the above example, "printfooter" as the class seems perfect. We decide that to find the snippet, we will start at a "div" tag, with a "class" attribute with the value "printfooter".
 </p>
 <pre>
 haskellHitCount = do
@@ -209,13 +209,13 @@ haskellHitCount = do
     Now we start writing the code! The first thing to do is open the required URL, then we parse the code into a list of <tt>Tag</tt>s. We then apply the <tt>sections</tt> function, which returns all the lists whose first element matches the query. We use the <tt>(~==)</tt> operator to construct the query - in this case asking for the "div" we mentioned earlier. This <tt>(~==)</tt> operator is very different from standard equality, it allows additional attributes to be present but does not match them. We write <tt>"&lt;div class=printfooter&gt;"</tt> as syntactic sugar for <tt>TagOpen "div" [("class","printfooter")]</tt>. If we just wanted any open tag with the given class we could have written <tt>(~== TagOpen "" [("class","printfooter")])</tt> and this would have matched. Any empty strings in the second element of the match are considered as wildcards.
 </p>
 <p>
-	Once we have a list of all matching prefixes, we take the <tt>head</tt> - assuming that only one will match. Then we apply <tt>fromFooter</tt> which needs to perform the traversal from the "printfooter" attribute onwards to the actual hit count data.
+    Once we have a list of all matching prefixes, we take the <tt>head</tt> - assuming that only one will match. Then we apply <tt>fromFooter</tt> which needs to perform the traversal from the "printfooter" attribute onwards to the actual hit count data.
 </p>
 
 <h3>Extracting the Information</h3>
 
 <p>
-	Now we have a stream starting at the right place, we generally mangle the code using standard list operators:
+    Now we have a stream starting at the right place, we generally mangle the code using standard list operators:
 </p>
 <pre>
 fromFooter x = read (filter isDigit num) :: Int
@@ -225,46 +225,46 @@ fromFooter x = read (filter isDigit num) :: Int
           TagText s = sections (~== "&lt;p&gt;") x !! 1 !! 1
 </pre>
 <p>
-	This code finds <tt>s</tt>, the text inside the appropriate paragraph by knowing that its the second (<tt>!! 1</tt>) paragraph, and within that paragraph, its the second tag - the actual text. We then split up the text using <tt>words</tt>, find the message that comes after hit count, and read all the digits we can find - filtering out the comma. I'm pretty sure this could be done better using regular expressions, and I invite a reader to submit improved code. This code may seem slightly messy, and indeed it is - often that is the nature of extracting information from a tag soup.
+    This code finds <tt>s</tt>, the text inside the appropriate paragraph by knowing that its the second (<tt>!! 1</tt>) paragraph, and within that paragraph, its the second tag - the actual text. We then split up the text using <tt>words</tt>, find the message that comes after hit count, and read all the digits we can find - filtering out the comma. I'm pretty sure this could be done better using regular expressions, and I invite a reader to submit improved code. This code may seem slightly messy, and indeed it is - often that is the nature of extracting information from a tag soup.
 </p>
 <p class="rule">
-	<b>Rule 3:</b><br/>
-	TagSoup is for extracting information where structure has been lost, use more structured information if it is available.
+    <b>Rule 3:</b><br/>
+    TagSoup is for extracting information where structure has been lost, use more structured information if it is available.
 </p>
 
 
 <h2>Simon's Papers</h2>
 
 <p>
-	Our next very important task is to extract a list of all Simon Peyton Jones' recent research papers off his <a href="http://research.microsoft.com/~simonpj/">home page</a>. The largest change to the previous example is that now we desire a list of papers, rather than just a single result.
+    Our next very important task is to extract a list of all Simon Peyton Jones' recent research papers off his <a href="http://research.microsoft.com/~simonpj/">home page</a>. The largest change to the previous example is that now we desire a list of papers, rather than just a single result.
 </p>
 <p>
-	As before we first start by writing a simple program that downloads the appropriate page, and look for common patterns. This time we want to look for all patterns which occur every time a paper is mentioned, but no where else. The other difference from last time is that previous we grabbed an automatically generated piece of information - this time the information is entered in a more freeform way by a human.
+    As before we first start by writing a simple program that downloads the appropriate page, and look for common patterns. This time we want to look for all patterns which occur every time a paper is mentioned, but no where else. The other difference from last time is that previous we grabbed an automatically generated piece of information - this time the information is entered in a more freeform way by a human.
 </p>
 <p>
-	First we spot that the page helpfully has named anchors, there is a current work anchor, and after that is one for Haskell. We can extract all the information between them with a simple <tt>take</tt>/<tt>drop</tt> pair:
+    First we spot that the page helpfully has named anchors, there is a current work anchor, and after that is one for Haskell. We can extract all the information between them with a simple <tt>take</tt>/<tt>drop</tt> pair:
 </p>
 <pre>
 takeWhile (~/= "&lt;a name=haskell&gt;") $
 drop 5 $ dropWhile (~/= "&lt;a name=current&gt;") tags
 </pre>
 <p>
-	This code drops until you get to the "current" section, then takes until you get to the "haskell" section, ensuring we only look at the important bit of the page. Next we want to find all hyperlinks within this section:
+    This code drops until you get to the "current" section, then takes until you get to the "haskell" section, ensuring we only look at the important bit of the page. Next we want to find all hyperlinks within this section:
 </p>
 <pre>
 map f $ sections (~== "&lt;a&gt;") $ ...
 </pre>
 <p>
-	Remember that the function to select all tags with name "a" could have been written as <tt>(~== TagOpen "a" [])</tt>, or alternatively <tt>isTagOpenName "a"</tt>. Afterwards we map each item with an <tt>f</tt> function. This function needs to take the tags starting just after the link, and find the text inside the link.
+    Remember that the function to select all tags with name "a" could have been written as <tt>(~== TagOpen "a" [])</tt>, or alternatively <tt>isTagOpenName "a"</tt>. Afterwards we map each item with an <tt>f</tt> function. This function needs to take the tags starting just after the link, and find the text inside the link.
 </p>
 <pre>
 f = dequote . unwords . words . fromTagText . head . filter isTagText
 </pre>
 <p>
-	Here the complexity of interfacing to human written markup comes through. Some of the links are in italic, some are not - the <tt>filter</tt> drops all those that are not, until we find a pure text node. The <tt>unwords . words</tt> deletes all multiple spaces, replaces tabs and newlines with spaces and trims the front and back - a neat trick when dealing with text which has spacing at the source code but not when displayed. The final thing to take account of is that some papers are given with quotes around the name, some are not - dequote will remove the quotes if they exist.
+    Here the complexity of interfacing to human written markup comes through. Some of the links are in italic, some are not - the <tt>filter</tt> drops all those that are not, until we find a pure text node. The <tt>unwords . words</tt> deletes all multiple spaces, replaces tabs and newlines with spaces and trims the front and back - a neat trick when dealing with text which has spacing at the source code but not when displayed. The final thing to take account of is that some papers are given with quotes around the name, some are not - dequote will remove the quotes if they exist.
 </p>
 <p>
-	For completeness, we now present the entire example:
+    For completeness, we now present the entire example:
 </p>
 <pre>
 spjPapers :: IO ()
@@ -286,7 +286,7 @@ spjPapers = do
 <h2>Other Examples</h2>
 
 <p>
-	Several more examples are given in the Example file, including obtaining the (short) list of papers from my site, getting the current time and a basic XML validator. All can be invoked using the <tt>tagsoup</tt> executable program. All use very much the same style as presented here - writing screen scrapers follow a standard pattern. We present the code from two for enjoyment only.
+    Several more examples are given in the Example file, including obtaining the (short) list of papers from my site, getting the current time and a basic XML validator. All can be invoked using the <tt>tagsoup</tt> executable program. All use very much the same style as presented here - writing screen scrapers follow a standard pattern. We present the code from two for enjoyment only.
 </p>
 
 <h3>My Papers</h3>
