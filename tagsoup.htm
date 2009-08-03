@@ -215,11 +215,10 @@ haskellHitCount = do
 </p>
 <pre>
 fromFooter x = read (filter isDigit num) :: Int
-	where
-		num = ss !! (i - 1)
-		Just i = findIndex (== "times.") ss
-		ss = words s
-		TagText s = sections (~== "&lt;p&gt;") x !! 1 !! 1
+    where num = ss !! (i - 1)
+          Just i = findIndex (== "times.") ss
+          ss = words s
+          TagText s = sections (~== "&lt;p&gt;") x !! 1 !! 1
 </pre>
 <p>
 	This code finds <tt>s</tt>, the text inside the appropriate paragraph by knowing that its the second (<tt>!! 1</tt>) paragraph, and within that paragraph, its the second tag - the actual text. We then split up the text using <tt>words</tt>, find the message that comes after hit count, and read all the digits we can find - filtering out the comma. I'm pretty sure this could be done better using regular expressions, and I invite a reader to submit improved code. This code may seem slightly messy, and indeed it is - often that is the nature of extracting information from a tag soup.
