@@ -195,9 +195,9 @@ bogusComment1 S{..} = case hd of
 
 -- 9.2.4.17 Markup declaration open state
 markupDeclOpen S{..} = case hd of
-    _ | after "--" -> Comment & commentStart (drp 2)
+    _ | Just s <- next "--" -> Comment & commentStart s
     _ | isAlpha hd -> TagOpen & '!' & hd & tagName False tl -- NEIL
-    _ | after "[CDATA[" -> cdataSection (drp 7)
+    _ | Just s <- next "[CDATA[" -> cdataSection s
     _ -> err & bogusComment s
 
 
@@ -260,7 +260,7 @@ commentEndSpace S{..} = case hd of
 
 -- 9.2.4.38 CDATA section state
 cdataSection S{..} = case hd of
-    _ | after "]]>" -> dat (drp 3)
+    _ | Just s <- next "]]>" -> dat s
     _ | eof -> dat s
     _ | otherwise -> hd & cdataSection tl
 

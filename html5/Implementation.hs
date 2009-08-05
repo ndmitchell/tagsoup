@@ -31,7 +31,7 @@ data Out
 
 data S = S
     -- REAL INFORMATION
-    {next :: String
+    {text :: String
     
     -- USEFUL SUGAR
     ,s :: S
@@ -39,22 +39,24 @@ data S = S
     ,hd :: Char
     ,eof :: Bool
     ,err :: Out
-    ,after :: String -> Bool
-    ,drp :: Int -> S
+    ,next :: String -> Maybe S
     }
 
 
 expand :: String -> S
-expand next = res
-    where res = S{next = next
+expand text = res
+    where res = S{text = text
                  ,s = res
-                 ,tl = expand (tail next)
-                 ,hd = if null next then '\0' else head next
-                 ,eof = null next
+                 ,tl = expand (tail text)
+                 ,hd = if null text then '\0' else head text
+                 ,eof = null text
                  ,err = Error
-                 ,after = \x -> x `isPrefixOf` next
-                 ,drp = \i -> if i == 0 then res else drp (tl res) (i-1)
+                 ,next = next text
                  }
+
+          next (t:ext) (s:tr) | t == s = next ext tr
+          next text [] = Just $ expand text
+          next _ _ = Nothing
 
 infixr &
 (&) :: Outable a => a -> [Out] -> [Out]
