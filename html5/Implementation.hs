@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-missing-fields #-}
 
 module Implementation where
 
@@ -9,12 +10,14 @@ import Data.List
 
 data Out
     = Char Char
-    | TagOpen
-    | TagNameEnd
+    | TagOpen     -- <
     | TagShut
     | AttName
     | AttVal
-    | TagEnd
+    | TagEnd      -- >
+    | TagEndClose -- />
+    | CommentOpen -- <!--
+    | CommentEnd  -- -->
     | DocTypeEnd
     | Error
       deriving Show
