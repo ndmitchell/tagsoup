@@ -31,8 +31,7 @@ data Out
 
 data S = S
     -- REAL INFORMATION
-    {prev :: String -- reversed, like a zipper
-    ,next :: String
+    {next :: String
     
     -- USEFUL SUGAR
     ,s :: S
@@ -40,22 +39,19 @@ data S = S
     ,hd :: Char
     ,eof :: Bool
     ,err :: Out
-    ,before :: String -> Bool
     ,after :: String -> Bool
     ,drp :: Int -> S
     }
 
 
-expand :: String -> String -> S
-expand prev next = res
-    where res = S{prev = prev
-                 ,next = next
+expand :: String -> S
+expand next = res
+    where res = S{next = next
                  ,s = res
-                 ,tl = expand (head next : prev) (tail next)
+                 ,tl = expand (tail next)
                  ,hd = if null next then '\0' else head next
                  ,eof = null next
                  ,err = Error
-                 ,before = \x -> reverse x `isPrefixOf` prev
                  ,after = \x -> x `isPrefixOf` next
                  ,drp = \i -> if i == 0 then res else drp (tl res) (i-1)
                  }
@@ -70,5 +66,5 @@ instance Outable Out where outable = id
 
 
 state :: String -> S
-state s = expand [] s
+state s = expand s
 
