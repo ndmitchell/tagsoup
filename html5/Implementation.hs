@@ -31,10 +31,7 @@ data Out
 
 data S = S
     -- REAL INFORMATION
-    {text :: String
-    
-    -- USEFUL SUGAR
-    ,s :: S
+    {s :: S
     ,tl :: S
     ,hd :: Char
     ,eof :: Bool
@@ -45,8 +42,7 @@ data S = S
 
 expand :: String -> S
 expand text = res
-    where res = S{text = text
-                 ,s = res
+    where res = S{s = res
                  ,tl = expand (tail text)
                  ,hd = if null text then '\0' else head text
                  ,eof = null text
