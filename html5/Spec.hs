@@ -8,12 +8,13 @@ import Data.Char
 
 white x = x `elem` "\t\n\f "
 
--- We make three generalisations:
---   <!name is a valid tag start closed by >
---   <?name is a valid tag start closed by ?>
---   <a "foo"> is a valid tag attibute, i.e missing an attribute name
--- All these parts are annotated with NEIL
-
+-- We make some generalisations:
+-- <!name is a valid tag start closed by >
+-- <?name is a valid tag start closed by ?>
+-- <a "foo"> is a valid tag attibute, i.e missing an attribute name
+-- We also don't do lowercase conversion
+-- Entities are handled without a list of known entity names
+-- We don't have RCData, CData or Escape modes (only effects dat and tagOpen)
 
 -- 9.2.4 Tokenization
 
@@ -25,25 +26,18 @@ parse = dat . state
 -- 9.2.4.1 Data state
 dat :: Parser
 dat S{..} = case hd of
-    '&' | pcdata_rcdata, noescape -> charRef tl
-    '-' | rcdata_cdata, noescape, before "<--" -> hd & dat (escape_ tl)
-    '<' | pcdata -> tagOpen tl
-    '<' | rcdata_cdata, noescape -> tagOpen tl
-    '>' | rcdata_cdata, escape, before "--" -> hd & dat (noescape_ tl)
+    '&' -> charReference tl
+    '<' -> tagOpen tl
     _ | eof -> []
     _ -> hd & dat tl
 
 
 -- 9.2.4.2 Character reference data state
-charRef s = case charReference Nothing s of
-    Nothing -> '&' & dat s
-    Just (s,x) -> x & dat s
+charReference s = charRef dat False Nothing s
 
 
 -- 9.2.4.3 Tag open state
 tagOpen S{..} = case hd of
-    _ | rcdata_cdata ->
-        if hd == '/' then closeTagOpen tl else '<' & dat s
     '!' -> markupDeclOpen tl
     '/' -> closeTagOpen tl
     _ | isAlpha hd -> TagOpen & hd & tagName False tl
@@ -170,9 +164,7 @@ attValueUnquoted xml S{..} = case hd of
 
 -- 9.2.4.13 Character reference in attribute value state
 charRefAttValue :: Parser -> Maybe Char -> Parser
-charRefAttValue resume c s = case charReference c s of
-    Nothing -> '&' & resume s
-    Just (s, x) -> x & resume s
+charRefAttValue resume c s = charRef resume True c s
 
 
 -- 9.2.4.14 After attribute value (quoted) state
@@ -194,7 +186,7 @@ selfClosingStartTag xml S{..} = case hd of
 
 
 -- 9.2.4.16 Bogus comment state
-bogusComment S{..} = CommentOpen & bogusComment1 s
+bogusComment S{..} = Comment & bogusComment1 s
 bogusComment1 S{..} = case hd of
     '>' -> CommentEnd & dat tl
     _ | eof -> CommentEnd & dat s
@@ -203,7 +195,7 @@ bogusComment1 S{..} = case hd of
 
 -- 9.2.4.17 Markup declaration open state
 markupDeclOpen S{..} = case hd of
-    _ | after "--" -> CommentOpen & commentStart (drp 2)
+    _ | after "--" -> Comment & commentStart (drp 2)
     _ | isAlpha hd -> TagOpen & '!' & hd & tagName False tl -- NEIL
     _ | after "[CDATA[" -> cdataSection (drp 7)
     _ -> err & bogusComment s
@@ -274,6 +266,38 @@ cdataSection S{..} = case hd of
 
 
 -- 9.2.4.39 Tokenizing character references
-charReference :: Maybe Char -> S -> Maybe (S, Out)
-charReference = undefined
+-- Change from spec: this is reponsible for writing '&' if nothing is to be written
+charRef :: Parser -> Bool -> Maybe Char -> S -> [Out]
+charRef resume att end S{..} = case hd of
+    _ | eof || hd `elem` "\t\n\f <&" || Just hd == end -> '&' & resume s
+    '#' -> charRefNum resume s tl
+    _ -> charRefAlpha resume att s
 
+charRefNum resume o S{..} = case hd of
+    _ | hd `elem` "xX" -> charRefNum2 resume o True tl
+    _ -> charRefNum2 resume o False s
+
+charRefNum2 resume o hex S{..} = case hd of
+    _ | hexChar hex hd -> (if hex then EntityHex else EntityNum) & hd & charRefNum3 resume hex tl
+    _ -> '&' & err & resume o
+
+charRefNum3 resume hex S{..} = case hd of
+    _ | hexChar hex hd -> hd & charRefNum3 resume hex tl
+    ';' -> EntityEnd & resume tl
+    _ -> err & EntityEnd & resume s
+
+charRefAlpha resume att S{..} = case hd of
+    _ | isAlpha hd -> Entity & hd & charRefAlpha2 resume att tl
+    _ -> '&' & err & resume s
+
+charRefAlpha2 resume att S{..} = case hd of
+    _ | alphaChar hd -> hd & charRefAlpha2 resume att tl
+    ';' -> EntityEnd & resume tl
+    _ | att -> EntityEndAtt & resume s
+    _ -> err & EntityEnd & resume s
+
+
+alphaChar x = isAlpha x || isDigit x || x `elem` ":-_"
+
+hexChar False x = isDigit x
+hexChar True  x = isDigit x || x `elem` (['a'..'f']++['A'..'F'])
