@@ -65,10 +65,10 @@ googleTechNews = do
 
 spjPapers :: IO ()
 spjPapers = do
-        tags <- liftM parseTags $ openURL "http://research.microsoft.com/~simonpj/"
-        let links = map f $ sections (~== "<a>") $
-                    takeWhile (~/= "<a name=haskell>") $
-                    drop 5 $ dropWhile (~/= "<a name=current>") tags
+        tags <- liftM parseTags $ openURL "http://research.microsoft.com/en-us/people/simonpj/"
+        let links = map f $ sections (~== "<A>") $
+                    takeWhile (~/= "<A name=haskell>") $
+                    drop 5 $ dropWhile (~/= "<A name=current>") tags
         putStr $ unlines links
     where
         f :: [Tag String] -> String
