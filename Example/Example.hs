@@ -80,7 +80,7 @@ spjPapers = do
 
 ndmPapers :: IO ()
 ndmPapers = do
-        tags <- liftM parseTags $ openURL "http://www-users.cs.york.ac.uk/~ndm/downloads/"
+        tags <- liftM parseTags $ openURL "http://community.haskell.org/~ndm/downloads/"
         let papers = map f $ sections (~== "<li class=paper>") tags
         putStr $ unlines papers
     where
