@@ -297,7 +297,7 @@ charRefAlpha2 resume att S{..} = case hd of
     _ -> err & EntityEnd & resume s
 
 
-alphaChar x = isAlpha x || isDigit x || x `elem` ":-_"
+alphaChar x = isAlphaNum x || x `elem` ":-_"
 
 hexChar False x = isDigit x
-hexChar True  x = isDigit x || x `elem` (['a'..'f']++['A'..'F'])
+hexChar True  x = isDigit x || (x >= 'a' && x <= 'f') || (x >= 'A' && x <= 'F')

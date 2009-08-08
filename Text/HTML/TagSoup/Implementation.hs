@@ -30,7 +30,6 @@ data Out
 -- STATE
 
 data S = S
-    -- REAL INFORMATION
     {s :: S
     ,tl :: S
     ,hd :: Char
