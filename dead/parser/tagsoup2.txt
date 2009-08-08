@@ -1,0 +1,61 @@
+
+# SYNTAX SUGAR
+# string x string ==> string res@x string (if only one non-constant, make that res@)
+# xs ==> {res} xs (if no command, make it res)
+
+
+primRule  = clearWarn spaces name hexes digits
+primMatch = name
+
+root = tags
+
+tags
+    eof = {warn s0 []}
+    _ = clearWarn x@tag xs@tags {warn s0 $ pos s0 $ x ++ xs}
+
+tag
+    "<!--" = comment
+    "&" = entity
+    "</" = close
+    "<" = open
+    _ = text
+
+comment = (endBy "-->") {[Comment res]}
+
+entity = entity1 ";"
+entity1
+    "#x" = hexes  {entityNameHashX res}
+    "#"  = digits {entityNameHash  res} 
+    _    = name   {entityName      res} 
+
+close = spaces res@name spaces ">" {[Close res]} 
+
+open = spaces x@name spaces xs@(atts x) {Open x (fst xs) : snd xs} 
+
+atts param
+    "/>" = {([],[Close param])}
+    ">"  = {([],[])}
+    "\"" = y@(str "\"") spaces res@(atts param) {first (("",y):) res}
+    "\'" = y@(str "\'") spaces res@(atts param) {first (("",y):) res}
+    x@name = spaces y@attEq spaces res@(atts param) {first ((x,y):) res}
+    _    = ">" {([],[])}
+
+# ="bar"
+attEq
+    "=" = spaces res@attQuote
+    _ = spaces {""}
+
+# "bar"
+attQuote
+    "\"" = (str "\"")
+    "'" = (str "'")
+    _ = {""}
+
+# bar"
+str param
+    eof = param
+    param = {[]}
+    "&" = x@entity xs@(str param) {innerTexts x ++ xs}
+    _ = x@(takeWhileNot "&" param) xs@(str param) {x ++ xs} 
+
+text = (takeWhileNot "<&") {[Text res]} 
