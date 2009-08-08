@@ -2,15 +2,15 @@
 module Main(main) where
 
 import System.Environment
-import Example.Example
-import Example.Test
-import Example.Benchmark
+import TagSoup.Sample
+import TagSoup.Test
+import TagSoup.Benchmark
 import Data.Char(toLower)
 
 
 helpMsg :: IO ()
 helpMsg = putStr $ unlines $
-    ["TagSoup, (C) Neil Mitchell 2006-2008"
+    ["TagSoup, (C) Neil Mitchell 2006-2009"
     ,""
     ,"  tagsoup arguments"
     ,""
@@ -31,8 +31,8 @@ actions :: [(String, String, Either (IO ()) (String -> IO ()))]
 actions = [("test","Run the test suite",Left test)
           ,("grab","Grab a web page",Right grab)
           ,("parse","Parse a web page",Right parse)
-          ,("time","Time the parsing",Left time)
-          ,("timefile","Time the parsing of a file",Right timefile)
+          ,("bench","Benchmark the parsing",Left time)
+          ,("benchfile","Benchmark the parsing of a file",Right timefile)
           ,("validate","Validate a page",Right validate)
           ,("hitcount","Get the Haskell.org hit count",Left haskellHitCount)
           ,("spj","Simon Peyton Jones' papers",Left spjPapers)
