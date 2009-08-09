@@ -40,7 +40,7 @@ charReference s = charRef dat False Nothing s
 tagOpen S{..} = case hd of
     '!' -> markupDeclOpen tl
     '/' -> closeTagOpen tl
-    _ | isAlpha hd -> TagOpen & hd & tagName False tl
+    _ | isAlpha hd -> Tag & hd & tagName False tl
     '>' -> err & '<' & '>' & dat tl
     '?' -> neilXmlTagOpen tl -- NEIL
     _ -> err & '<' & dat s
@@ -48,7 +48,7 @@ tagOpen S{..} = case hd of
 
 -- seen "<?", emitted []
 neilXmlTagOpen S{..} = case hd of
-    _ | isAlpha hd -> TagOpen & '?' & hd & tagName True tl
+    _ | isAlpha hd -> Tag & '?' & hd & tagName True tl
     _ -> err & '<' & '?' & dat s
 
 -- seen "?", expecting ">"
@@ -196,7 +196,7 @@ bogusComment1 S{..} = case hd of
 -- 9.2.4.17 Markup declaration open state
 markupDeclOpen S{..} = case hd of
     _ | Just s <- next "--" -> Comment & commentStart s
-    _ | isAlpha hd -> TagOpen & '!' & hd & tagName False tl -- NEIL
+    _ | isAlpha hd -> Tag & '!' & hd & tagName False tl -- NEIL
     _ | Just s <- next "[CDATA[" -> cdataSection s
     _ -> err & bogusComment s
 

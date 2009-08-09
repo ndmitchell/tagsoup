@@ -5,6 +5,7 @@ import System.Environment
 import TagSoup.Sample
 import TagSoup.Test
 import TagSoup.Benchmark
+import TagSoup.Generate
 import Data.Char(toLower)
 
 
@@ -40,6 +41,7 @@ actions = [("test","Run the test suite",Left test)
           ,("time","Current time",Left currentTime)
           ,("google","Google Tech News",Left googleTechNews)
           ,("sequence","Creators on sequence.complete.org",Left rssCreators)
+          ,("generate","Generate parsers",Right $ const generate)
           ,("help","This help message",Left helpMsg)
           ]
 

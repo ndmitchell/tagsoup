@@ -58,10 +58,19 @@ data Tag str =
    | TagClose str                 -- ^ A closing tag
    | TagText str                  -- ^ A text node, guaranteed not to be the empty string
    | TagComment str               -- ^ A comment
-   | TagCData str                 -- ^ CData text
+   | TagCData str                 -- ^ CData text -- FIXME: No longer generated
    | TagWarning str               -- ^ Meta: Mark a syntax error in the input file
    | TagPosition !Row !Column     -- ^ Meta: The position of a parsed element
      deriving (Show, Eq, Ord)
+
+instance Functor Tag where
+    fmap f (TagOpen x y) = TagOpen (f x) [(f a, f b) | (a,b) <- y]
+    fmap f (TagClose x) = TagClose (f x)
+    fmap f (TagText x) = TagText (f x)
+    fmap f (TagComment x) = TagComment (f x)
+    fmap f (TagCData x) = TagCData (f x)
+    fmap f (TagWarning x) = TagWarning (f x)
+    fmap f (TagPosition x y) = TagPosition x y
 
 
 -- | Test if a 'Tag' is a 'TagOpen'

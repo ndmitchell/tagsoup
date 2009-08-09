@@ -25,15 +25,24 @@ class StringLike a where
 
     toString :: a -> String
     fromString :: String -> a
+    fromString1 :: Char -> a
     concat :: [a] -> a
     isEmpty :: a -> Bool
     append :: a -> a -> a
     
     toString = unfoldr uncons
+    fromString1 x = cons x empty
     fromString = foldr cons empty
     concat = foldr append empty
     isEmpty = isNothing . uncons
     append x y = fromString $ toString x ++ toString y
+
+    empty = fromString ""
+    cons x y = fromString $ x : toString y
+    uncons x = case toString x of
+        [] -> Nothing
+        x:xs -> Just (x, fromString xs)
+
 
 instance CharLike a => StringLike [a] where
     uncons [] = Nothing
