@@ -1,5 +1,5 @@
 
-module Text.HTML.TagSoup.Parser(TagSoup(..), parseTags) where
+module Text.HTML.TagSoup.Parser_(TagSoup(..), parseTags) where
 
 import Text.HTML.TagSoup.Specification
 import Text.HTML.TagSoup.Implementation
