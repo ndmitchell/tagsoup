@@ -82,8 +82,7 @@ data Result str
     | RTagEndClose (Result str)
     | RComment str (Result str)
     | REntity str Bool (Result str)   -- True is has final ;
-    | REntityNum str (Result str)
-    | REntityHex str (Result str)
+    | REntityChar Int (Result str)
     | RWarn str (Result str)
     | RPos !Row !Column (Result str)
     | REof
@@ -98,8 +97,7 @@ rtail (RTagEnd r) = r
 rtail (RTagEndClose r) = r
 rtail (RComment _ r) = r
 rtail (REntity _ _ r) = r
-rtail (REntityNum _ r) = r
-rtail (REntityHex _ r) = r
+rtail (REntityChar _ r) = r
 rtail (RWarn _ r) = r
 rtail (RPos _ _ r) = r
 
@@ -114,8 +112,8 @@ output opts = output2 . filter f
 output2 :: [Out] -> Result String
 output2 [] = REof
 output2 (Entity:xs) = outputEntity REntity xs
-output2 (EntityNum:xs) = outputEntity (\x y -> REntityNum x) xs
-output2 (EntityHex:xs) = outputEntity (\x y -> REntityHex x) xs
+output2 (EntityNum:xs) = outputEntity (\x y -> REntityChar (read x)) xs
+output2 (EntityHex:xs) = outputEntity (\x y -> REntityChar (fst $ head $ readHex x)) xs
 output2 (TagShut:xs) = let (a,b) = readChars xs in RTagShut a (output2 b)
 output2 (Tag:xs) = let (a,b) = readChars xs in RTagOpen a (output2 b)
 output2 (TagEnd:xs) = RTagEnd (output2 xs)
@@ -182,8 +180,7 @@ result2 opts (RWarn x r) = TagWarning x : result2 opts r
 result2 opts (RPos x y r) = TagPosition x y : result2 opts r
 result2 opts (RComment x r) = TagComment x : result2 opts r
 result2 opts (REntity x y r) = resultAdd opts (optEntityData opts x) (result2 opts r)
-result2 opts (REntityNum x r) = TagText (fromString1 $ chr $ read $ toString x) : result2 opts r
-result2 opts (REntityHex x r) = TagText (fromString1 $ chr $ fst $ head $ readHex $ toString x) : result2 opts r
+result2 opts (REntityChar x r) = TagText (fromString1 $ chr x) : result2 opts r
 
 result2 opts (RTagShut x r) = TagClose x : (if optTagWarning opts then g else f) r
     where f (RTagEnd r) = result2 opts r
@@ -206,20 +203,34 @@ result2 opts (RTagOpen x r) = TagOpen x atts : rest
               where (a,b) = f r
           f (RPos x y r) = (a, TagPosition x y : b)
               where (a,b) = f r
-          f (RAttVal x r) = ((empty,x):a, b)
-              where (a,b) = f r
+          f (RAttVal x r) = ((empty,a):b, c)
+              where (a,b,c) = h x r
           f (RAttName x r) = ((x,a):b, c)
               where (a,b,c) = g r
           f x = ([], result2 opts x)
 
-          g (RAttVal x r) = (x,a,b)
-              where (a,b) = f r
+          g (RAttVal x r) = h x r
           g (RWarn x r) = (a, b, TagWarning x : c)
               where (a,b,c) = g r
           g (RPos x y r) = (a, b, TagPosition x y : c)
               where (a,b,c) = g r
           g x = (empty,a,b)
               where (a,b) = f x
+
+          h s r = (Str.concat $ s:a, b, c)
+              where (a,b,c) = h2 r
+          h2 (RPos x y r) = (a,b,TagPosition x y : c)
+              where (a,b,c) = h2 r
+          h2 (RWarn x r) = (a,b,TagWarning x : c)
+              where (a,b,c) = h2 r
+          h2 (REntity x y r) = (d:a,b,resultAdd opts e c)
+              where (a,b,c) = h2 r ; (d,e) = optEntityAttrib opts (x,y)
+          h2 (REntityChar x r) = (fromString1 (chr x) : a, b, c)
+              where (a,b,c) = h2 r
+          h2 (RText x r) = (x:a,b,c)
+              where (a,b,c) = h2 r
+          h2 r = ([],a,b)
+              where (a,b) = f r
 
 
 -- Merge all adjacent TagText bits
