@@ -129,10 +129,11 @@ output2 p (Warn x:xs) = outputPos p $ RWarn x (output2 p xs)
 output2 p (Pos x:xs) = output2 (Just x) xs
 
 output2 p (Char x:xs) = outputPos p $ RText (x:a) b
-    where (a,b) = f xs
-          f (Char x:xs) = (x:a,b)
-               where (a,b) = f xs
-          f xs = ("", output2 p xs)
+    where (a,b) = f p xs
+          f p (Char x:xs) = (x:a,b)
+               where (a,b) = f p xs
+          f p (Pos x:xs) = f (Just x) xs
+          f p xs = ("", output2 p xs)
 
 output2 p xs = error $ "output: " ++ show (take 10 xs)
 
