@@ -8,6 +8,9 @@ import Text.HTML.TagSoup.Options_
 import Text.StringLike
 
 
+test x = parseTagsOptions parseOptions{optTagWarning=True,optTagPosition=True} $ Spec x
+
+
 parseTags :: TagSoup str => str -> [Tag str]
 parseTags = parseTagsOptions parseOptions
 

@@ -5,7 +5,7 @@ module Text.HTML.TagSoup.Type(
     Tag(..), Attribute, Row, Column,
     
     -- * Position manipulation
-    Position, tagPosition, nullPosition, positionChar, positionString,
+    Position(..), tagPosition, nullPosition, positionChar, positionString,
 
     -- * Tag identification
     isTagOpen, isTagClose, isTagText, isTagCData, isTagWarning,
