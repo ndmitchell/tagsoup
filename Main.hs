@@ -5,7 +5,7 @@ import System.Environment
 import TagSoup.Sample
 import TagSoup.Test
 import TagSoup.Benchmark
-import TagSoup.Generate
+import TagSoup.Generate.All
 import Data.Char(toLower)
 
 
