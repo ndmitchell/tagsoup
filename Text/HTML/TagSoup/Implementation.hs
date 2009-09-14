@@ -28,16 +28,21 @@ data Out
     | EntityEndAtt -- missing the ; and in an attribute
     | Warn String
     | Pos Position
-      deriving Show
+      deriving (Show,Eq)
 
+-- Entering a Tag output, delay all Warn/Pos tags until afterwards
+enter x = x `elem` [Tag,TagShut,Comment,Entity,EntityNum,EntityHex]
+leave x = x `elem` [TagEnd,TagEndClose,CommentEnd,EntityEnd,EntityEndAtt]
+
+
+errSeen x = Warn $ "Unexpected " ++ show x
+errWant x = Warn $ "Expected " ++ show x
 
 data S = S
     {s :: S
     ,tl :: S
     ,hd :: Char
     ,eof :: Bool
-    ,errSeen :: String -> Out
-    ,errWant :: String -> Out
     ,next :: String -> Maybe S
     ,pos :: [Out] -> [Out]
     }
@@ -49,8 +54,6 @@ expand p text = res
                  ,tl = expand (positionChar p (head text)) (tail text)
                  ,hd = if null text then '\0' else head text
                  ,eof = null text
-                 ,errSeen = \x -> Warn $ "Unexpected " ++ show x
-                 ,errWant = \x -> Warn $ "Expected " ++ show x
                  ,next = next p text
                  ,pos = (Pos p:)
                  }
@@ -83,10 +86,10 @@ data Result str
     | RTagEnd (Result str)
     | RTagEndClose (Result str)
     | RComment str (Result str)
-    | REntity str Bool (Result str)   -- True is has final ;
+    | REntity str Bool (Result str) -- Bool is does it have a closing ;
     | REntityChar Int (Result str)
     | RWarn str (Result str)
-    | RPos !Row !Column (Result str) -- only beore RText, RTagOpen, RTagShut, RComment, REntity* and RWarn
+    | RPos !Row !Column (Result str) -- only beore RText, RTagOpen, RTagShut, RComment, REntity, REntityChar and RWarn
     | REof
       deriving Show
 
@@ -105,12 +108,30 @@ rtail (RWarn _ r) = r
 rtail (RPos _ _ r) = r
 
 
+
 -- filter out warning/pos if they are not wanted
 output :: ParseOptions String -> [Out] -> Result String
-output opts = output2 Nothing . filter f
-    where f Warn{} = optTagWarning opts
-          f Pos{} = optTagPosition opts
+output opts = output2 Nothing . (if warn || pos then delay else id) . filter f
+    where (warn,pos) = (optTagWarning opts,optTagPosition opts)
+          f Warn{} = warn
+          f Pos{} = pos
           f _ = True
+
+
+-- move all Warn/Pos nodes after enter/leave pairs
+delay :: [Out] -> [Out]
+delay = f
+    where
+        f (x:xs) | enter x = x : g [] xs
+        f (x:xs) = x : f xs
+        f [] = []
+
+        g acc (x:xs) | leave x = reverse acc ++ x : f xs
+        g acc (x@Warn{}:xs) = g (x:acc) xs
+        g acc (x@Pos{}:xs) = g (x:acc) xs
+        g acc (x:xs) = x : g acc xs
+        g acc [] = reverse acc
+
 
 output2 :: Maybe Position -> [Out] -> Result String
 output2 p [] = REof
@@ -128,12 +149,8 @@ output2 p (CommentEnd:xs) = output2 p xs
 output2 p (Warn x:xs) = outputPos p $ RWarn x (output2 p xs)
 output2 p (Pos x:xs) = output2 (Just x) xs
 
-output2 p (Char x:xs) = outputPos p $ RText (x:a) b
-    where (a,b) = f p xs
-          f p (Char x:xs) = (x:a,b)
-               where (a,b) = f p xs
-          f p (Pos x:xs) = f (Just x) xs
-          f p xs = ("", output2 p xs)
+output2 p (Char x:xs) = outputPos p $ RText (x:a) $ output2 p b
+    where (a,b) = readChars xs
 
 output2 p xs = error $ "output: " ++ show (take 10 xs)
 
@@ -141,18 +158,14 @@ output2 p xs = error $ "output: " ++ show (take 10 xs)
 outputPos Nothing x = x
 outputPos (Just (Position a b)) x = RPos a b x
 
+outputEntity :: Maybe Position -> (String -> Bool -> Result String -> Result String) -> [Out] -> Result String
 outputEntity p f xs = outputPos p $ f a c (output2 p d)
     where (a,b) = readChars xs
           (c,d) = readEntityEnd b
 
 
--- things which are Pos or Warn are moved back until after the Char's
 readChars :: [Out] -> (String,[Out])
 readChars (Char x:xs) = (x:a,b)
-    where (a,b) = readChars xs
-readChars (x@Warn{}:xs) = (a,x:b)
-    where (a,b) = readChars xs
-readChars (x@Pos{}:xs) = (a,x:b)
     where (a,b) = readChars xs
 readChars xs = ("",xs)
 
@@ -203,7 +216,7 @@ result2 opts (RTagShut x r) = TagClose x : (if optTagWarning opts then g else f)
           g (RPos a b (RWarn x r)) = TagPosition a b : TagWarning x : f r
           g (RWarn x r) = TagWarning x : g r
           g REof = []
-          g x = tagWarning "Junk is closing tag" : f (rtail x)
+          g x = tagWarning "Junk in closing tag" : f (rtail x)
 
 result2 opts (RTagOpen x r) = TagOpen x atts : rest
     where (atts,rest) = f r

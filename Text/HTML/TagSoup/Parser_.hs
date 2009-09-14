@@ -9,7 +9,7 @@ import Text.StringLike
 
 
 parseTags :: TagSoup str => str -> [Tag str]
-parseTags = parseTagsOptions parseOptions
+parseTags = parseTagsOptions parseOptions{optTagPosition=True,optTagWarning=True}
 
 
 class StringLike str => TagSoup str where

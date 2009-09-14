@@ -34,7 +34,7 @@ type Column = Int
 --- All positions are stored as a row and a column, with (1,1) being the
 --- top-left position
 
-data Position = Position !Row !Column deriving Show
+data Position = Position !Row !Column deriving (Show,Eq,Ord)
 
 nullPosition = (Position 1 1)
 
