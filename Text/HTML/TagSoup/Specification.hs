@@ -37,7 +37,7 @@ charReference s = charRef dat False Nothing s
 
 
 -- 9.2.4.3 Tag open state
-tagOpen S{..} = pos $ case hd of
+tagOpen S{..} = case hd of
     '!' -> markupDeclOpen tl
     '/' -> closeTagOpen tl
     _ | isAlpha hd -> Tag & hd & tagName False tl
@@ -66,7 +66,7 @@ neilTagEnd xml S{..}
 -- 9.2.4.4 Close tag open state
 -- Deviation: We ignore the if CDATA/RCDATA bits and tag matching
 -- Deviation: On </> we output </> to the text
-closeTagOpen S{..} = pos $ case hd of
+closeTagOpen S{..} = case hd of
     _ | isAlpha hd -> TagShut & hd & tagName False tl
     '>' -> errSeen "</>" & '<' & '/' & '>' & dat tl
     _ | eof -> '<' & '/' & dat s
