@@ -41,7 +41,7 @@ actions = [("test","Run the test suite",Left test)
           ,("time","Current time",Left currentTime)
           ,("google","Google Tech News",Left googleTechNews)
           ,("sequence","Creators on sequence.complete.org",Left rssCreators)
-          ,("generate","Generate parsers",Right $ const generate)
+          ,("generate","Generate parsers",Left generate)
           ,("help","This help message",Left helpMsg)
           ]
 
