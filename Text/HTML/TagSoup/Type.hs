@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 -- | The central type in TagSoup
 
 module Text.HTML.TagSoup.Type(
@@ -23,6 +24,8 @@ import Data.List
 import Data.Maybe
 import Text.StringLike as Str
 
+import Data.Data (Data)
+import Data.Typeable (Typeable)
 
 -- | An HTML attribute @id=\"name\"@ generates @(\"id\",\"name\")@
 type Attribute str = (str,str)
@@ -61,7 +64,7 @@ data Tag str =
    | TagCData str                 -- ^ CData text -- FIXME: No longer generated
    | TagWarning str               -- ^ Meta: Mark a syntax error in the input file
    | TagPosition !Row !Column     -- ^ Meta: The position of a parsed element
-     deriving (Show, Eq, Ord)
+     deriving (Show, Eq, Ord, Data, Typeable)
 
 instance Functor Tag where
     fmap f (TagOpen x y) = TagOpen (f x) [(f a, f b) | (a,b) <- y]
