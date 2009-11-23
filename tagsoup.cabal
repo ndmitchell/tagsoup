@@ -20,14 +20,8 @@ description:
 extra-source-files:
     tagsoup.htm
 
-flag splitBase
-    Description: Choose the new smaller, split-up base package.
-
 library
-    if flag(splitBase)
-        build-depends: base >= 3, network, mtl, containers, bytestring
-    else
-        build-depends: base <  3, network, mtl, bytestring
+    build-depends: base == 4.*, network, mtl, containers, bytestring, haskell-src-exts == 1.3.*
 
     ghc-options: -Wall
     exposed-modules:
@@ -48,6 +42,6 @@ executable tagsoup
     main-is: Main.hs
     ghc-options: -Wall
     other-modules:
-        Example.Benchmark
-        Example.Example
-        Example.Test
+        TagSoup.Benchmark
+        TagSoup.Sample
+        TagSoup.Test
