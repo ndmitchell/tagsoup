@@ -1,11 +1,8 @@
 {-|
-    This module is preliminary and may change at a future date.
-    If you wish to use its features, please email me and I will
-    help evolve an API that suits you.
+    This module converts a list of 'Tag' back into a string.
 -}
 
 module Text.HTML.TagSoup.Render
-    {-# DEPRECATED "Not quite ready for use yet, email me if it looks useful to you" #-}
     (
     renderTags, renderTagsOptions,
     RenderOptions(..), renderOptions
@@ -16,26 +13,31 @@ import qualified Data.IntMap as IntMap
 import Text.HTML.TagSoup.Entity
 import Text.HTML.TagSoup.Type
 
+
 data RenderOptions = RenderOptions
-    {optEscape :: Char -> String    -- ^ Escape a single character
-    ,optMinimize :: String -> Bool  -- ^ Minimise <b></b> -> <b/>, defaults to only for @br@
+    {optEscape :: Char -> String    -- ^ Escape a single text character
+    ,optMinimize :: String -> Bool  -- ^ Minimise <b></b> -> <b/>
     }
 
--- | A configuration which escapes apostrophes and rewrites <br> tags.
+
+-- | A configuration which escapes the four characters @&\"\<\>@, and only minimises @\<br\>@ tags.
+--   This configuration is chosen to be compatible with Internet Explorer.
 renderOptions :: RenderOptions
 renderOptions = RenderOptions
         (\x -> IntMap.findWithDefault [x] (ord x) esc)
         (== "br")
     where esc = IntMap.fromList [(b, "&"++a++";") | (a,b) <- htmlEntities]
 
+
 -- | Show a list of tags, as they might have been parsed. Note that this makes use of
 --   'renderOptions'. If you do not desire renderOption's behavior, try instead 'renderTagsOptions'.
 renderTags :: [Tag String] -> String
 renderTags = renderTagsOptions renderOptions
 
+
 -- | Show a list of tags as a String. You need to supply a 'RenderOptions' configuration
 --   value. One is provided for you as 'renderOptions'; override it as necessary, eg. to avoid
---   escaping apostrophes one could do:
+--   escaping any characters one could do:
 --
 -- > renderTagsOptions (renderOptions{optEscape = (:[])})
 renderTagsOptions :: RenderOptions -> [Tag String] -> String
