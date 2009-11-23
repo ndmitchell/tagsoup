@@ -12,26 +12,27 @@ import Data.Char
 import qualified Data.IntMap as IntMap
 import Text.HTML.TagSoup.Entity
 import Text.HTML.TagSoup.Type
+import Text.StringLike
 
 
-data RenderOptions = RenderOptions
-    {optEscape :: Char -> String    -- ^ Escape a single text character
-    ,optMinimize :: String -> Bool  -- ^ Minimise <b></b> -> <b/>
+data RenderOptions str = RenderOptions
+    {optEscape :: Char -> str       -- ^ Escape a single text character
+    ,optMinimize :: str -> Bool     -- ^ Minimise <b></b> -> <b/>
     }
 
 
 -- | A configuration which escapes the four characters @&\"\<\>@, and only minimises @\<br\>@ tags.
 --   This configuration is chosen to be compatible with Internet Explorer.
-renderOptions :: RenderOptions
+renderOptions :: StringLike str => RenderOptions str
 renderOptions = RenderOptions
-        (\x -> IntMap.findWithDefault [x] (ord x) esc)
-        (== "br")
-    where esc = IntMap.fromList [(b, "&"++a++";") | (a,b) <- htmlEntities]
+        (\x -> IntMap.findWithDefault (fromString1 x) (ord x) esc)
+        (\x -> toString x == "br")
+    where esc = IntMap.fromList [(b, fromString $ "&"++a++";") | (a,b) <- htmlEntities]
 
 
 -- | Show a list of tags, as they might have been parsed. Note that this makes use of
 --   'renderOptions'. If you do not desire renderOption's behavior, try instead 'renderTagsOptions'.
-renderTags :: [Tag String] -> String
+renderTags :: StringLike str => [Tag str] -> str
 renderTags = renderTagsOptions renderOptions
 
 
@@ -40,11 +41,11 @@ renderTags = renderTagsOptions renderOptions
 --   escaping any characters one could do:
 --
 -- > renderTagsOptions (renderOptions{optEscape = (:[])})
-renderTagsOptions :: RenderOptions -> [Tag String] -> String
-renderTagsOptions opts = tags
+renderTagsOptions :: StringLike str => RenderOptions str -> [Tag str] -> str
+renderTagsOptions opts = fromString . tags . map (fmap toString)
     where
         tags (TagOpen name atts:TagClose name2:xs)
-            | name == name2 && optMinimize opts name = open name atts " /" ++ tags xs
+            | name == name2 && optMinimize opts (fromString name) = open name atts " /" ++ tags xs
         tags (x:xs) = tag x ++ tags xs
         tags [] = []
 
@@ -54,7 +55,7 @@ renderTagsOptions opts = tags
         tag (TagComment text) = "<!--" ++ com text ++ "-->"
         tag _ = ""
 
-        txt = concatMap (optEscape opts)
+        txt = concatMap (toString . optEscape opts)
         open name atts shut = "<" ++ name ++ concatMap att atts ++ shut ++ ">"
         att (x,"") = " " ++ x
         att ("",y) = " " ++ "\"" ++ txt y ++ "\""
