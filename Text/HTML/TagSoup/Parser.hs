@@ -13,5 +13,5 @@ parseTags = parseTagsOptions parseOptions
 
 
 parseTagsOptions :: StringLike str => ParseOptions str -> str -> [Tag str]
-parseTagsOptions opts = map (fmap fromString) . result opts2 . output opts2 . parse . toString
-    where opts2 = fmapParseOptions opts
+parseTagsOptions opts = result opts . output opts . parse . toString
+
