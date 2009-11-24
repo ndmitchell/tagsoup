@@ -64,16 +64,15 @@ lazyTags =
       ("<!"++cycle "doctype") :
       ("<!DOCTYPE"++cycle " description") :
       (cycle "1<2 ") :
-      
-      -- need further analysis
+      ("&" ++ cycle "t") :
       ("<html name="++cycle "val&ue") :
       ("<html name="++cycle "va&l!ue") :
       (cycle "&amp; test") :
+      
+      -- need further analysis
 
       -- i don't see how this can work unless the junk gets into the AST?
-      ("</html "++cycle "junk") :
-      -- ("&" ++ cycle "t") :
-
+      -- ("</html "++cycle "junk") :
       []
 
 
@@ -100,6 +99,7 @@ parseTests :: Test ()
 parseTests = do
     parseTags "<!DOCTYPE TEST>" === [TagOpen "!DOCTYPE" [("TEST","")]]
     parseTags "<test \"foo bar\">" === [TagOpen "test" [("","foo bar")]]
+    parseTags "<test baz \"foo\">" === [TagOpen "test" [("baz",""),("","foo")]]
     parseTags "<test \'foo bar\'>" === [TagOpen "test" [("","foo bar")]]
     parseTags "<test2 a b>" === [TagOpen "test2" [("a",""),("b","")]]
     parseTags "<test1 a = b>" === [TagOpen "test1" [("a","b")]]
@@ -121,8 +121,7 @@ parseTests = do
     --                                                     TagText "text"]
     parseTags "<test><![CDATA[Anything goes, <em>even hidden markup</em> &amp; entities]]> but this is outside</test>" ===
         [ TagOpen "test" []
-        , TagCData "Anything goes, <em>even hidden markup</em> &amp; entities"
-        , TagText " but this is outside"
+        , TagText "Anything goes, <em>even hidden markup</em> &amp; entities but this is outside"
         , TagClose "test"
         ]
 
