@@ -21,7 +21,7 @@
 module Text.HTML.TagSoup(
     -- * Data structures and parsing
     Tag(..), Attribute,
-    module Parser,
+    module Text.HTML.TagSoup.Parser,
     canonicalizeTags,
 
     -- * Tag String identification
@@ -40,7 +40,7 @@ module Text.HTML.TagSoup(
     TagRep, IsChar, (~==),(~/=)
     ) where
 
-import Text.HTML.TagSoup.Parser2 as Parser
+import Text.HTML.TagSoup.Parser
 import Text.HTML.TagSoup.Type
 import Data.Char
 import Data.List

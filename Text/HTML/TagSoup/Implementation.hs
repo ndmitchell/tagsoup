@@ -3,7 +3,7 @@ module Text.HTML.TagSoup.Implementation where
 
 import Data.List
 import Text.HTML.TagSoup.Type
-import Text.HTML.TagSoup.Options_
+import Text.HTML.TagSoup.Options
 import Text.StringLike as Str
 import Numeric
 import Data.Char

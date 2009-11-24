@@ -24,18 +24,19 @@ library
     build-depends: base == 4.*, network, mtl, containers, bytestring, haskell-src-exts == 1.3.*
 
     exposed-modules:
+        Text.HTML.Download
         Text.HTML.TagSoup
-        Text.HTML.TagSoup.Options
         Text.HTML.TagSoup.Entity
-        Text.HTML.TagSoup.Match
-        Text.HTML.TagSoup.Parser2
         Text.HTML.TagSoup.Render
         Text.HTML.TagSoup.Tree
-        Text.HTML.TagSoup.Type
-        Text.HTML.Download
         Text.StringLike
     other-modules:
-        Text.ParserCombinators.LazyParse
+        Text.HTML.TagSoup.Implementation
+        Text.HTML.TagSoup.Match
+        Text.HTML.TagSoup.Options
+        Text.HTML.TagSoup.Parser
+        Text.HTML.TagSoup.Specification
+        Text.HTML.TagSoup.Type
 
 executable tagsoup
     main-is: Main.hs
