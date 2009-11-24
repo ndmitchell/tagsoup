@@ -257,6 +257,10 @@ result2 opts (RTagOpen x r) = TagOpen x atts : rest
           h2 r = ([],a,b)
               where (a,b) = f r
 
+result2 _ RAttName{} = error "attname"
+result2 _ RAttVal{} = error "attval"
+result2 _ _ = error "unknown"
+
 
 -- Merge all adjacent TagText bits
 tagTextMerge :: StringLike str => [Tag str] -> [Tag str]
