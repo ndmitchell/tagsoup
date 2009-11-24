@@ -43,6 +43,7 @@ time = do
 
         strict = reverse . reverse
 
+
 ---------------------------------------------------------------------
 -- BENCHMARK ON THE SAMPLE INPUT
 
@@ -53,14 +54,15 @@ minTime = 0.2 :: Double -- below this a test is considered invalid
 -- given a number of times to repeat sample, return a list of what
 -- to display
 bench :: (Integer -> ()) -> IO [String]
-bench op = cons "?" $ f 100 []
+bench op = cons "?" $ f 10 []
     where
         f i seen | length seen > 9 = cons ("  " ++ disp seen) $ return []
                  | otherwise = unsafeInterleaveIO $ do
             now <- timer $ op i
             let cps = if now == 0 then 0 else round $ fromInteger (i * nsample) / now
-            if now < minTime || (null seen && now < aimTime) then
-                cons ("? " ++ showUnit cps) $ f (i * max 2 (floor $ aimTime / now)) []
+            if now < minTime || (null seen && now < aimTime) then do
+                let factor = min 7 $ max 2 $ floor $ aimTime / now
+                cons ("? " ++ showUnit cps) $ f (i * factor) []
              else
                 cons (show (9 - length seen) ++ " " ++ disp (cps:seen)) $ f i (cps:seen)
 
