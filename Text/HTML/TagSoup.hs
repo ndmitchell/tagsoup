@@ -2,7 +2,7 @@
 
 {-|
     Module      :  Text.HTML.TagSoup
-    Copyright   :  (c) Neil Mitchell 2006-2007
+    Copyright   :  (c) Neil Mitchell 2006-2009
     License     :  BSD-style
 
     Maintainer  :  http://community.haskell.org/~ndm/
