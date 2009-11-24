@@ -108,6 +108,8 @@ parseTests = do
     parseTags "<a href=http://www.google.com>" === [TagOpen "a" [("href","http://www.google.com")]]
 
     -- real cases reported by users
+    parseTags "<a href=\"series.php?view=single&ID=72710\">" === [TagOpen "a" [("href","series.php?view=single&ID=72710")]]
+
     parseTags "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">" ===
         [TagOpen "!DOCTYPE" [("HTML",""),("PUBLIC",""),("","-//W3C//DTD HTML 4.01//EN"),("","http://www.w3.org/TR/html4/strict.dtd")]]
 
