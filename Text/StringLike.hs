@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 
 module Text.StringLike where
 
@@ -8,16 +9,7 @@ import qualified Data.ByteString.Lazy.Char8 as LBS
 import Data.List
 
 
-class CharLike a where
-    toChar :: a -> Char
-    fromChar :: Char -> a
-
-instance CharLike Char where
-    toChar = id
-    fromChar = id
-
-
-class StringLike a where
+class Eq a => StringLike a where
     -- Primitive operations
     empty :: a
     cons :: Char -> a -> a
@@ -44,15 +36,15 @@ class StringLike a where
         x:xs -> Just (x, fromString xs)
 
 
-instance CharLike a => StringLike [a] where
+instance StringLike [Char] where
     uncons [] = Nothing
-    uncons (x:xs) = Just (toChar x, xs)
-    toString = map toChar
-    fromString = map fromChar
+    uncons (x:xs) = Just (x, xs)
+    toString = id
+    fromString = id
     concat = Prelude.concat
     empty = []
     isEmpty = null
-    cons c = (:) (fromChar c)
+    cons c = (c:)
     append = (++)
 
 instance StringLike BS.ByteString where
