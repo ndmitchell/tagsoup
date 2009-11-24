@@ -37,7 +37,7 @@ module Text.HTML.TagSoup(
     sections, partitions,
     
     -- * Combinators
-    TagRep, IsChar, (~==),(~/=)
+    TagRep, (~==),(~/=)
     ) where
 
 import Text.HTML.TagSoup.Parser
@@ -63,14 +63,10 @@ class TagRep a where
 
 instance TagRep (Tag String) where toTagRep = id
 
-class    IsChar a    where toChar :: a -> Char
-instance IsChar Char where toChar =  id
-
-instance IsChar c => TagRep [c] where
-    toTagRep x = case parseTags s of
+instance TagRep [Char] where
+    toTagRep x = case parseTags x of
                      [a] -> a
-                     _ -> error $ "When using a TagRep it must be exactly one tag, you gave: " ++ s
-        where s = map toChar x
+                     _ -> error $ "When using a TagRep it must be exactly one tag, you gave: " ++ x
 
 
 
