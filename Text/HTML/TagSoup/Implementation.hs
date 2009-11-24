@@ -110,7 +110,7 @@ rtail (RPos _ _ r) = r
 
 
 -- filter out warning/pos if they are not wanted
-output :: ParseOptions String -> [Out] -> Result String
+output :: StringLike str => ParseOptions str -> [Out] -> Result str
 output opts = output2 Nothing . (if warn || pos then delay else id) . filter f
     where (warn,pos) = (optTagWarning opts,optTagPosition opts)
           f Warn{} = warn
@@ -133,11 +133,11 @@ delay = f
         g acc [] = reverse acc
 
 
-output2 :: Maybe Position -> [Out] -> Result String
+output2 :: StringLike str => Maybe Position -> [Out] -> Result str
 output2 p [] = REof
 output2 p (Entity:xs) = outputEntity p REntity xs
-output2 p (EntityNum:xs) = outputEntity p (\x y -> REntityChar (read x)) xs
-output2 p (EntityHex:xs) = outputEntity p (\x y -> REntityChar (fst $ head $ readHex x)) xs
+output2 p (EntityNum:xs) = outputEntity p (\x y -> REntityChar (read $ toString x)) xs
+output2 p (EntityHex:xs) = outputEntity p (\x y -> REntityChar (fst $ head $ readHex $ toString x)) xs
 output2 p (TagShut:xs) = let (a,b) = readChars xs in outputPos p $ RTagShut a (output2 p b)
 output2 p (Tag:xs) = let (a,b) = readChars xs in outputPos p $ RTagOpen a (output2 p b)
 output2 p (TagEnd:xs) = RTagEnd (output2 p xs)
@@ -146,11 +146,11 @@ output2 p (AttName:xs) = let (a,b) = readChars xs in RAttName a (output2 p b)
 output2 p (AttVal:xs) = let (a,b) = readChars xs in RAttVal a (output2 p b)
 output2 p (Comment:xs) = let (a,b) = readChars xs in outputPos p $ RComment a (output2 p b)
 output2 p (CommentEnd:xs) = output2 p xs
-output2 p (Warn x:xs) = outputPos p $ RWarn x (output2 p xs)
+output2 p (Warn x:xs) = outputPos p $ RWarn (fromString x) (output2 p xs)
 output2 p (Pos x:xs) = output2 (Just x) xs
 
-output2 p (Char x:xs) = outputPos p $ RText (x:a) $ output2 p b
-    where (a,b) = readChars xs
+output2 p (Char x:xs) = outputPos p $ RText (fromString $ x:a) $ output2 p b
+    where (a,b) = readCharList xs
 
 output2 p xs = error $ "output: " ++ show (take 10 xs)
 
@@ -158,16 +158,23 @@ output2 p xs = error $ "output: " ++ show (take 10 xs)
 outputPos Nothing x = x
 outputPos (Just (Position a b)) x = RPos a b x
 
-outputEntity :: Maybe Position -> (String -> Bool -> Result String -> Result String) -> [Out] -> Result String
+outputEntity :: StringLike str => Maybe Position -> (str -> Bool -> Result str -> Result str) -> [Out] -> Result str
 outputEntity p f xs = outputPos p $ f a c (output2 p d)
     where (a,b) = readChars xs
           (c,d) = readEntityEnd b
 
 
-readChars :: [Out] -> (String,[Out])
-readChars (Char x:xs) = (x:a,b)
-    where (a,b) = readChars xs
-readChars xs = ("",xs)
+-- readChars does a lot of cons operations
+-- which are most efficient in a String, then we can fromString
+-- at the very end
+readChars :: StringLike str => [Out] -> (str,[Out])
+readChars x = (fromString a, b)
+    where (a,b) = readCharList x
+
+readCharList :: [Out] -> (String,[Out])
+readCharList (Char x:xs) = (x:a,b)
+    where (a,b) = readCharList xs
+readCharList xs = ("",xs)
 
 
 -- True if EntityEnd, False is EntityEndAtt
