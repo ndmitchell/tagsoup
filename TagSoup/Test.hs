@@ -49,31 +49,28 @@ you have found a laziness stopper.
 
 
 lazyTags :: [Char]
-lazyTags =
-   map ((!!1000) . show . parseTags) $
-      (cycle "Rhabarber") :
-      (repeat '&') :
-      ("<"++cycle "html") :
-      ("<html "++cycle "na!me=value ") :
-      ("<html name="++cycle "value") :
-      ("<html name=\""++cycle "value") :
-      ("<html name="++cycle "val!ue") :
-      ("<html "++cycle "name") :
-      ("</"++cycle "html") :
-      ("<!-- "++cycle "comment") :
-      ("<!"++cycle "doctype") :
-      ("<!DOCTYPE"++cycle " description") :
-      (cycle "1<2 ") :
-      ("&" ++ cycle "t") :
-      ("<html name="++cycle "val&ue") :
-      ("<html name="++cycle "va&l!ue") :
-      (cycle "&amp; test") :
-      
-      -- need further analysis
+lazyTags = map ((!!1000) . show . parseTags)
+    [cycle "Rhabarber"
+    ,repeat '&'
+    ,"<"++cycle "html"
+    ,"<html "++cycle "na!me=value "
+    ,"<html name="++cycle "value"
+    ,"<html name=\""++cycle "value"
+    ,"<html name="++cycle "val!ue"
+    ,"<html "++cycle "name"
+    ,"</"++cycle "html"
+    ,"<!-- "++cycle "comment"
+    ,"<!"++cycle "doctype"
+    ,"<!DOCTYPE"++cycle " description"
+    ,cycle "1<2 "
+    ,"&" ++ cycle "t"
+    ,"<html name="++cycle "val&ue"
+    ,"<html name="++cycle "va&l!ue"
+    ,cycle "&amp; test"
 
-      -- i don't see how this can work unless the junk gets into the AST?
-      -- ("</html "++cycle "junk") :
-      []
+    -- i don't see how this can work unless the junk gets into the AST?
+    -- ,("</html "++cycle "junk") :
+    ]
 
 
 
