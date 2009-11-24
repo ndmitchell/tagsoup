@@ -7,27 +7,33 @@ import Text.HTML.TagSoup.Render
 import Text.HTML.TagSoup.Entity
 import qualified Text.HTML.TagSoup.Match as Match
 import Control.Exception
+import Test.QuickCheck
 
 -- * The Test Monad
 
-data Test a = Pass
-instance Monad Test where
-    a >> b = a `seq` b
-    return = error "No return for Monad Test"
-    (>>=) = error "No bind (>>=) for Monad Test"
-instance Show (Test a) where
-    show x = x `seq` "All tests passed"
+type Test a = IO a
 
 pass :: Test ()
-pass = Pass
+pass = return ()
 
-(===) :: (Show a, Eq a) => a -> a -> Test ()
+runTest :: Test () -> IO ()
+runTest x = x >> putStrLn "All tests passed"
+
+(===) :: (Show a, Eq a) => a -> a -> IO ()
 a === b = if a == b then pass else fail $ "Does not equal: " ++ show a ++ " =/= " ++ show b
+
+check :: Testable prop => prop -> IO ()
+check prop = do
+    res <- quickCheckResult prop
+    case res of
+        Success{} -> pass
+        _ -> fail "Property failed"
+
 
 -- * The Main section
 
 test :: IO ()
-test = print $ do
+test = runTest $ do
     parseTests
     renderTests
     combiTests
@@ -132,8 +138,9 @@ renderTests = do
     rp "<a href=test>" === "<a href=\"test\">"
     rp "<a href>" === "<a href>"
     rp "<!-- neil -->" === "<!-- neil -->"
+    check $ \x -> let y = rp x in rp y == (y :: String)
 
-
+    
 entityTests :: Test ()
 entityTests = do
     lookupNumericEntity "65" === Just 'A'
