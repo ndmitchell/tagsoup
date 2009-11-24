@@ -5,7 +5,7 @@
 module Text.HTML.TagSoup.Render
     (
     renderTags, renderTagsOptions,
-    RenderOptions(..), renderOptions
+    RenderOptions(..), renderOptions, fmapRenderOptions
     ) where
 
 import Data.Char
@@ -30,6 +30,10 @@ renderOptions = RenderOptions
     where esc = IntMap.fromList [(b, fromString $ "&"++a++";") | (a,b) <- htmlEntities]
 
 
+fmapRenderOptions :: (StringLike a, StringLike b) => RenderOptions a -> RenderOptions b
+fmapRenderOptions (RenderOptions x y) = RenderOptions (fromString . toString . x) (y . fromString . toString)
+
+
 -- | Show a list of tags, as they might have been parsed. Note that this makes use of
 --   'renderOptions'. If you do not desire renderOption's behavior, try instead 'renderTagsOptions'.
 renderTags :: StringLike str => [Tag str] -> str
@@ -44,8 +48,10 @@ renderTags = renderTagsOptions renderOptions
 renderTagsOptions :: StringLike str => RenderOptions str -> [Tag str] -> str
 renderTagsOptions opts = fromString . tags . map (fmap toString)
     where
+        opts2 = fmapRenderOptions opts
+    
         tags (TagOpen name atts:TagClose name2:xs)
-            | name == name2 && optMinimize opts (fromString name) = open name atts " /" ++ tags xs
+            | name == name2 && optMinimize opts2 name = open name atts " /" ++ tags xs
         tags (x:xs) = tag x ++ tags xs
         tags [] = []
 
@@ -55,7 +61,7 @@ renderTagsOptions opts = fromString . tags . map (fmap toString)
         tag (TagComment text) = "<!--" ++ com text ++ "-->"
         tag _ = ""
 
-        txt = concatMap (toString . optEscape opts)
+        txt = concatMap (optEscape opts2)
         open name atts shut = "<" ++ name ++ concatMap att atts ++ shut ++ ">"
         att (x,"") = " " ++ x
         att ("",y) = " " ++ "\"" ++ txt y ++ "\""
