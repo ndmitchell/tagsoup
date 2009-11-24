@@ -116,6 +116,7 @@ afterAttName xml S{..} = pos $ case hd of
     '=' -> beforeAttValue xml tl
     '>' -> neilTagEnd xml tl
     '?' | xml -> neilXmlTagClose tl
+    _ | hd `elem` "\"'" -> AttVal & beforeAttValue xml s -- NEIL
     _ | hd `elem` "\"'<" -> errSeen [hd] & def
     _ | eof -> errWant (if xml then "?>" else ">") & dat s
     _ -> def
