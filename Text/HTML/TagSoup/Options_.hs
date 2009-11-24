@@ -34,8 +34,8 @@ parseOptionsFast :: StringLike str => ParseOptions str
 parseOptionsFast = parseOptions{optTagTextMerge=False}
 
 
-parseOptionsRetype :: (StringLike from, StringLike to) => ParseOptions from -> ParseOptions to
-parseOptionsRetype (ParseOptions a b c d e) = ParseOptions a b c2 d2 e
+fmapParseOptions :: (StringLike from, StringLike to) => ParseOptions from -> ParseOptions to
+fmapParseOptions (ParseOptions a b c d e) = ParseOptions a b c2 d2 e
     where
         re1 = fromString . toString
         re2 = fromString . toString
