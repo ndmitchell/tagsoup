@@ -23,7 +23,6 @@ extra-source-files:
 library
     build-depends: base == 4.*, network, mtl, containers, bytestring, haskell-src-exts == 1.3.*
 
-    ghc-options: -Wall
     exposed-modules:
         Text.HTML.TagSoup
         Text.HTML.TagSoup.Options
@@ -40,7 +39,6 @@ library
 
 executable tagsoup
     main-is: Main.hs
-    ghc-options: -Wall
     other-modules:
         TagSoup.Benchmark
         TagSoup.Sample
