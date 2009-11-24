@@ -107,20 +107,17 @@ parseTests = do
     parseTags "hello \n\t world" === [TagText "hello \n\t world"]
     parseTags "<a href=http://www.google.com>" === [TagOpen "a" [("href","http://www.google.com")]]
 
+    -- real cases reported by users
     parseTags "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">" ===
         [TagOpen "!DOCTYPE" [("HTML",""),("PUBLIC",""),("","-//W3C//DTD HTML 4.01//EN"),("","http://www.w3.org/TR/html4/strict.dtd")]]
-    --parseTags "<script src=\"http://edge.jobthread.com/feeds/jobroll/?s_user_id=100540&subtype=slashdot\">" ===
-    --    [TagOpen "script" [("src","http://edge.jobthread.com/feeds/jobroll/?s_user_id=100540&subtype=slashdot")]]
 
-    --parseTags "<a title='foo'bar' href=correct>text" === [TagOpen "a" [("title", "foo"),
-    --                                                                   ("bar",   ""),
-    --                                                                   ("href", "correct")],
-    --                                                     TagText "text"]
+    parseTags "<script src=\"http://edge.jobthread.com/feeds/jobroll/?s_user_id=100540&subtype=slashdot\">" ===
+        [TagOpen "script" [("src","http://edge.jobthread.com/feeds/jobroll/?s_user_id=100540&subtype=slashdot")]]
+
+    parseTags "<a title='foo'bar' href=correct>text" === [TagOpen "a" [("title","foo"),("bar'",""),("href", "correct")],TagText "text"]
+
     parseTags "<test><![CDATA[Anything goes, <em>even hidden markup</em> &amp; entities]]> but this is outside</test>" ===
-        [ TagOpen "test" []
-        , TagText "Anything goes, <em>even hidden markup</em> &amp; entities but this is outside"
-        , TagClose "test"
-        ]
+        [TagOpen "test" [],TagText "Anything goes, <em>even hidden markup</em> &amp; entities but this is outside",TagClose "test"]
 
 
 renderTests :: Test ()
