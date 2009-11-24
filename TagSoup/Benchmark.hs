@@ -30,7 +30,7 @@ time = do
         putStrLn "Timing parseTags in characters/second"
         let header = map (:[]) ["","String","BS","LBS"]
         rows <- mapM row $ replicateM 3 [False,True]
-        mapM_ (putStrLn . grid) $ delay2 $ header : rows
+        mapM_ (putStrLn . strict . grid) $ delay2 $ header : rows
     where
         row [a,b,c] = do
             let header = intercalate "," [g a "pos", g b "warn", g c "merge"]
@@ -41,6 +41,7 @@ time = do
             c3 <- let s = LBS.pack sample in f $ \i -> LBS.concat (genericReplicate i s)
             return [[header],c1,c2,c3]
 
+        strict = reverse . reverse
 
 ---------------------------------------------------------------------
 -- BENCHMARK ON THE SAMPLE INPUT
