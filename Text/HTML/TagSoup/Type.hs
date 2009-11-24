@@ -22,7 +22,7 @@ module Text.HTML.TagSoup.Type(
 import Data.Char
 import Data.List
 import Data.Maybe
-import Text.StringLike as Str
+import Text.StringLike
 import Data.Data(Data, Typeable)
 
 -- | An HTML attribute @id=\"name\"@ generates @(\"id\",\"name\")@
@@ -98,7 +98,7 @@ fromTagText x = error $ "(" ++ show x ++ ") is not a TagText"
 
 -- | Extract all text content from tags (similar to Verbatim found in HaXml)
 innerText :: StringLike str => [Tag str] -> str
-innerText = Str.concat . mapMaybe maybeTagText
+innerText = strConcat . mapMaybe maybeTagText
 
 -- | Test if a 'Tag' is a 'TagCData'
 isTagCData :: Tag str -> Bool
@@ -126,7 +126,7 @@ maybeTagWarning _ = Nothing
 -- | Extract an attribute, crashes if not a 'TagOpen'.
 --   Returns @\"\"@ if no attribute present.
 fromAttrib :: (Show str, Eq str, StringLike str) => str -> Tag str -> str
-fromAttrib att (TagOpen _ atts) = fromMaybe Str.empty $ lookup att atts
+fromAttrib att (TagOpen _ atts) = fromMaybe empty $ lookup att atts
 fromAttrib _ x = error ("(" ++ show x ++ ") is not a TagOpen")
 
 

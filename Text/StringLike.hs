@@ -18,15 +18,15 @@ class Eq a => StringLike a where
     toString :: a -> String
     fromString :: String -> a
     fromString1 :: Char -> a
-    concat :: [a] -> a
-    isEmpty :: a -> Bool
+    strConcat :: [a] -> a
+    strNull :: a -> Bool
     append :: a -> a -> a
     
     toString = unfoldr uncons
     fromString1 x = cons x empty
     fromString = foldr cons empty
-    concat = foldr append empty
-    isEmpty = isNothing . uncons
+    strConcat = foldr append empty
+    strNull = isNothing . uncons
     append x y = fromString $ toString x ++ toString y
 
     empty = fromString ""
@@ -41,9 +41,9 @@ instance StringLike [Char] where
     uncons (x:xs) = Just (x, xs)
     toString = id
     fromString = id
-    concat = Prelude.concat
+    strConcat = concat
     empty = []
-    isEmpty = null
+    strNull = null
     cons c = (c:)
     append = (++)
 
@@ -51,9 +51,9 @@ instance StringLike BS.ByteString where
     uncons = BS.uncons
     toString = BS.unpack
     fromString = BS.pack
-    concat = BS.concat
+    strConcat = BS.concat
     empty = BS.empty
-    isEmpty = BS.null
+    strNull = BS.null
     cons = BS.cons
     append = BS.append
 
@@ -61,8 +61,8 @@ instance StringLike LBS.ByteString where
     uncons = LBS.uncons
     toString = LBS.unpack
     fromString = LBS.pack
-    concat = LBS.concat
+    strConcat = LBS.concat
     empty = LBS.empty
-    isEmpty = LBS.null
+    strNull = LBS.null
     cons = LBS.cons
     append = LBS.append

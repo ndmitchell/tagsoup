@@ -1,3 +1,4 @@
+{-# LANGUAGE PatternGuards #-}
 {-|
     This module converts a list of 'Tag' back into a string.
 -}
@@ -47,27 +48,29 @@ renderTags = renderTagsOptions renderOptions
 --
 -- > renderTagsOptions (renderOptions{optEscape = (:[])})
 renderTagsOptions :: StringLike str => RenderOptions str -> [Tag str] -> str
-renderTagsOptions opts = fromString . tags . map (fmap toString)
+renderTagsOptions opts = strConcat . tags
     where
-        opts2 = fmapRenderOptions opts
+        s = fromString
+        ss x = [s x]
     
         tags (TagOpen name atts:TagClose name2:xs)
-            | name == name2 && optMinimize opts2 name = open name atts " /" ++ tags xs
+            | name == name2 && optMinimize opts name = open name atts (s " /") ++ tags xs
         tags (x:xs) = tag x ++ tags xs
         tags [] = []
 
-        tag (TagOpen name atts) = open name atts ""
-        tag (TagClose name) = "</" ++ name ++ ">"
-        tag (TagText text) = txt text
-        tag (TagComment text) = "<!--" ++ com text ++ "-->"
-        tag _ = ""
+        tag (TagOpen name atts) = open name atts (s "")
+        tag (TagClose name) = [s "</", name, s ">"]
+        tag (TagText text) = [txt text]
+        tag (TagComment text) = ss "<!--" ++ com text ++ ss "-->"
+        tag _ = ss ""
 
-        txt = optEscape opts2
-        open name atts shut = "<" ++ name ++ concatMap att atts ++ shut ++ ">"
-        att (x,"") = " " ++ x
-        att ("",y) = " " ++ "\"" ++ txt y ++ "\""
-        att (x,y) = " " ++ x ++ "=\"" ++ txt y ++ "\""
+        txt = optEscape opts
+        open name atts shut = [s "<",name] ++ concatMap att atts ++ [shut,s ">"]
+        att (x,y) | strNull y = [s " ", x]
+                  | strNull x = [s " \"",txt y,s "\""]
+                  | otherwise = [s " ",x,s "=\"",txt y,s "\""]
 
-        com ('-':'-':'>':xs) = "-- >" ++ com xs
-        com (x:xs) = x : com xs
-        com [] = []
+        com xs | Just ('-',xs) <- uncons xs, Just ('-',xs) <- uncons xs, Just ('>',xs) <- uncons xs = s "-- >" : com xs
+        com xs = case uncons xs of
+            Nothing -> []
+            Just (x,xs) -> fromString1 x : com xs

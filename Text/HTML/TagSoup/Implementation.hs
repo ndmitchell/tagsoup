@@ -242,7 +242,7 @@ result2 opts (RTagOpen x r) = TagOpen x atts : rest
           g x = (empty,a,b)
               where (a,b) = f x
 
-          h s r = (Str.concat $ s:a, b, c)
+          h s r = (strConcat $ s:a, b, c)
               where (a,b,c) = h2 r
           h2 (RPos x y (RWarn z r)) = (a, b, TagPosition x y : TagWarning z : c)
               where (a,b,c) = h2 r
@@ -264,7 +264,7 @@ result2 _ _ = error "unknown"
 
 -- Merge all adjacent TagText bits
 tagTextMerge :: StringLike str => [Tag str] -> [Tag str]
-tagTextMerge (TagText x:xs) = TagText (Str.concat (x:a)) : tagTextMerge b
+tagTextMerge (TagText x:xs) = TagText (strConcat (x:a)) : tagTextMerge b
     where
         (a,b) = f xs
 
