@@ -16,7 +16,7 @@ import Text.StringLike
 
 
 data RenderOptions str = RenderOptions
-    {optEscape :: Char -> str       -- ^ Escape a single text character
+    {optEscape :: str -> str        -- ^ Escape a piece of text
     ,optMinimize :: str -> Bool     -- ^ Minimise <b></b> -> <b/>
     }
 
@@ -25,13 +25,14 @@ data RenderOptions str = RenderOptions
 --   This configuration is chosen to be compatible with Internet Explorer.
 renderOptions :: StringLike str => RenderOptions str
 renderOptions = RenderOptions
-        (\x -> IntMap.findWithDefault (fromString1 x) (ord x) esc)
+        (\x -> fromString $ concatMap esc1 $ toString x)
         (\x -> toString x == "br")
-    where esc = IntMap.fromList [(b, fromString $ "&"++a++";") | (a,b) <- htmlEntities]
+    where esc = IntMap.fromList [(b, "&"++a++";") | (a,b) <- htmlEntities]
+          esc1 x = IntMap.findWithDefault [x] (ord x) esc
 
 
 fmapRenderOptions :: (StringLike a, StringLike b) => RenderOptions a -> RenderOptions b
-fmapRenderOptions (RenderOptions x y) = RenderOptions (fromString . toString . x) (y . fromString . toString)
+fmapRenderOptions (RenderOptions x y) = RenderOptions (fromString . toString . x . fromString . toString) (y . fromString . toString)
 
 
 -- | Show a list of tags, as they might have been parsed. Note that this makes use of
@@ -61,7 +62,7 @@ renderTagsOptions opts = fromString . tags . map (fmap toString)
         tag (TagComment text) = "<!--" ++ com text ++ "-->"
         tag _ = ""
 
-        txt = concatMap (optEscape opts2)
+        txt = optEscape opts2
         open name atts shut = "<" ++ name ++ concatMap att atts ++ shut ++ ">"
         att (x,"") = " " ++ x
         att ("",y) = " " ++ "\"" ++ txt y ++ "\""
