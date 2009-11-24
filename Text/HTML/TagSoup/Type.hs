@@ -71,7 +71,7 @@ instance Functor Tag where
     fmap f (TagComment x) = TagComment (f x)
     fmap f (TagCData x) = TagCData (f x)
     fmap f (TagWarning x) = TagWarning (f x)
-    fmap _ (TagPosition x y) = TagPosition x y
+    fmap f (TagPosition x y) = TagPosition x y
 
 
 -- | Test if a 'Tag' is a 'TagOpen'
