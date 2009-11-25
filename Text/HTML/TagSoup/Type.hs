@@ -9,7 +9,7 @@ module Text.HTML.TagSoup.Type(
     Position(..), tagPosition, nullPosition, positionChar, positionString,
 
     -- * Tag identification
-    isTagOpen, isTagClose, isTagText, isTagCData, isTagWarning,
+    isTagOpen, isTagClose, isTagText, isTagWarning, isTagPosition,
     isTagOpenName, isTagCloseName,
 
     -- * Extraction
@@ -122,6 +122,10 @@ isTagWarning (TagWarning {})  = True; isTagWarning _ = False
 maybeTagWarning :: Tag str -> Maybe str
 maybeTagWarning (TagWarning x) = Just x
 maybeTagWarning _ = Nothing
+
+-- | Test if a 'Tag' is a 'TagPosition'
+isTagPosition :: Tag str -> Bool
+isTagPosition TagPosition{} = True; isTagPosition _ = False
 
 -- | Extract an attribute, crashes if not a 'TagOpen'.
 --   Returns @\"\"@ if no attribute present.
