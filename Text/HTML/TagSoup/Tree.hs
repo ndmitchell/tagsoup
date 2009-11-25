@@ -14,24 +14,24 @@ module Text.HTML.TagSoup.Tree
 import Text.HTML.TagSoup.Type
 
 
-data TagTree = TagBranch String [Attribute String] [TagTree]
-             | TagLeaf (Tag String)
-             deriving Show
+data TagTree str = TagBranch str [Attribute str] [TagTree str]
+                 | TagLeaf (Tag str)
+                   deriving Show
 
 
 
 -- | Convert a list of tags into a tree. This version is not lazy at
 --   all, that is saved for version 2.
-tagTree :: [Tag String] -> [TagTree]
+tagTree :: Eq str => [Tag str] -> [TagTree str]
 tagTree = g
     where
-        g :: [Tag String] -> [TagTree]
+        g :: Eq str => [Tag str] -> [TagTree str]
         g [] = []
         g xs = a ++ map TagLeaf (take 1 b) ++ g (drop 1 b)
             where (a,b) = f xs
 
         -- the second tuple is either null or starts with a close
-        f :: [Tag String] -> ([TagTree],[Tag String])
+        f :: Eq str => [Tag str] -> ([TagTree str],[Tag str])
         f (TagOpen name atts:rest) =
             case f rest of
                 (inner,[]) -> (TagLeaf (TagOpen name atts):inner, [])
@@ -46,7 +46,7 @@ tagTree = g
         f [] = ([], [])
 
 
-flattenTree :: [TagTree] -> [Tag String]
+flattenTree :: [TagTree str] -> [Tag str]
 flattenTree xs = concatMap f xs
     where
         f (TagBranch name atts inner) =
@@ -54,14 +54,14 @@ flattenTree xs = concatMap f xs
         f (TagLeaf x) = [x]
 
 
-universeTree :: [TagTree] -> [TagTree]
+universeTree :: [TagTree str] -> [TagTree str]
 universeTree = concatMap f
     where
         f t@(TagBranch _ _ inner) = t : universeTree inner
         f x = [x]
 
 
-transformTree :: (TagTree -> [TagTree]) -> [TagTree] -> [TagTree]
+transformTree :: (TagTree str -> [TagTree str]) -> [TagTree str] -> [TagTree str]
 transformTree act = concatMap f
     where
         f (TagBranch a b inner) = act $ TagBranch a b (transformTree act inner)
