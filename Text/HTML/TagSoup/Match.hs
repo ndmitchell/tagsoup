@@ -5,35 +5,35 @@ import Data.List
 
 
 -- | match an opening tag
-tagOpen :: (String -> Bool) -> ([Attribute String] -> Bool) -> Tag String -> Bool
+tagOpen :: (str -> Bool) -> ([Attribute str] -> Bool) -> Tag str -> Bool
 tagOpen pName pAttrs (TagOpen name attrs) =
    pName name && pAttrs attrs
 tagOpen _ _ _ = False
 
 -- | match an closing tag
-tagClose :: (String -> Bool) -> Tag String -> Bool
+tagClose :: (str -> Bool) -> Tag str -> Bool
 tagClose pName (TagClose name) = pName name
 tagClose _ _ = False
 
 -- | match a text
-tagText :: (String -> Bool) -> Tag String -> Bool
+tagText :: (str -> Bool) -> Tag str -> Bool
 tagText p (TagText text) = p text
 tagText _ _ = False
 
-tagComment :: (String -> Bool) -> Tag String -> Bool
+tagComment :: (str -> Bool) -> Tag str -> Bool
 tagComment p (TagComment text) = p text
 tagComment _ _ = False
 
 
 -- | match a opening tag's name literally
-tagOpenLit :: String -> ([Attribute String] -> Bool) -> Tag String -> Bool
+tagOpenLit :: Eq str => str -> ([Attribute str] -> Bool) -> Tag str -> Bool
 tagOpenLit name = tagOpen (name==)
 
 -- | match a closing tag's name literally
-tagCloseLit :: String -> Tag String -> Bool
+tagCloseLit :: Eq str => str -> Tag str -> Bool
 tagCloseLit name = tagClose (name==)
 
-tagOpenAttrLit :: String -> Attribute String -> Tag String -> Bool
+tagOpenAttrLit :: Eq str => str -> Attribute str -> Tag str -> Bool
 tagOpenAttrLit name attr =
    tagOpenLit name (anyAttrLit attr)
 
@@ -43,45 +43,45 @@ with given name, that satisfies a predicate.
 If an attribute occurs multiple times,
 all occurrences are checked.
 -}
-tagOpenAttrNameLit :: String -> String -> (String -> Bool) -> Tag String -> Bool
+tagOpenAttrNameLit :: Eq str => str -> str -> (str -> Bool) -> Tag str -> Bool
 tagOpenAttrNameLit tagName attrName pAttrValue =
    tagOpenLit tagName
       (anyAttr (\(name,value) -> name==attrName && pAttrValue value))
 
 
--- | Check if the 'Tag String' is 'TagOpen' and matches the given name
-tagOpenNameLit :: String -> Tag String -> Bool
+-- | Check if the 'Tag str' is 'TagOpen' and matches the given name
+tagOpenNameLit :: Eq str => str -> Tag str -> Bool
 tagOpenNameLit name = tagOpenLit name (const True)
 
--- | Check if the 'Tag String' is 'TagClose' and matches the given name
-tagCloseNameLit :: String -> Tag String -> Bool
+-- | Check if the 'Tag str' is 'TagClose' and matches the given name
+tagCloseNameLit :: Eq str => str -> Tag str -> Bool
 tagCloseNameLit name = tagCloseLit name
 
 
 
 
-anyAttr :: ((String,String) -> Bool) -> [Attribute String] -> Bool
+anyAttr :: ((str,str) -> Bool) -> [Attribute str] -> Bool
 anyAttr = any
 
-anyAttrName :: (String -> Bool) -> [Attribute String] -> Bool
+anyAttrName :: (str -> Bool) -> [Attribute str] -> Bool
 anyAttrName p = any (p . fst)
 
-anyAttrValue :: (String -> Bool) -> [Attribute String] -> Bool
+anyAttrValue :: (str -> Bool) -> [Attribute str] -> Bool
 anyAttrValue p = any (p . snd)
 
 
-anyAttrLit :: (String,String) -> [Attribute String] -> Bool
+anyAttrLit :: Eq str => (str,str) -> [Attribute str] -> Bool
 anyAttrLit attr = anyAttr (attr==)
 
-anyAttrNameLit :: String -> [Attribute String] -> Bool
+anyAttrNameLit :: Eq str => str -> [Attribute str] -> Bool
 anyAttrNameLit name = anyAttrName (name==)
 
-anyAttrValueLit :: String -> [Attribute String] -> Bool
+anyAttrValueLit :: Eq str => str -> [Attribute str] -> Bool
 anyAttrValueLit value = anyAttrValue (value==)
 
 
 
-getTagContent :: String -> ([Attribute String] -> Bool) -> [Tag String] -> [Tag String]
+getTagContent :: Eq str => str -> ([Attribute str] -> Bool) -> [Tag str] -> [Tag str]
 getTagContent name pAttrs =
    takeWhile (not . tagCloseLit name) . drop 1 .
    head . sections (tagOpenLit name pAttrs)
