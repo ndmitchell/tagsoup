@@ -25,8 +25,18 @@ sample = "<this is a test with='attributes' and other=\"things&quot;tested\" /><
 nsample = genericLength sample :: Integer
 
 
+
 time :: IO ()
-time = do
+time = benchWith (str,bs,lbs) benchVariable
+    where
+        str = \i -> concat $ genericReplicate i sample
+        bs  = let s = BS.pack sample in \i -> BS.concat (genericReplicate i s)
+        lbs = let s = LBS.pack sample in \i -> LBS.concat (genericReplicate i s)
+
+
+benchWith :: (Integer -> String, Integer -> BS.ByteString, Integer -> LBS.ByteString)
+          -> ((Integer -> ()) -> IO [String]) -> IO ()
+benchWith (str,bs,lbs) bench = do
         putStrLn "Timing parseTags in characters/second"
         let header = map (:[]) ["","String","BS","LBS"]
         rows <- mapM row $ replicateM 3 [False,True]
@@ -36,9 +46,9 @@ time = do
             let header = intercalate "," [g a "pos", g b "warn", g c "merge"]
                 g b x = (if b then ' ' else '!') : x
                 f x = bench $ \i -> length (parseTagsOptions parseOptions{optTagPosition=False,optTagWarning=False,optTagTextMerge=True} $ x i) `seq` ()
-            c1 <- f $ \i -> concat $ genericReplicate i sample
-            c2 <- let s = BS.pack sample in f $ \i -> BS.concat (genericReplicate i s)
-            c3 <- let s = LBS.pack sample in f $ \i -> LBS.concat (genericReplicate i s)
+            c1 <- f str
+            c2 <- f bs
+            c3 <- f lbs
             return [[header],c1,c2,c3]
 
         strict = reverse . reverse
@@ -53,8 +63,8 @@ minTime = 0.2 :: Double -- below this a test is considered invalid
 
 -- given a number of times to repeat sample, return a list of what
 -- to display
-bench :: (Integer -> ()) -> IO [String]
-bench op = cons "?" $ f 10 []
+benchVariable :: (Integer -> ()) -> IO [String]
+benchVariable op = cons "?" $ f 10 []
     where
         f i seen | length seen > 9 = cons ("  " ++ disp seen) $ return []
                  | otherwise = unsafeInterleaveIO $ do
@@ -65,6 +75,19 @@ bench op = cons "?" $ f 10 []
                 cons ("? " ++ showUnit cps) $ f (i * factor) []
              else
                 cons (show (9 - length seen) ++ " " ++ disp (cps:seen)) $ f i (cps:seen)
+
+        disp = showUnit . summarise
+        cons x = fmap (x:)
+
+
+benchStatic :: Integer -> (Integer -> ()) -> IO [String]
+benchStatic nsample op = cons "?" $ f []
+    where
+        f seen | length seen > 9 = cons ("  " ++ disp seen) $ return []
+               | otherwise = unsafeInterleaveIO $ do
+            now <- timer $ op $ genericLength seen
+            let cps = if now == 0 then 0 else round $ fromInteger nsample / now
+            cons (show (9 - length seen) ++ " " ++ disp (cps:seen)) $ f (cps:seen)
 
         disp = showUnit . summarise
         cons x = fmap (x:)
