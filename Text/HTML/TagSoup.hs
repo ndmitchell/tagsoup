@@ -25,12 +25,12 @@ module Text.HTML.TagSoup(
     canonicalizeTags,
 
     -- * Tag identification
-    isTagOpen, isTagClose, isTagText, isTagCData, isTagWarning, isTagPosition,
+    isTagOpen, isTagClose, isTagText, isTagWarning, isTagPosition,
     isTagOpenName, isTagCloseName,
 
     -- * Extraction
-    fromTagText, fromTagCData, fromAttrib,
-    maybeTagText, maybeTagCData, maybeTagWarning,
+    fromTagText, fromAttrib,
+    maybeTagText, maybeTagWarning,
     innerText,
 
     -- * Utility

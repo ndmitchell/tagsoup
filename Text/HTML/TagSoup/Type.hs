@@ -13,8 +13,8 @@ module Text.HTML.TagSoup.Type(
     isTagOpenName, isTagCloseName,
 
     -- * Extraction
-    fromTagText, fromTagCData, fromAttrib,
-    maybeTagText, maybeTagCData, maybeTagWarning,
+    fromTagText, fromAttrib,
+    maybeTagText, maybeTagWarning,
     innerText,
     ) where
 
@@ -59,7 +59,6 @@ data Tag str =
    | TagClose str                 -- ^ A closing tag
    | TagText str                  -- ^ A text node, guaranteed not to be the empty string
    | TagComment str               -- ^ A comment
-   | TagCData str                 -- ^ CData text -- FIXME: No longer generated
    | TagWarning str               -- ^ Meta: Mark a syntax error in the input file
    | TagPosition !Row !Column     -- ^ Meta: The position of a parsed element
      deriving (Show, Eq, Ord, Data, Typeable)
@@ -69,7 +68,6 @@ instance Functor Tag where
     fmap f (TagClose x) = TagClose (f x)
     fmap f (TagText x) = TagText (f x)
     fmap f (TagComment x) = TagComment (f x)
-    fmap f (TagCData x) = TagCData (f x)
     fmap f (TagWarning x) = TagWarning (f x)
     fmap f (TagPosition x y) = TagPosition x y
 
@@ -99,20 +97,6 @@ fromTagText x = error $ "(" ++ show x ++ ") is not a TagText"
 -- | Extract all text content from tags (similar to Verbatim found in HaXml)
 innerText :: StringLike str => [Tag str] -> str
 innerText = strConcat . mapMaybe maybeTagText
-
--- | Test if a 'Tag' is a 'TagCData'
-isTagCData :: Tag str -> Bool
-isTagCData (TagCData {})  = True; isTagCData  _ = False
-
--- | Extract the string from within 'TagCData', otherwise 'Nothing'
-maybeTagCData :: Tag str -> Maybe str
-maybeTagCData (TagCData x) = Just x
-maybeTagCData _ = Nothing
-
--- | Extract the string from within 'TagCData', crashes if not a 'TagCData'
-fromTagCData :: Show str => Tag str -> str
-fromTagCData (TagCData x) = x
-fromTagCData x = error $ "(" ++ show x ++ ") is not a TagCData"
 
 -- | Test if a 'Tag' is a 'TagWarning'
 isTagWarning :: Tag str -> Bool
