@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances, PatternGuards #-}
 
 {-|
     Module      :  Text.HTML.TagSoup
@@ -44,17 +44,21 @@ import Text.HTML.TagSoup.Parser
 import Text.HTML.TagSoup.Type
 import Data.Char
 import Data.List
+import Text.StringLike
 
 
 -- | Turns all tag names and attributes to lower case and
 --   converts DOCTYPE to upper case.
-canonicalizeTags :: [Tag String] -> [Tag String]
+canonicalizeTags :: StringLike str => [Tag str] -> [Tag str]
 canonicalizeTags = map f
     where
-        f (TagOpen ('!':name) attrs) = TagOpen ('!':map toUpper name) attrs
-        f (TagOpen name attrs) = TagOpen (map toLower name) [(map toLower k, v) | (k,v) <- attrs]
-        f (TagClose name) = TagClose (map toLower name)
+        f (TagOpen tag attrs) | Just ('!',name) <- uncons tag = TagOpen ('!' `cons` ucase name) attrs
+        f (TagOpen name attrs) = TagOpen (lcase name) [(lcase k, v) | (k,v) <- attrs]
+        f (TagClose name) = TagClose (lcase name)
         f a = a
+
+        ucase = fromString . map toUpper . toString
+        lcase = fromString . map toLower . toString
 
 
 -- | Define a class to allow String's or Tag String's to be used as matches
