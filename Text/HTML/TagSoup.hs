@@ -63,13 +63,13 @@ canonicalizeTags = map f
 
 -- | Define a class to allow String's or Tag String's to be used as matches
 class TagRep a where
-    toTagRep :: a -> Tag String
+    toTagRep :: StringLike str => a -> Tag str
 
-instance TagRep (Tag String) where toTagRep = id
+instance StringLike str => TagRep (Tag str) where toTagRep = fmap castString
 
 instance TagRep [Char] where
     toTagRep x = case parseTags x of
-                     [a] -> a
+                     [a] -> toTagRep a
                      _ -> error $ "When using a TagRep it must be exactly one tag, you gave: " ++ x
 
 
@@ -83,20 +83,20 @@ instance TagRep [Char] where
 -- > (TagText "test" ~== TagText "soup") == False
 --
 -- For 'TagOpen' missing attributes on the right are allowed.
-(~==) :: TagRep t => Tag String -> t -> Bool
+(~==) :: (StringLike str, TagRep t) => Tag str -> t -> Bool
 (~==) a b = f a (toTagRep b)
     where
-        f (TagText y) (TagText x) = null x || x == y
-        f (TagClose y) (TagClose x) = null x || x == y
-        f (TagOpen y ys) (TagOpen x xs) = (null x || x == y) && all g xs
+        f (TagText y) (TagText x) = strNull x || x == y
+        f (TagClose y) (TagClose x) = strNull x || x == y
+        f (TagOpen y ys) (TagOpen x xs) = (strNull x || x == y) && all g xs
             where
-                g (name,val) | null name = val  `elem` map snd ys
-                             | null val  = name `elem` map fst ys
+                g (name,val) | strNull name = val  `elem` map snd ys
+                             | strNull val  = name `elem` map fst ys
                 g nameval = nameval `elem` ys
         f _ _ = False
 
 -- | Negation of '~=='
-(~/=) :: TagRep t => Tag String -> t -> Bool
+(~/=) :: (StringLike str, TagRep t) => Tag str -> t -> Bool
 (~/=) a b = not (a ~== b)
 
 
