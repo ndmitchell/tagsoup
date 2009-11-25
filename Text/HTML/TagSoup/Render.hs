@@ -55,6 +55,7 @@ renderTagsOptions opts = strConcat . tags
     
         tags (TagOpen name atts:TagClose name2:xs)
             | name == name2 && optMinimize opts name = open name atts (s " /") ++ tags xs
+        tags (TagOpen name atts:xs) | Just ('?',_) <- uncons name = open name atts (s " ?") ++ tags xs
         tags (x:xs) = tag x ++ tags xs
         tags [] = []
 
