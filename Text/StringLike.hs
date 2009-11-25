@@ -36,6 +36,10 @@ class Eq a => StringLike a where
         x:xs -> Just (x, fromString xs)
 
 
+castString :: (StringLike a, StringLike b) => a -> b
+castString = fromString . toString
+
+
 instance StringLike [Char] where
     uncons [] = Nothing
     uncons (x:xs) = Just (x, xs)

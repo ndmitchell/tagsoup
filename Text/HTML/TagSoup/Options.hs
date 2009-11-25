@@ -37,9 +37,7 @@ parseOptionsFast = parseOptions{optTagTextMerge=False}
 fmapParseOptions :: (StringLike from, StringLike to) => ParseOptions from -> ParseOptions to
 fmapParseOptions (ParseOptions a b c d e) = ParseOptions a b c2 d2 e
     where
-        re1 = fromString . toString
-        re2 = fromString . toString
-        c2 x = map (fmap re1) $ c $ re2 x
-        d2 (x,y) = (re1 r, map (fmap re1) s)
-            where (r,s) = d (re2 x, y)
+        c2 x = map (fmap castString) $ c $ castString x
+        d2 (x,y) = (castString r, map (fmap castString) s)
+            where (r,s) = d (castString x, y)
 
