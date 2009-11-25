@@ -12,12 +12,16 @@ module Text.HTML.TagSoup.Tree
     ) where
 
 import Text.HTML.TagSoup.Type
+import Control.Arrow
 
 
 data TagTree str = TagBranch str [Attribute str] [TagTree str]
                  | TagLeaf (Tag str)
                    deriving Show
 
+instance Functor TagTree where
+    fmap f (TagBranch x y z) = TagBranch (f x) (map (f***f) y) (map (fmap f) z)
+    fmap f (TagLeaf x) = TagLeaf (fmap f x)
 
 
 -- | Convert a list of tags into a tree. This version is not lazy at
