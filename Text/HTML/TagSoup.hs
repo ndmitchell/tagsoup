@@ -24,7 +24,7 @@ module Text.HTML.TagSoup(
     module Text.HTML.TagSoup.Parser,
     canonicalizeTags,
 
-    -- * Tag String identification
+    -- * Tag identification
     isTagOpen, isTagClose, isTagText, isTagCData, isTagWarning,
     isTagOpenName, isTagCloseName,
 
@@ -61,7 +61,7 @@ canonicalizeTags = map f
         lcase = fromString . map toLower . toString
 
 
--- | Define a class to allow String's or Tag String's to be used as matches
+-- | Define a class to allow String's or Tag str's to be used as matches
 class TagRep a where
     toTagRep :: StringLike str => a -> Tag str
 
