@@ -25,6 +25,7 @@ flag testprog
     description: Build the test program
 
 library
+    ghc-options: -O2
     build-depends: base == 4.*, network, mtl, containers, bytestring
 
     exposed-modules:
@@ -43,6 +44,7 @@ library
         Text.HTML.TagSoup.Type
 
 executable tagsoup
+    ghc-options: -O2
     if flag(testprog)
         buildable: True
     else
