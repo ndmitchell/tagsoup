@@ -29,6 +29,11 @@ check prop = do
         Success{} -> pass
         _ -> fail "Property failed"
 
+newtype HTML = HTML String deriving Show
+instance Arbitrary HTML where
+    arbitrary = fmap (HTML . concat) $ listOf $ elements frags
+        where frags = map (:[]) "!-<>#&;xy01'\"" ++ ["CDATA","amp","gt","lt"]
+
 
 -- * The Main section
 
@@ -134,7 +139,7 @@ renderTests = do
     rp "<?xml foo?>" === "<?xml foo ?>"
     rp "<?xml foo?>" === "<?xml foo ?>"
     rp "<!-- neil -->" === "<!-- neil -->"
-    check $ \x -> let y = rp x in rp y == (y :: String)
+    check $ \(HTML x) -> let y = rp x in rp y == (y :: String)
 
     
 entityTests :: Test ()
