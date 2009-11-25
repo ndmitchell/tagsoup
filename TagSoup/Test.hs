@@ -5,7 +5,7 @@ module TagSoup.Test(test) where
 import Text.HTML.TagSoup
 import Text.HTML.TagSoup.Render
 import Text.HTML.TagSoup.Entity
-import qualified Text.HTML.TagSoup.Match as Match
+import Text.HTML.TagSoup.Match
 import Control.Exception
 import Test.QuickCheck
 
@@ -81,21 +81,14 @@ lazyTags = map ((!!1000) . show . parseTags)
 
 
 matchCombinators :: Test ()
-matchCombinators = assert (and tests) pass
-    where
-        tests =
-            Match.tagText (const True) (TagText "test") :
-            Match.tagText ("test"==) (TagText "test") :
-            Match.tagText ("soup"/=) (TagText "test") :
-            Match.tagOpenNameLit "table"
-               (TagOpen "table" [("id", "name")]) :
-            Match.tagOpenLit "table" (Match.anyAttrLit ("id", "name"))
-               (TagOpen "table" [("id", "name")]) :
-            Match.tagOpenLit "table" (Match.anyAttrNameLit "id")
-               (TagOpen "table" [("id", "name")]) :
-            not (Match.tagOpenLit "table" (Match.anyAttrLit ("id", "name"))
-                  (TagOpen "table" [("id", "other name")])) :
-            []
+matchCombinators = do
+    tagText (const True) (TagText "test") === True
+    tagText ("test"==) (TagText "test") === True
+    tagText ("soup"/=) (TagText "test") === True
+    tagOpenNameLit "table" (TagOpen "table" [("id", "name")]) === True
+    tagOpenLit "table" (anyAttrLit ("id", "name")) (TagOpen "table" [("id", "name")]) === True
+    tagOpenLit "table" (anyAttrNameLit "id") (TagOpen "table" [("id", "name")]) === True
+    tagOpenLit "table" (anyAttrLit ("id", "name")) (TagOpen "table" [("id", "other name")]) === False
 
 
 parseTests :: Test ()
