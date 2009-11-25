@@ -139,7 +139,7 @@ renderTests = do
     rp "<a href>" === "<a href>"
     rp "<a href?>" === "<a href?>"
     rp "<?xml foo?>" === "<?xml foo ?>"
-    rp "<?xml foo>" === "<?xml foo ?>"
+    rp "<?xml foo?>" === "<?xml foo ?>"
     rp "<!-- neil -->" === "<!-- neil -->"
     check $ \x -> let y = rp x in rp y == (y :: String)
 
