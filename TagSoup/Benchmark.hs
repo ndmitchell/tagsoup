@@ -15,7 +15,12 @@ import Data.Time.Clock.POSIX(getPOSIXTime)
 
 
 timefile :: FilePath -> IO ()
-timefile xs = error "todo"
+timefile file = do
+    -- use LBS to be most representative of real life
+    lbs <- LBS.readFile file
+    let str = LBS.unpack lbs
+        bs = BS.concat $ LBS.toChunks lbs
+    benchWith (const str, const bs, const lbs) $ benchStatic (toInteger $ LBS.length lbs)
 
 
 sample :: String
@@ -24,14 +29,13 @@ sample = "<this is a test with='attributes' and other=\"things&quot;tested\" /><
 
 nsample = genericLength sample :: Integer
 
-
-
 time :: IO ()
 time = benchWith (str,bs,lbs) benchVariable
     where
         str = \i -> concat $ genericReplicate i sample
         bs  = let s = BS.pack sample in \i -> BS.concat (genericReplicate i s)
         lbs = let s = LBS.pack sample in \i -> LBS.concat (genericReplicate i s)
+
 
 
 benchWith :: (Integer -> String, Integer -> BS.ByteString, Integer -> LBS.ByteString)
