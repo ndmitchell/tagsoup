@@ -44,7 +44,7 @@ positionString = foldl' positionChar
 
 positionChar :: Position -> Char -> Position
 positionChar (Position r c) x = case x of
-    '\n' -> Position (r+1) c
+    '\n' -> Position (r+1) 1
     '\t' -> Position r (c + 8 - mod (c-1) 8)
     _    -> Position r (c+1)
 
