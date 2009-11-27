@@ -49,7 +49,7 @@ benchWith (str,bs,lbs) bench = do
         row [a,b,c] = do
             let header = intercalate "," [g a "pos", g b "warn", g c "merge"]
                 g b x = (if b then ' ' else '!') : x
-                f x = bench $ \i -> length (parseTagsOptions parseOptions{optTagPosition=False,optTagWarning=False,optTagTextMerge=True} $ x i) `seq` ()
+                f x = bench $ \i -> length (parseTagsOptions parseOptions{optTagPosition=a,optTagWarning=b,optTagTextMerge=c} $ x i) `seq` ()
             c1 <- f str
             c2 <- f bs
             c3 <- f lbs
