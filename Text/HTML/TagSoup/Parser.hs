@@ -13,5 +13,5 @@ parseTags = parseTagsOptions parseOptions
 
 
 parseTagsOptions :: StringLike str => ParseOptions str -> str -> [Tag str]
-parseTagsOptions opts = result opts . output opts . parse . toString
+parseTagsOptions opts = output opts . parse . toString
 
