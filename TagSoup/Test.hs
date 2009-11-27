@@ -8,6 +8,7 @@ import Text.HTML.TagSoup.Entity
 import Text.HTML.TagSoup.Match
 import Control.Exception
 import Test.QuickCheck
+import Control.Monad
 
 -- * The Test Monad
 
@@ -40,6 +41,7 @@ instance Arbitrary HTML where
 test :: IO ()
 test = runTest $ do
     parseTests
+    optionsTests
     renderTests
     combiTests
     entityTests
@@ -126,6 +128,34 @@ parseTests = do
         [TagOpen "test" [],TagText "Anything goes, <em>even hidden markup</em> &amp; entities but this is outside",TagClose "test"]
 
 
+optionsTests :: Test ()
+optionsTests = check $ \(HTML x) -> all (f x) $ replicateM 3 [False,True]
+    where
+        f str [pos,warn,merge] =
+                bool "merge" (not merge || adjacentTagText tags) &&
+                bool "warn" (warn || all (not . isTagWarning) tags) &&
+                bool "pos" (if pos then alternatePos tags else all (not . isTagPosition) tags)
+            where tags = parseTagsOptions parseOptions{optTagPosition=pos,optTagWarning=warn,optTagTextMerge=merge} str
+                  bool x b = b || error ("optionsTests failed with " ++ x ++ " on " ++ show (pos,warn,merge,str,tags))
+
+        -- optTagTextMerge implies no adjacent TagText cells
+        -- and none separated by only warnings or positions
+        adjacentTagText = g True -- can the next be a tag text
+            where g i (x:xs) | isTagText x = i && g False xs
+                             | isTagPosition x || isTagWarning x = g i xs
+                             | otherwise = g True xs
+                  g i [] = True
+
+        -- optTagPosition implies every element must be followed
+        -- by a position node, no two position nodes must be adjacent
+        -- and all positions must be increasing
+        alternatePos (TagPosition l1 c1 : x : TagPosition l2 c2 : xs)
+            | (l1,c1) <= (l2,c2) && not (isTagPosition x) = alternatePos $ TagPosition l2 c2 : xs
+        alternatePos [TagPosition l1 c1, x] | not $ isTagPosition x = True
+        alternatePos [] = True
+        alternatePos _ = False
+
+
 renderTests :: Test ()
 renderTests = do
     let rp = renderTags . parseTags
@@ -167,3 +197,18 @@ combiTests = do
     (TagOpen "test" [] ~== "<soup>") === False
     (TagOpen "test" [] ~/= "<soup>") === True
 
+
+warnTests :: Test ()
+warnTests = do
+    return ()
+{-
+    -- TODO: Check that when there is a warning, it shows up at the right place
+    warns "neil &foo bar" = missing ;
+    let parse = parseTagsOptions parseOptions{
+    let noWarn x = 
+    
+    
+    
+        {optTagPosition :: Bool -- ^ Should 'TagPosition' values be given before some items (default=False,fast=False)
+        ,optTagWarning :: Bool  -- ^ Should 'TagWarning' values be given (default=False,fast=False)
+-}
