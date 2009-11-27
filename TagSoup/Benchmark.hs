@@ -3,6 +3,7 @@ module TagSoup.Benchmark where
 
 import Text.HTML.TagSoup
 
+import Control.DeepSeq
 import Control.Monad
 import Data.List
 import Data.Char
@@ -49,7 +50,7 @@ benchWith (str,bs,lbs) bench = do
         row [a,b,c] = do
             let header = intercalate "," [g a "pos", g b "warn", g c "merge"]
                 g b x = (if b then ' ' else '!') : x
-                f x = bench $ \i -> length (parseTagsOptions parseOptions{optTagPosition=a,optTagWarning=b,optTagTextMerge=c} $ x i) `seq` ()
+                f x = bench $ \i -> rnf $ parseTagsOptions parseOptions{optTagPosition=a,optTagWarning=b,optTagTextMerge=c} $ x i
             c1 <- f str
             c2 <- f bs
             c3 <- f lbs
@@ -148,3 +149,21 @@ grid xs = unlines $ map (concat . zipWith f cols) xs
 delay2 :: [[[String]]] -> [[[String]]]
 delay2 xs = map (map head) xs : (if all (null . tail) (concat xs) then [] else delay2 $ map (map tl) xs)
     where tl (x:xs) = if null xs then x:xs else xs
+
+
+---------------------------------------------------------------------
+-- INSTANCES
+
+instance NFData a => NFData (Tag a) where
+    rnf (TagOpen x y) = rnf x `seq` rnf y
+    rnf (TagClose x) = rnf x
+    rnf (TagText x) = rnf x
+    rnf (TagComment x) = rnf x
+    rnf (TagWarning x) = rnf x
+    rnf (TagPosition x y) = () -- both are already ! bound
+
+instance NFData LBS.ByteString where
+    rnf x = LBS.length x `seq` ()
+
+instance NFData BS.ByteString where
+    rnf x = BS.length x `seq` ()
