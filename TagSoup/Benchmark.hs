@@ -43,7 +43,7 @@ benchWith :: (Integer -> String, Integer -> BS.ByteString, Integer -> LBS.ByteSt
 benchWith (str,bs,lbs) bench = do
         putStrLn "Timing parseTags in characters/second"
         let header = map (:[]) ["","String","BS","LBS"]
-        rows <- mapM row $ take 1 $ replicateM 3 [False,True]
+        rows <- mapM row $ replicateM 3 [False,True]
         mapM_ (putStrLn . strict . grid) $ delay2 $ header : rows
     where
         row [a,b,c] = do
