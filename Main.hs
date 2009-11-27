@@ -7,6 +7,7 @@ import TagSoup.Test
 import TagSoup.Benchmark
 import TagSoup.Generate.All
 import Data.Char(toLower)
+import Text.HTML.TagSoup -- just to make it easier to use in GHCi
 
 
 helpMsg :: IO ()
