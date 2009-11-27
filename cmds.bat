@@ -5,17 +5,17 @@ goto %1
 
 :benchmark
 ghc --make Main -odir obj\o -hidir obj\o -O -o tagsoup_o.exe
-tagsoup_o.exe time
-tagsoup_o.exe timefile ketil.xml
+tagsoup_o.exe bench
+tagsoup_o.exe benchfile ketil.xml
 goto end
 
 
 :profile
 ghc --make Main -odir obj\p -hidir obj\p -O -o -prof -auto-all tagsoup_p.exe
 del tagsoup_p_*.prof
-tagsoup_p.exe time +RTS -p
+tagsoup_p.exe bench +RTS -p
 ren tagsoup_p.prof tagsoup_p_time.prof
-tagsoup_p.exe timefile ketil.xml +RTS -p
+tagsoup_p.exe benchfile ketil.xml +RTS -p
 ren tagsoup_p.prof tagsoup_p_ketil.prof
 goto end
 
