@@ -81,6 +81,7 @@ output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ f (
     where
         -- main choice loop
         f :: ((Position,[Tag str]),[Out]) -> [Tag str]
+        f ((p,ws),xs) | p `seq` False = [] -- otherwise p is a space leak when optTagPosition == False
         f ((p,ws),xs) | not $ null ws = (if optTagWarning then (reverse ws++) else id) $ f ((p,[]),xs)
         f ((p,ws),Pos p2:xs) = f ((p2,ws),xs)
 
