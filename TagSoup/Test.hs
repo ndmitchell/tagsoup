@@ -25,7 +25,7 @@ a === b = if a == b then pass else fail $ "Does not equal: " ++ show a ++ " =/= 
 
 check :: Testable prop => prop -> IO ()
 check prop = do
-    res <- quickCheckResult prop
+    res <- quickCheckWithResult stdArgs{maxSuccess=1000} prop
     case res of
         Success{} -> pass
         _ -> fail "Property failed"
