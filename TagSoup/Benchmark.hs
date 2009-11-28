@@ -21,6 +21,7 @@ timefile file = do
     lbs <- LBS.readFile file
     let str = LBS.unpack lbs
         bs = BS.concat $ LBS.toChunks lbs
+    () <- LBS.length lbs `seq` length str `seq` BS.length bs `seq` return ()
     benchWith (const str, const bs, const lbs) $ benchStatic (toInteger $ LBS.length lbs)
 
 
