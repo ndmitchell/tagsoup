@@ -134,7 +134,7 @@ timer x = do
 
 summarise :: [Integer] -> Integer
 summarise xs = sum ys `div` genericLength ys
-    where ys = take (max 3 $ (length xs + 1) `div` 2) $ sort xs
+    where ys = take (max 3 $ (length xs + 1) `div` 2) $ reverse $ sort xs
 
 
 -- display a grid
