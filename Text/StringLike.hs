@@ -55,6 +55,7 @@ instance StringLike BS.ByteString where
     uncons = BS.uncons
     toString = BS.unpack
     fromString = BS.pack
+    fromChar = BS.singleton
     strConcat = BS.concat
     empty = BS.empty
     strNull = BS.null
@@ -65,6 +66,7 @@ instance StringLike LBS.ByteString where
     uncons = LBS.uncons
     toString = LBS.unpack
     fromString = LBS.pack
+    fromChar = LBS.singleton
     strConcat = LBS.concat
     empty = LBS.empty
     strNull = LBS.null
