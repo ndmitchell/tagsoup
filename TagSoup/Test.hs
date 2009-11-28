@@ -107,6 +107,7 @@ parseTests = do
     parseTags "<test baz \"foo\">" === [TagOpen "test" [("baz",""),("","foo")]]
     parseTags "<test \'foo bar\'>" === [TagOpen "test" [("","foo bar")]]
     parseTags "<test2 a b>" === [TagOpen "test2" [("a",""),("b","")]]
+    parseTags "<test2 ''>" === [TagOpen "test2" [("","")]]
     parseTags "</test foo>" === [TagClose "test"]
     parseTags "<test/>" === [TagOpen "test" [], TagClose "test"]
     parseTags "<test1 a = b>" === [TagOpen "test1" [("a","b")]]
