@@ -17,13 +17,13 @@ class Eq a => StringLike a where
 
     toString :: a -> String
     fromString :: String -> a
-    fromString1 :: Char -> a
+    fromChar :: Char -> a
     strConcat :: [a] -> a
     strNull :: a -> Bool
     append :: a -> a -> a
     
     toString = unfoldr uncons
-    fromString1 x = cons x empty
+    fromChar x = cons x empty
     fromString = foldr cons empty
     strConcat = foldr append empty
     strNull = isNothing . uncons

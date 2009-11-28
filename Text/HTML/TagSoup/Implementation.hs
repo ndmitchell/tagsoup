@@ -96,7 +96,7 @@ output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ f (
             where (y,a) = charsStr $ next x
         f x | isEntity x = poss x ((if optTagWarning then id else filter (not . isTagWarning)) $ optEntityData a) ++ f (skip isEntityEnd y) 
             where (y,a) = charsStr $ next x
-        f x | isEntityChr x = pos x $ TagText (fromString1 $ entityChr x a) : f (skip isEntityEnd y)
+        f x | isEntityChr x = pos x $ TagText (fromChar $ entityChr x a) : f (skip isEntityEnd y)
             where (y,a) = chars $ next x
         f x | Just a <- fromWarn x = if optTagWarning then pos x $ TagWarning (fromString a) : f (next x) else f (next x)
         f x | isEof x = []
@@ -114,7 +114,7 @@ output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ f (
         charsEntsStr = (id *** fromString) .  charss True
 
         -- loop round collecting characters, if the b is set including entity
-        charss t x | Just a <- fromChar x = (y, a:b)
+        charss t x | Just a <- fromChr x = (y, a:b)
             where (y,b) = charss t (next x)
         charss t x | t, isEntity x = second (toString n ++) $ charss t $ addWarns m z
             where (y,a) = charsStr $ next x
@@ -157,7 +157,7 @@ isEntityEnd (_,EntityEnd{}:_) = True; isEntityEnd _ = False
 isEntityEndAtt (_,EntityEndAtt{}:_) = True; isEntityEndAtt _ = False
 isWarn (_,Warn{}:_) = True; isWarn _ = False
 
-fromChar (_,Char x:_) = Just x ; fromChar _ = Nothing
+fromChr (_,Char x:_) = Just x ; fromChr _ = Nothing
 fromWarn (_,Warn x:_) = Just x ; fromWarn _ = Nothing
 
 

@@ -19,13 +19,13 @@ parseOptions :: StringLike str => ParseOptions str
 parseOptions = ParseOptions False False entityData entityAttrib True
     where
         entityData x = case lookupEntity y of
-            Just y -> [TagText $ fromString1 y]
+            Just y -> [TagText $ fromChar y]
             Nothing -> [TagText $ fromString $ "&" ++ y ++ ";"
                        ,TagWarning $ fromString $ "Unknown entity: " ++ y]
             where y = toString x
 
         entityAttrib (x,b) = case lookupEntity y of
-            Just y -> (fromString1 y, [])
+            Just y -> (fromChar y, [])
             Nothing -> (fromString $ "&" ++ y ++ [';'|b], [TagWarning $ fromString $ "Unknown entity: " ++ y])
             where y = toString x
 

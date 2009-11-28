@@ -74,4 +74,4 @@ renderTagsOptions opts = strConcat . tags
         com xs | Just ('-',xs) <- uncons xs, Just ('-',xs) <- uncons xs, Just ('>',xs) <- uncons xs = s "-- >" : com xs
         com xs = case uncons xs of
             Nothing -> []
-            Just (x,xs) -> fromString1 x : com xs
+            Just (x,xs) -> fromChar x : com xs
