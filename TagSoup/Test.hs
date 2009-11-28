@@ -34,7 +34,7 @@ check prop = do
 newtype HTML = HTML String deriving Show
 instance Arbitrary HTML where
     arbitrary = fmap (HTML . concat) $ listOf $ elements frags
-        where frags = map (:[]) " \n!-</>#&;xy01'\"" ++ ["CDATA","amp","gt","lt"]
+        where frags = map (:[]) " \n!-</>#&;xy01[]?'\"" ++ ["CDATA","amp","gt","lt"]
     shrink (HTML x) = map HTML $ zipWith (++) (inits x) (tail $ tails x)
 
 
