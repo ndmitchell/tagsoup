@@ -87,7 +87,7 @@ output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ f (
 
         f x | isChar x = pos x $ TagText a : f y
             where (y,a) = charsStr x
-        f x | isTag x = pos x $ TagOpen a b : (if isTagEndClose z then TagClose a : f (next z) else f (skip isTagEnd z))
+        f x | isTag x = pos x $ TagOpen a b : (if isTagEndClose z then pos z $ TagClose a : f (next z) else f (skip isTagEnd z))
             where (y,a) = charsStr $ next x
                   (z,b) = atts y
         f x | isTagShut x = pos x $ TagClose a : f (skip isTagEnd y)
