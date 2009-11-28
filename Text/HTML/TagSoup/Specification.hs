@@ -11,6 +11,8 @@ white x = x `elem` "\t\n\f "
 -- We make some generalisations:
 -- <!name is a valid tag start closed by >
 -- <?name is a valid tag start closed by ?>
+-- </!name> is a valid closing tag
+-- </?name> is a valid closing tag
 -- <a "foo"> is a valid tag attibute, i.e missing an attribute name
 -- We also don't do lowercase conversion
 -- Entities are handled without a list of known entity names
@@ -66,8 +68,9 @@ neilTagEnd xml S{..}
 -- 9.2.4.4 Close tag open state
 -- Deviation: We ignore the if CDATA/RCDATA bits and tag matching
 -- Deviation: On </> we output </> to the text
+-- Deviation: </!name> is a closing tag, not a bogus comment
 closeTagOpen S{..} = case hd of
-    _ | isAlpha hd -> TagShut & hd & tagName False tl
+    _ | isAlpha hd || hd `elem` "?!" -> TagShut & hd & tagName False tl
     '>' -> errSeen "</>" & '<' & '/' & '>' & dat tl
     _ | eof -> '<' & '/' & dat s
     _ -> errWant "tag name" & bogusComment s
