@@ -67,9 +67,11 @@ renderTagsOptions opts = strConcat . tags
 
         txt = optEscape opts
         open name atts shut = [s "<",name] ++ concatMap att atts ++ [shut,s ">"]
-        att (x,y) | strNull y = [s " ", x]
-                  | strNull x = [s " \"",txt y,s "\""]
+        att (x,y) | xnull && ynull = [s " \"\""]
+                  | ynull = [s " ", x]
+                  | xnull = [s " \"",txt y,s "\""]
                   | otherwise = [s " ",x,s "=\"",txt y,s "\""]
+            where (xnull, ynull) = (strNull x, strNull y)
 
         com xs | Just ('-',xs) <- uncons xs, Just ('-',xs) <- uncons xs, Just ('>',xs) <- uncons xs = s "-- >" : com xs
         com xs = case uncons xs of
