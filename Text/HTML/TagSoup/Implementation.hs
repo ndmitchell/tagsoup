@@ -90,8 +90,11 @@ output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ f (
         f x | isTag x = pos x $ TagOpen a b : (if isTagEndClose z then pos z $ TagClose a : f (next z) else f (skip isTagEnd z))
             where (y,a) = charsStr $ next x
                   (z,b) = atts y
-        f x | isTagShut x = pos x $ TagClose a : f (skip isTagEnd y)
+        f x | isTagShut x = pos x $ (TagClose a:) $
+                (if not (null b) then warn x "Unexpected attributes in close tag" else id) $
+                if isTagEndClose z then warn x "Unexpected self-closing in close tag" $ f (next z) else f (skip isTagEnd z)
             where (y,a) = charsStr $ next x
+                  (z,b) = atts y
         f x | isComment x = pos x $ TagComment a : f (skip isCommentEnd y)
             where (y,a) = charsStr $ next x
         f x | isEntity x = poss x ((if optTagWarning then id else filter (not . isTagWarning)) $ optEntityData a) ++ f (skip isEntityEnd y) 
@@ -131,7 +134,8 @@ output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ f (
         next = second (drop 1)
         skip f x = assert (isEof x || f x) (next x)
         addWarns ws x@((p,w),y) = ((p, reverse (poss x ws) ++ w), y)
-        pos ((p,_),_) x = if optTagPosition then tagPosition p : x else x
+        pos ((p,_),_) rest = if optTagPosition then tagPosition p : rest else rest
+        warn x s rest = if optTagWarning then pos x $ TagWarning (fromString s) : rest else rest
         poss x = concatMap (\w -> pos x [w]) 
 
 
