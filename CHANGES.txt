@@ -1,0 +1,10 @@
+Changelog for TagSoup
+
+    Parser now based on HTML5 specification
+    Tag is now parameterised by the string type
+0.6
+    Addition of Text.HTML.TagSoup.Tree and Text.HTML.TagSoup.Render
+    Text.HTML.TagSoup.Parser.Options renamed to ParseOptions
+    Text.HTML.TagSoup.Parser.options renamed to parseOptions
+0.4
+    Changelog started
