@@ -21,19 +21,6 @@ class Eq a => StringLike a where
     strConcat :: [a] -> a
     strNull :: a -> Bool
     append :: a -> a -> a
-    
-    toString = unfoldr uncons
-    fromChar x = cons x empty
-    fromString = foldr cons empty
-    strConcat = foldr append empty
-    strNull = isNothing . uncons
-    append x y = fromString $ toString x ++ toString y
-
-    empty = fromString ""
-    cons x y = fromString $ x : toString y
-    uncons x = case toString x of
-        [] -> Nothing
-        x:xs -> Just (x, fromString xs)
 
 
 castString :: (StringLike a, StringLike b) => a -> b
@@ -45,6 +32,7 @@ instance StringLike [Char] where
     uncons (x:xs) = Just (x, xs)
     toString = id
     fromString = id
+    fromChar = (:[])
     strConcat = concat
     empty = []
     strNull = null
