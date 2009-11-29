@@ -60,13 +60,14 @@ expand p text = res
           next p text [] = Just $ expand p text
           next _ _ _ = Nothing
 
+
 infixr &
 (&) :: Outable a => a -> [Out] -> [Out]
-(&) x xs = outable x : xs
+(&) = amp
 
-class Outable a where outable :: a -> Out
-instance Outable Char where outable = Char
-instance Outable Out where outable = id
+class Outable a where amp :: a -> [Out] -> [Out]
+instance Outable Char where amp x y = Char x : y
+instance Outable Out where amp x y = x : y
 
 
 state :: String -> S
