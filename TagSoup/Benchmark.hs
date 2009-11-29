@@ -6,6 +6,7 @@ import Text.HTML.TagSoup
 import Control.DeepSeq
 import Control.Monad
 import Data.List
+import Data.Maybe
 import Data.Char
 import System.CPUTime
 import System.IO
@@ -13,6 +14,8 @@ import System.IO.Unsafe(unsafeInterleaveIO)
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as LBS
 import Data.Time.Clock.POSIX(getPOSIXTime)
+
+conf = 0.95
 
 
 timefile :: FilePath -> IO ()
@@ -44,7 +47,7 @@ benchWith :: (Integer -> String, Integer -> BS.ByteString, Integer -> LBS.ByteSt
           -> ((Integer -> ()) -> IO [String]) -> IO ()
 benchWith (str,bs,lbs) bench = do
         putStrLn "Timing parseTags in characters/second"
-        let header = map (:[]) ["","String","BS","LBS"]
+        let header = map (:[]) ["(" ++ show (round $ conf * 100) ++ "% confidence)","String","BS","LBS"]
         rows <- mapM row $ replicateM 3 [False,True]
         mapM_ (putStrLn . strict . grid) $ delay2 $ header : rows
     where
@@ -63,6 +66,13 @@ benchWith (str,bs,lbs) bench = do
 ---------------------------------------------------------------------
 -- BENCHMARK ON THE SAMPLE INPUT
 
+disp xs = showUnit (floor xbar) ++ " (~" ++ rng ++ "%)"
+    where xbar = mean xs
+          rng = if length xs <= 1 then "?" else show (ceiling $ (range conf xs) * 100 / xbar) 
+
+cons x = fmap (x:)
+
+
 aimTime = 0.3 :: Double -- seconds to aim for
 minTime = 0.2 :: Double -- below this a test is considered invalid
 
@@ -75,15 +85,13 @@ benchVariable op = cons "?" $ f 10 []
         f i seen | length seen > 9 = cons ("  " ++ disp seen) $ return []
                  | otherwise = unsafeInterleaveIO $ do
             now <- timer $ op i
-            let cps = if now == 0 then 0 else round $ fromInteger (i * nsample) / now
+            let cps = if now == 0 then 0 else fromInteger (i * nsample) / now
             if now < minTime || (null seen && now < aimTime) then do
                 let factor = min 7 $ max 2 $ floor $ aimTime / now
-                cons ("? " ++ showUnit cps) $ f (i * factor) []
+                cons ("? " ++ disp [cps]) $ f (i * factor) []
              else
                 cons (show (9 - length seen) ++ " " ++ disp (cps:seen)) $ f i (cps:seen)
 
-        disp = showUnit . summarise
-        cons x = fmap (x:)
 
 
 benchStatic :: Integer -> (Integer -> ()) -> IO [String]
@@ -92,11 +100,8 @@ benchStatic nsample op = cons "?" $ f []
         f seen | length seen > 9 = cons ("  " ++ disp seen) $ return []
                | otherwise = unsafeInterleaveIO $ do
             now <- timer $ op $ genericLength seen
-            let cps = if now == 0 then 0 else round $ fromInteger nsample / now
+            let cps = if now == 0 then 0 else fromInteger nsample / now
             cons (show (9 - length seen) ++ " " ++ disp (cps:seen)) $ f (cps:seen)
-
-        disp = showUnit . summarise
-        cons x = fmap (x:)
 
 
 ---------------------------------------------------------------------
@@ -116,10 +121,6 @@ showUnit x = num ++ unit
             where (a,b) = splitAt dot use
 
 
-pico :: Integer
-pico = 1000000000000
-
-
 -- copied from the criterion package
 getTime :: IO Double
 getTime = (fromRational . toRational) `fmap` getPOSIXTime
@@ -129,12 +130,7 @@ timer x = do
     start <- getTime
     () <- return x
     end <- getTime
-    return $ end - start -- fromInteger (1 + end - start) / fromInteger pico
-
-
-summarise :: [Integer] -> Integer
-summarise xs = sum ys `div` genericLength ys
-    where ys = take (max 3 $ (length xs + 1) `div` 2) $ reverse $ sort xs
+    return $ end - start
 
 
 -- display a grid
@@ -168,3 +164,29 @@ instance NFData LBS.ByteString where
 
 instance NFData BS.ByteString where
     rnf x = BS.length x `seq` ()
+
+
+---------------------------------------------------------------------
+-- STATISTICS
+-- Provided by Emily Mitchell
+
+confNs = let (*) = (,) in
+    [0.95 * 1.96
+    ,0.90 * 1.644]
+
+size :: [Double] -> Double
+size = genericLength
+
+mean :: [Double] -> Double
+mean xs = sum xs / size xs
+
+stddev :: [Double] -> Double
+stddev xs = sqrt $ sum [sqr (x - xbar) | x <- xs] / size xs
+    where xbar = mean xs
+          sqr x = x * x
+
+-- given a sample, and a required confidence
+-- of the mean (i.e. 2.5% = 0.025)
+range ::Double -> [Double] -> Double
+range conf xs = conf2 * stddev xs / sqrt (size xs)
+    where conf2 = fromMaybe (error $ "Unknown confidence interval: " ++ show conf) $ lookup conf confNs
