@@ -3,6 +3,7 @@ module TagSoup.Generate.All(generate) where
 
 import Control.Monad
 import Data.List
+import Data.Generics.PlateData
 
 import TagSoup.Generate.HSE
 import TagSoup.Generate.Type
@@ -13,7 +14,8 @@ import TagSoup.Generate.Supercompile
 
 generate :: IO ()
 generate = do
-    let parse x = fromParseResult `fmap` parseFileWithExts [] x
+    let parse x = fmap fromParseResult $ parseFileWithMode mode x
+        mode = defaultParseMode{fixities=infixr_ 5 ["&"] ++ baseFixities}
     spec <- parse "Text/HTML/TagSoup/Specification.hs"
     impl <- parse "Text/HTML/TagSoup/Implementation.hs"
     putStr "Optimising... "
@@ -83,18 +85,34 @@ isDecl InfixDecl{} = True
 isDecl _ = False
 
 
+---------------------------------------------------------------------
+-- APP SPECIFIC DESUGAR
+
 desugar :: [Decl] -> [Decl]
-desugar = drop (length recordTypes) . desugarRecords . (recordTypes++)
+desugar =
+    expandAmp .
+    drop (length recordTypes) . desugarRecords . (recordTypes++)
 
 
-recordTypes = [typeTag, typeParseOptions]
+recordTypes = map (fromParseResult . parse)
+    ["data Tag a = TagOpen a a | TagClose a | TagText a | TagComment a | TagWarning a | TagPosition a a"
+    ,"data ParseOptions a = ParseOptions{optTagPosition,optTagWarning,optEntityData,optEntityAttrib,optTagTextMerge::a}"]
 
-typeTag = DataDecl sl DataType [] (Ident "Tag") [] (map (QualConDecl sl [] []) cons) []
-    where cons = [ConDecl (Ident x) (replicate n $ UnBangedTy $ TyVar $ Ident "a") | (x,n) <- zip names cs]
-          names = words "TagOpen TagClose TagText TagComment TagWarning TagPosition"
-          cs = [2,1,1,1,1,2]
 
-typeParseOptions = DataDecl sl DataType [] nam [] [QualConDecl sl [] [] con] []
-    where con = RecDecl nam [([Ident x], UnBangedTy $ TyVar $ Ident "a") | x <- flds]
-          nam = Ident "ParseOptions"
-          flds = words "optTagPosition optTagWarning optEntityData optEntityAttrib optTagTextMerge"
+-- 'c' & _ ==> ampChar
+-- v & _ ==> ampChar
+-- x@C & y ==> ampOut x y
+-- plus remove &/Outputable
+expandAmp = transformBi f . filter (not . isAmp)
+    where
+        isAmp InfixDecl{} = True
+        isAmp ClassDecl{} = True
+        isAmp InstDecl{} = True
+        isAmp _ = False
+
+        f (InfixApp x op y) | prettyPrint op == "&" = Paren $ apps (var $ g x) [Paren x, Paren y]
+        f x = x
+
+        g Var{} = "ampChar"
+        g Lit{} = "ampChar"
+        g _ = "ampOut"
