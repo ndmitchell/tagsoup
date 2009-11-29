@@ -8,7 +8,7 @@ import Data.Generics.PlateData
 import TagSoup.Generate.HSE
 import TagSoup.Generate.Type
 import TagSoup.Generate.Convert
-import TagSoup.Generate.Desugar
+import qualified TagSoup.Generate.Desugar as Desugar
 import TagSoup.Generate.Supercompile
 
 
@@ -90,8 +90,8 @@ isDecl _ = False
 
 desugar :: [Decl] -> [Decl]
 desugar =
-    expandAmp .
-    drop (length recordTypes) . desugarRecords . (recordTypes++)
+    Desugar.core . Desugar.untyped . expandAmp .
+    drop (length recordTypes) . Desugar.records . (recordTypes++)
 
 
 recordTypes = map (fromParseResult . parse)
