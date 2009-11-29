@@ -240,7 +240,7 @@ commentEndDash S{..} = pos $ case hd of
 commentEnd S{..} = pos $ case hd of
     '>' -> CommentEnd & dat tl
     '-' -> errWant "-->" & '-' & commentEnd tl
-    _ | white hd -> errSeen "--" & '-' & '-' & hd & commentEnd tl
+    _ | white hd -> errSeen "--" & '-' & '-' & hd & commentEndSpace tl
     '!' -> errSeen "!" & commentEndBang tl
     _ | eof -> errWant "-->" & CommentEnd & dat s
     _ -> errSeen "--" & '-' & '-' & hd & comment tl
