@@ -2,6 +2,7 @@
 module TagSoup.Generate.All(generate) where
 
 import Language.Haskell.Exts
+import Control.Monad
 
 
 
@@ -20,6 +21,10 @@ mergeModules (Module x1 x2 x3 x4 x5 x6 x7) (Module y1 y2 y3 y4 y5 y6 y7) =
 
 
 types = words "String LBS BS"
+modes = replicateM 3 [False,True]
+
+showMode [pos,warn,merge] = f pos "Pos" ++ f warn "Warn" ++ f merge "Merge"
+    where f b s = if b then s else ""
 
 
 optimise :: Module -> String
@@ -37,14 +42,21 @@ optimise (Module x1 x2 x3 x4 x5 x6 x7) = prettyPrint m2 ++ "\n\n\n" ++ unlines f
         fastParse =
             ["type LBS = LBS.ByteString"
             ,"type BS = BS.ByteString"
+            ,"type EntData str = str -> [Tag str]"
+            ,"type EntAttrib str = (str,Bool) -> (str,[Tag str])"
+            ,""
             ,"parseTagsOptions :: StringLike str => ParseOptions str -> str -> [Tag str]"] ++
-            ["parseTagsOptions opts x | Just (opts,x) <- cast (opts,x) = fromJust $ cast $ fp" ++ t ++ " opts x" | t <- types] ++
+            concat [
+                ["parseTagsOptions opts x | Just (ParseOptions pos warn entData entAttrib merge) <- cast (opts,x) ="
+                ,"    fromJust $ cast $ case (pos,warn,merge) of"] ++
+                ["        ("++pb++","++wb++","++mb++") -> fp"++t++ showMode m ++ " entData entAttrib" | m <- modes, let [pb,wb,mb] = map show m]
+                | t <- types] ++
             ["parseTagsOptions opts x = Manual.parseTagsOptions opts x"] ++
             concat [
                 [""
-                ,"fp" ++ t ++ " :: ParseOptions " ++ t ++ " -> " ++ t ++ " -> [Tag " ++ t ++ "]"
-                ,"fp" ++ t ++ " opts x = output opts $ parse $ toString x"]
-            | t <- types]
+                ,"fp"++t++showMode m++ " :: EntData " ++ t ++ " -> EntAttrib " ++ t ++ " -> " ++ t ++ " -> [Tag " ++ t ++ "]"
+                ,"fp"++t++showMode m++ " entData entAttrib x = output (ParseOptions "++pb++" "++wb++" entData entAttrib "++mb ++ ") $ parse $ toString x"]
+                | t <- types, m <- modes, let [pb,wb,mb] = map show m]
 
 
 
