@@ -7,7 +7,6 @@ module Text.HTML.TagSoup.Entity(
 
 import Data.Char
 import Data.Ix
-import Control.Monad
 import Numeric
 
 
@@ -53,7 +52,7 @@ lookupNumericEntity = f
 -- > lookupNamedEntity "amp" == Just '&'
 -- > lookupNamedEntity "haskell" == Nothing
 lookupNamedEntity :: String -> Maybe Char
-lookupNamedEntity x = liftM chr $ lookup x htmlEntities
+lookupNamedEntity x = fmap chr $ lookup x htmlEntities
 
 
 -- | Escape a character before writing it out to XML.
