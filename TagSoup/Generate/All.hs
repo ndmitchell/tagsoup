@@ -1,9 +1,14 @@
 
 module TagSoup.Generate.All(generate) where
 
-import Language.Haskell.Exts
 import Control.Monad
+import Data.List
 
+import TagSoup.Generate.HSE
+import TagSoup.Generate.Type
+import TagSoup.Generate.Convert
+import TagSoup.Generate.Desugar
+import TagSoup.Generate.Supercompile
 
 
 generate :: IO ()
@@ -28,89 +33,68 @@ showMode [pos,warn,merge] = f pos "Pos" ++ f warn "Warn" ++ f merge "Merge"
 
 
 optimise :: Module -> String
-optimise (Module x1 x2 x3 x4 x5 x6 x7) = prettyPrint m2 ++ "\n\n\n" ++ unlines fastParse
-    where
-        m2 = Module x1 (ModuleName "Text.HTML.TagSoup.Generated") x3 x4
-                       (Just [EVar $ UnQual $ Ident "parseTagsOptions"])
-                       (imports ++ filter ((/=) (ModuleName "Text.HTML.TagSoup.Implementation") . importModule) x6) x7
-        imports = [ImportDecl x1 (ModuleName "Text.HTML.TagSoup.Manual") True False Nothing (Just $ ModuleName "Manual") Nothing
-                  ,ImportDecl x1 (ModuleName "Data.ByteString.Char8") True False Nothing (Just $ ModuleName "BS") Nothing
-                  ,ImportDecl x1 (ModuleName "Data.ByteString.Lazy.Char8") True False Nothing (Just $ ModuleName "LBS") Nothing
-                  ,ImportDecl x1 (ModuleName "Data.Typeable") False False Nothing Nothing Nothing
-                  ,ImportDecl x1 (ModuleName "Data.Maybe") False False Nothing Nothing Nothing]
-
-        fastParse =
-            ["type LBS = LBS.ByteString"
-            ,"type BS = BS.ByteString"
-            ,"type EntData str = str -> [Tag str]"
-            ,"type EntAttrib str = (str,Bool) -> (str,[Tag str])"
-            ,""
-            ,"parseTagsOptions :: StringLike str => ParseOptions str -> str -> [Tag str]"] ++
-            concat [
-                ["parseTagsOptions opts x | Just (ParseOptions pos warn entData entAttrib merge) <- cast (opts,x) ="
-                ,"    fromJust $ cast $ case (pos,warn,merge) of"] ++
-                ["        ("++pb++","++wb++","++mb++") -> fp"++t++ showMode m ++ " entData entAttrib" | m <- modes, let [pb,wb,mb] = map show m]
-                | t <- types] ++
-            ["parseTagsOptions opts x = Manual.parseTagsOptions opts x"] ++
-            concat [
-                [""
-                ,"fp"++t++showMode m++ " :: EntData " ++ t ++ " -> EntAttrib " ++ t ++ " -> " ++ t ++ " -> [Tag " ++ t ++ "]"
-                ,"fp"++t++showMode m++ " entData entAttrib x = output (ParseOptions "++pb++" "++wb++" entData entAttrib "++mb ++ ") $ parse $ toString x"]
-                | t <- types, m <- modes, let [pb,wb,mb] = map show m]
-
-
-
-{-
-
-
-
-
-
--- Strict/Lazy, Char/Word8
-data Typ = Str | SW | SC | LW | LC
-           deriving (Eq,Enum,Bounded,Show)
-
-typs = [Str .. LC]
-
-typeName Str = "String"
-typeName x = show x ++ ".ByteString"
-
-
-gen :: Module -> Module -> [String]
-gen spec impl =
-    ["module Text.HTML.TagSoup.Generated(TagSoup(..), parseTags) where"
-    ,"import qualified Data.ByteString as SW"
-    ,"import qualified Data.ByteString.Char8 as SC"
-    ,"import qualified Data.ByteString.Lazy as LW"
-    ,"import qualified Data.ByteString.Lazy.Char8 as LC"
-    ,""
-    ,"parseTags :: TagSoup str => str -> [Tag str]"
-    ,"parseTags = parseTagsOptions parseOptions"
-    ,""
-    ,"class ParseOptions str where"
-    ,"    parseTagsOptions :: ParseOptions str -> str -> [Tag str]"
-    ,"    parseOptions :: ParseOptions str"
-    ,"    parseOptionsFast :: ParseOptions str"
-    ,""] ++
+optimise (Module x1 x2 x3 x4 x5 x6 x7) = unlines $
+    ["{-# LANGUAGE RecordWildCards, PatternGuards, ScopedTypeVariables #-}"
+    ,"module Text.HTML.TagSoup.Generated(parseTagsOptions) where"
+    ,"import qualified Text.HTML.TagSoup.Manual as Manual"
+    ,"import Data.Typeable"
+    ,"import Data.Maybe"
+    ,"import qualified Data.ByteString.Char8 as BS"
+    ,"import qualified Data.ByteString.Lazy.Char8 as LBS"] ++
+    map prettyPrint (nub $ filter ((/=) (ModuleName "Text.HTML.TagSoup.Implementation") . importModule) x6) ++
+    ["type LBS = LBS.ByteString"
+    ,"type BS = BS.ByteString"
+    ,"type EntData str = str -> [Tag str]"
+    ,"type EntAttrib str = (str,Bool) -> (str,[Tag str])"] ++
+    map prettyPrint typedefs ++
+    ["{-# NOINLINE parseTagsOptions #-}"
+    ,"parseTagsOptions :: StringLike str => ParseOptions str -> str -> [Tag str]"] ++
     concat [
-        ["instance ParseOpts " ++ typeName x ++ " where"
-        ,"    parseTagsOptions opts = case (optWarning opts, optPosition opts) of"] ++
-        ["    (" ++ show warn ++ ", " ++ show pos ++ ") -> parseTags" ++ show x ++ concat (["Warn"|warn] ++ ["Pos"|pos])
-            | warn <- [False,True], pos <- [False,True]] ++
+        ["parseTagsOptions opts x | Just (ParseOptions pos warn entData entAttrib merge) <- cast (opts,x) ="
+        ,"    fromJust $ cast $ case (pos,warn,merge) of"] ++
+        ["        ("++pb++","++wb++","++mb++") -> fp"++t++ showMode m ++ " entData entAttrib" | m <- modes, let [pb,wb,mb] = map show m]
+        | t <- types] ++
+    ["parseTagsOptions opts x = Manual.parseTagsOptions opts x"] ++
+    concat [
         [""
-        ,"    parseOptions = undefined"
-        ,"    parseOptionsFast = undefined"
-        ,""]
-        | x <- typs] ++
-    concat [genFunc typ warn pos
-        | typ <- typs, warn <- [False,True], pos <- [False,True]]
-
-
-genFunc :: Typ -> Bool -> Bool -> [String]
-genFunc typ warn pos =
-    [name ++ " :: ParseOptions " ++ ty ++ " -> " ++ ty ++ " -> [Tag " ++ ty ++ "]"
-    ,name ++ " = error \"Todo\""]
+        ,"{-# NOINLINE fp"++t++showMode m++ " #-}"
+        ,"fp"++t++showMode m++ " :: EntData " ++ t ++ " -> EntAttrib " ++ t ++ " -> " ++ t ++ " -> [Tag " ++ t ++ "]"
+        ,"fp"++t++showMode m++ " entData entAttrib x = main x"
+        ,"    where"] ++
+        map ("    "++) (concatMap (lines . prettyPrint) $ {- output $ supercompile $ input $ -} mainFunc t m :decls)
+        | t <- types, m <- modes, let [pb,wb,mb] = map show m]
     where
-        name = "parseTags" ++ show typ ++ concat (["Warn"|warn] ++ ["Pos"|pos])
-        ty = typeName typ
--}
+        (decls,typedefs) = partition isDecl $ desugar x7
+
+
+mainFunc t [a,b,c] = FunBind [Match sl (Ident "main") [PVar $ Ident "x"] Nothing (UnGuardedRhs bod) (BDecls [])]
+    where
+        bod = App (App (vr "output") popts) $ Paren $ App (vr "parse") $ Paren $ App (vr "toString") $ vr "x"
+        popts = Paren $ apps (vr "ParseOptions") [vb a,vb b,vr "entData",vr "entAttrib",vb c]
+
+        sl = SrcLoc "" 0 0
+        vr = Var . UnQual . Ident
+        vb = Con . UnQual . Ident . show
+
+isDecl PatBind{} = True
+isDecl FunBind{} = True
+isDecl TypeSig{} = True
+isDecl InfixDecl{} = True
+isDecl _ = False
+
+
+desugar :: [Decl] -> [Decl]
+desugar = drop (length recordTypes) . desugarRecords . (recordTypes++)
+
+
+recordTypes = [typeTag, typeParseOptions]
+
+typeTag = DataDecl sl DataType [] (Ident "Tag") [] (map (QualConDecl sl [] []) cons) []
+    where cons = [ConDecl (Ident x) (replicate n $ UnBangedTy $ TyVar $ Ident "a") | (x,n) <- zip names cs]
+          names = words "TagOpen TagClose TagText TagComment TagWarning TagPosition"
+          cs = [2,1,1,1,1,2]
+
+typeParseOptions = DataDecl sl DataType [] nam [] [QualConDecl sl [] [] con] []
+    where con = RecDecl nam [([Ident x], UnBangedTy $ TyVar $ Ident "a") | x <- flds]
+          nam = Ident "ParseOptions"
+          flds = words "optTagPosition optTagWarning optEntityData optEntityAttrib optTagTextMerge"

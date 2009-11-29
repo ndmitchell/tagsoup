@@ -56,5 +56,10 @@ executable tagsoup
     other-modules:
         TagSoup.Benchmark
         TagSoup.Generate.All
+        TagSoup.Generate.Convert.hs
+        TagSoup.Generate.Desugar.hs
+        TagSoup.Generate.HSE.hs
+        TagSoup.Generate.Supercompile.hs
+        TagSoup.Generate.Type.hs
         TagSoup.Sample
         TagSoup.Test
