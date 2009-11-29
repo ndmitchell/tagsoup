@@ -10,7 +10,30 @@ generate = do
     let parse x = fromParseResult `fmap` parseFileWithExts [] x
     spec <- parse "Text/HTML/TagSoup/Specification.hs"
     impl <- parse "Text/HTML/TagSoup/Implementation.hs"
-    writeFile "Text/HTML/TagSoup/Parser_.hs" $ unlines $ gen spec impl
+    putStr "Optimising... "
+    writeFile "Text/HTML/TagSoup/Generated.hs" $ optimise $ mergeModules spec impl
+    putStrLn "done"
+
+
+mergeModules (Module x1 x2 x3 x4 x5 x6 x7) (Module y1 y2 y3 y4 y5 y6 y7) =
+    Module x1 x2 (x3++y3) Nothing Nothing (x6++y6) (x7++y7)
+
+
+optimise :: Module -> String
+optimise (Module x1 x2 x3 x4 x5 x6 x7) = prettyPrint m2 ++ "\n\n\n" ++ unlines fastParse
+    where
+        m2 = Module x1 (ModuleName "Text.HTML.TagSoup.Generated") x3 x4
+                       (Just [EVar $ UnQual $ Ident "parseTagsOptions"])
+                       (filter ((/=) (ModuleName "Text.HTML.TagSoup.Implementation") . importModule) x6) x7
+        fastParse = ["parseTagsOptions :: StringLike str => ParseOptions str -> str -> [Tag str]"
+                    ,"parseTagsOptions opts = output opts . parse . toString"]
+
+
+
+{-
+
+
+
 
 
 -- Strict/Lazy, Char/Word8
@@ -60,3 +83,4 @@ genFunc typ warn pos =
     where
         name = "parseTags" ++ show typ ++ concat (["Warn"|warn] ++ ["Pos"|pos])
         ty = typeName typ
+-}
