@@ -19,14 +19,32 @@ mergeModules (Module x1 x2 x3 x4 x5 x6 x7) (Module y1 y2 y3 y4 y5 y6 y7) =
     Module x1 x2 (x3++y3) Nothing Nothing (x6++y6) (x7++y7)
 
 
+types = words "String LBS BS"
+
+
 optimise :: Module -> String
 optimise (Module x1 x2 x3 x4 x5 x6 x7) = prettyPrint m2 ++ "\n\n\n" ++ unlines fastParse
     where
         m2 = Module x1 (ModuleName "Text.HTML.TagSoup.Generated") x3 x4
                        (Just [EVar $ UnQual $ Ident "parseTagsOptions"])
-                       (filter ((/=) (ModuleName "Text.HTML.TagSoup.Implementation") . importModule) x6) x7
-        fastParse = ["parseTagsOptions :: StringLike str => ParseOptions str -> str -> [Tag str]"
-                    ,"parseTagsOptions opts = output opts . parse . toString"]
+                       (imports ++ filter ((/=) (ModuleName "Text.HTML.TagSoup.Implementation") . importModule) x6) x7
+        imports = [ImportDecl x1 (ModuleName "Text.HTML.TagSoup.Manual") True False Nothing (Just $ ModuleName "Manual") Nothing
+                  ,ImportDecl x1 (ModuleName "Data.ByteString.Char8") True False Nothing (Just $ ModuleName "BS") Nothing
+                  ,ImportDecl x1 (ModuleName "Data.ByteString.Lazy.Char8") True False Nothing (Just $ ModuleName "LBS") Nothing
+                  ,ImportDecl x1 (ModuleName "Data.Typeable") False False Nothing Nothing Nothing
+                  ,ImportDecl x1 (ModuleName "Data.Maybe") False False Nothing Nothing Nothing]
+
+        fastParse =
+            ["type LBS = LBS.ByteString"
+            ,"type BS = BS.ByteString"
+            ,"parseTagsOptions :: StringLike str => ParseOptions str -> str -> [Tag str]"] ++
+            ["parseTagsOptions opts x | Just (opts,x) <- cast (opts,x) = fromJust $ cast $ fp" ++ t ++ " opts x" | t <- types] ++
+            ["parseTagsOptions opts x = Manual.parseTagsOptions opts x"] ++
+            concat [
+                [""
+                ,"fp" ++ t ++ " :: ParseOptions " ++ t ++ " -> " ++ t ++ " -> [Tag " ++ t ++ "]"
+                ,"fp" ++ t ++ " opts x = output opts $ parse $ toString x"]
+            | t <- types]
 
 
 
