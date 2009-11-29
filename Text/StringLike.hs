@@ -2,14 +2,15 @@
 
 module Text.StringLike where
 
+import Data.List
 import Data.Maybe
+import Data.Typeable
 
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as LBS
-import Data.List
 
 
-class Eq a => StringLike a where
+class (Typeable a, Eq a) => StringLike a where
     -- Primitive operations
     empty :: a
     cons :: Char -> a -> a
