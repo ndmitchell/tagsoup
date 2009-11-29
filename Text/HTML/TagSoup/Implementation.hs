@@ -62,12 +62,12 @@ expand p text = res
 
 
 infixr &
-(&) :: Outable a => a -> [Out] -> [Out]
-(&) = amp
 
-class Outable a where amp :: a -> [Out] -> [Out]
-instance Outable Char where amp x y = Char x : y
-instance Outable Out where amp x y = x : y
+class Outable a where (&) :: a -> [Out] -> [Out]
+instance Outable Char where (&) = ampChar
+instance Outable Out where (&) = ampOut
+ampChar x y = Char x : y
+ampOut x y = x : y
 
 
 state :: String -> S
