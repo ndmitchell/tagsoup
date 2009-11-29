@@ -33,7 +33,7 @@ untyped = map (descendBi untyped) . filter (not . isTypeSig)
 
 
 core :: [Decl] -> [Decl]
-core = transformBi flatMatches . transformBi removeWhere
+core = lambdaLift . transformBi addLambda . transformBi flatMatches . transformBi removeWhere
     where
         -- afterwards, no where
         removeWhere (Match a b c d bod (BDecls whr)) | whr /= [] = Match a b c d (f bod) (BDecls [])
@@ -51,3 +51,38 @@ core = transformBi flatMatches . transformBi removeWhere
                 f (GuardedRhss xs) = GuardedAlts $ map g xs
                 g (GuardedRhs x y z) = GuardedAlt x y z
         flatMatches x = x
+
+        -- afterwards, no FunBind, all PatBind
+        addLambda (FunBind [Match a b c d (UnGuardedRhs e) f]) = PatBind a (PVar b) d (UnGuardedRhs $ Lambda a c e) f
+        addLambda x = x
+
+
+-- afterwards no PatBind or Lambda, only FunBind
+lambdaLift :: [Decl] -> [Decl]
+lambdaLift = concatMap f
+    where
+        f (PatBind a (PVar b) c (UnGuardedRhs (Lambda x y z)) d) | null [() | Lambda{} <- universe z] =
+            [FunBind [Match a b y c (UnGuardedRhs z) d]]
+        f (PatBind a (PVar b) c (UnGuardedRhs z) d) | null [() | Lambda{} <- universe z] =
+            [FunBind [Match a b [] c (UnGuardedRhs z) d]]
+        f x = pat $ transformBi up $ transformBi ren $ root x
+    
+        -- convert a PatBind in to several FunBind's
+        pat x = [x]
+
+        -- move a lambda up one level
+        up x = x::Int
+
+        -- rename everyone to be unique
+        ren x = x::Int
+
+        -- introduce a root
+        root (PatBind a b c (UnGuardedRhs d) e) = PatBind a b c (UnGuardedRhs bod) e
+            where bod = Let (BDecls [PatBind sl (PVar $ Ident "root_") Nothing (UnGuardedRhs d) (BDecls [])]) (var "root_")
+        root x = x
+
+{-
+| PatBind SrcLoc Pat (Maybe Type) Rhs Binds
+
+Match SrcLoc Name [Pat] (Maybe Type) Rhs Binds  
+-}
