@@ -1,6 +1,8 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module Text.HTML.TagSoup.Options where
 
+import Data.Typeable
 import Text.HTML.TagSoup.Type
 import Text.HTML.TagSoup.Entity
 import Text.StringLike
@@ -13,6 +15,7 @@ data ParseOptions str = ParseOptions
     ,optEntityAttrib :: (str,Bool) -> (str,[Tag str]) -- ^ How to lookup an entity in an attribute (Bool = has ending ';'?)
     ,optTagTextMerge :: Bool -- ^ Require no adjacent 'TagText' values (default=True,fast=False)
     }
+    deriving Typeable
 
 
 parseOptions :: StringLike str => ParseOptions str
