@@ -7,6 +7,7 @@ import Text.HTML.Download
 import Control.Monad
 import Data.List
 import Data.Char
+import Data.Maybe
 import System.IO
 
 
@@ -50,17 +51,21 @@ haskellHitCount = do
                 TagText s = sections (~== "<p>") x !! 1 !! 1
 
 
-{-
-<a href="http://www.cbc.ca/technology/story/2007/04/10/tech-bloggers.html" id=r-5_1115205181>
-<b>Blogger code of conduct proposed</b>
--}
 googleTechNews :: IO ()
 googleTechNews = do
         tags <- liftM parseTags $ openURL "http://news.google.com/?ned=us&topic=t"
-        let links = [ text
-                    | TagOpen "a" atts:TagOpen "b" []:TagText text:_ <- tails tags,
-                    ("id",'u':'-':_) <- atts]
+        let links = [ ascii name ++ " <" ++ maybe "unknown" shortUrl (lookup "href" atts) ++ ">"
+                    | TagOpen "h2" [("class","title")]:TagText spaces:TagOpen "a" atts:TagText name:_ <- tails tags]
         putStr $ unlines links
+    where
+        shortUrl x | "http://" `isPrefixOf` x = shortUrl $ drop 7 x
+                   | "www." `isPrefixOf` x = shortUrl $ drop 4 x
+                   | otherwise = takeWhile (/= '/') x
+
+        ascii ('\226':'\128':'\147':xs) = '-' : ascii xs
+        ascii ('\194':'\163':xs) = "#GBP " ++ ascii xs
+        ascii (x:xs) = x : ascii xs
+        ascii [] = []
 
 
 spjPapers :: IO ()
