@@ -32,7 +32,6 @@ library
         Text.HTML.Download
         Text.HTML.TagSoup
         Text.HTML.TagSoup.Entity
-        Text.HTML.TagSoup.Render
         Text.HTML.TagSoup.Tree
         Text.StringLike
     other-modules:
@@ -40,6 +39,7 @@ library
         Text.HTML.TagSoup.Match
         Text.HTML.TagSoup.Options
         Text.HTML.TagSoup.Parser
+        Text.HTML.TagSoup.Render
         Text.HTML.TagSoup.Specification
         Text.HTML.TagSoup.Type
 
@@ -54,5 +54,6 @@ executable tagsoup
     main-is: Main.hs
     other-modules:
         TagSoup.Benchmark
+        TagSoup.Generate.All
         TagSoup.Sample
         TagSoup.Test
