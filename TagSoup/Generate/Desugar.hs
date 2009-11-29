@@ -33,4 +33,10 @@ untyped = map (descendBi untyped) . filter (not . isTypeSig)
 
 
 core :: [Decl] -> [Decl]
-core = id
+core = transformBi removeWhere
+    where
+        removeWhere (Match a b c d bod (BDecls whr)) | whr /= [] = Match a b c d (f bod) (BDecls [])
+            where f (UnGuardedRhs x) = UnGuardedRhs $ Let (BDecls whr) x
+                  f (GuardedRhss xs) = GuardedRhss [GuardedRhs a b $ Let (BDecls whr) c | GuardedRhs a b c <- xs]
+        removeWhere x = x
+

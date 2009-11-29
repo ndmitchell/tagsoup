@@ -90,7 +90,7 @@ isDecl _ = False
 
 desugar :: [Decl] -> [Decl]
 desugar =
-    Desugar.core . Desugar.untyped . expandAmp .
+    Desugar.core . Desugar.untyped . expandAmp . expandS .
     drop (length recordTypes) . Desugar.records . (recordTypes++)
 
 
@@ -103,6 +103,7 @@ recordTypes = map (fromParseResult . parse)
 -- v & _ ==> ampChar
 -- x@C & y ==> ampOut x y
 -- plus remove &/Outputable
+expandAmp :: [Decl] -> [Decl]
 expandAmp = transformBi f . filter (not . isAmp)
     where
         isAmp InfixDecl{} = True
@@ -116,3 +117,16 @@ expandAmp = transformBi f . filter (not . isAmp)
         g Var{} = "ampChar"
         g Lit{} = "ampChar"
         g _ = "ampOut"
+
+-- For patterns (S v ...) => v@(S ...)
+-- For the type, loose the first field
+-- For construction, drop the first field
+expandS :: [Decl] -> [Decl]
+expandS = transformBi fRec . transformBi fPat . descendBi fExp
+    where
+        fExp (App (Con s) x) | prettyPrint s == "S" = Con s
+        fExp x = descend fExp x
+        fPat (PApp s (PVar x:xs)) | prettyPrint s == "S" = PAsPat x $ PParen $ PApp s xs
+        fPat x = x
+        fRec (RecDecl s (x:xs)) | prettyPrint s == "S" = RecDecl s xs
+        fRec x = x
