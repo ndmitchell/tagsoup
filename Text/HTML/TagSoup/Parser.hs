@@ -7,11 +7,9 @@ import Text.HTML.TagSoup.Type
 import Text.HTML.TagSoup.Options
 import Text.StringLike
 
+import Text.HTML.TagSoup.Manual
+
 
 parseTags :: StringLike str => str -> [Tag str]
 parseTags = parseTagsOptions parseOptions
-
-
-parseTagsOptions :: StringLike str => ParseOptions str -> str -> [Tag str]
-parseTagsOptions opts = output opts . parse . toString
 

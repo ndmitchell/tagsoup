@@ -36,6 +36,7 @@ library
         Text.StringLike
     other-modules:
         Text.HTML.TagSoup.Implementation
+        Text.HTML.TagSoup.Manual
         Text.HTML.TagSoup.Match
         Text.HTML.TagSoup.Options
         Text.HTML.TagSoup.Parser
