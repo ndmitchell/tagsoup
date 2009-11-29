@@ -4,9 +4,8 @@ module TagSoup.Sample where
 import Text.HTML.TagSoup
 import Text.HTML.Download
 
-import Control.Monad
-import Data.List
 import Data.Char
+import Data.List
 import Data.Maybe
 import System.IO
 
@@ -39,7 +38,7 @@ intersperseNotBroken sep (x:xs) = x : is xs
 -}
 haskellHitCount :: IO ()
 haskellHitCount = do
-        tags <- liftM parseTags $ openURL "http://haskell.org/haskellwiki/Haskell"
+        tags <- fmap parseTags $ openURL "http://haskell.org/haskellwiki/Haskell"
         let count = fromFooter $ head $ sections (~== "<div class=printfooter>") tags
         putStrLn $ "haskell.org has been hit " ++ show count ++ " times"
     where
@@ -53,7 +52,7 @@ haskellHitCount = do
 
 googleTechNews :: IO ()
 googleTechNews = do
-        tags <- liftM parseTags $ openURL "http://news.google.com/?ned=us&topic=t"
+        tags <- fmap parseTags $ openURL "http://news.google.com/?ned=us&topic=t"
         let links = [ ascii name ++ " <" ++ maybe "unknown" shortUrl (lookup "href" atts) ++ ">"
                     | TagOpen "h2" [("class","title")]:TagText spaces:TagOpen "a" atts:TagText name:_ <- tails tags]
         putStr $ unlines links
@@ -70,7 +69,7 @@ googleTechNews = do
 
 spjPapers :: IO ()
 spjPapers = do
-        tags <- liftM parseTags $ openURL "http://research.microsoft.com/en-us/people/simonpj/"
+        tags <- fmap parseTags $ openURL "http://research.microsoft.com/en-us/people/simonpj/"
         let links = map f $ sections (~== "<A>") $
                     takeWhile (~/= "<A name=haskell>") $
                     drop 5 $ dropWhile (~/= "<A name=current>") tags
@@ -85,7 +84,7 @@ spjPapers = do
 
 ndmPapers :: IO ()
 ndmPapers = do
-        tags <- liftM parseTags $ openURL "http://community.haskell.org/~ndm/downloads/"
+        tags <- fmap parseTags $ openURL "http://community.haskell.org/~ndm/downloads/"
         let papers = map f $ sections (~== "<li class=paper>") tags
         putStr $ unlines papers
     where
@@ -95,7 +94,7 @@ ndmPapers = do
 
 currentTime :: IO ()
 currentTime = do
-        tags <- liftM parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
+        tags <- fmap parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
         let res = fromTagText (dropWhile (~/= "<strong id=ct>") tags !! 1)
         putStrLn res
 
@@ -107,7 +106,7 @@ data Package = Package {name :: String, desc :: String, href :: String}
 
 hackage :: IO [(Section,[Package])]
 hackage = do
-    tags <- liftM parseTags $ openURL "http://hackage.haskell.org/packages/archive/pkg-list.html"
+    tags <- fmap parseTags $ openURL "http://hackage.haskell.org/packages/archive/pkg-list.html"
     return $ map parseSect $ partitions (~== "<h3>") tags
     where
         parseSect xs = (nam, packs)
@@ -126,10 +125,9 @@ hackage = do
 -- tag uses a different XML namespace "dc:creator".
 rssCreators :: IO ()
 rssCreators = do
-    tags <- liftM parseTags $ openURL "http://sequence.complete.org/node/feed"
+    tags <- fmap parseTags $ openURL "http://sequence.complete.org/node/feed"
     putStrLn $ unlines $ map names $ partitions (~== "<dc:creator>") tags
-    where
-      names xs = fromTagText $ xs !! 1
+    where names xs = fromTagText $ xs !! 1
 
 
 validate :: String -> IO ()
