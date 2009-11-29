@@ -3,13 +3,13 @@
 module TagSoup.Test(test) where
 
 import Text.HTML.TagSoup
-import Text.HTML.TagSoup.Render
 import Text.HTML.TagSoup.Entity
 import Text.HTML.TagSoup.Match
+
 import Control.Exception
-import Test.QuickCheck
 import Control.Monad
 import Data.List
+import Test.QuickCheck
 
 -- * The Test Monad
 
