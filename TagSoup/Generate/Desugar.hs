@@ -67,17 +67,20 @@ lambdaLift = concatMap f . transformBi add
         f x = [x]
 
         -- convert a PatBind in to several FunBind's
-        pat x = transformBi dropLam $ x : filter isPatLambda (universeBi x)
-            where dropLam (Let (BDecls x) y) = Let (BDecls $ filter (not . isPatLambda) x) y
+        pat x = map f $ transformBi dropLam $ x : filter isPatLambda (universeBi x)
+            where dropLam (Let (BDecls x) y) = let ds = filter (not . isPatLambda) x in if null ds then y else Let (BDecls ds) y
                   dropLam x = x
+                  f (PatBind a (PVar b) c (UnGuardedRhs (Lambda x y z)) d) = FunBind [Match a b y c (UnGuardedRhs z) d]
+                  f x = x
 
         -- include all variables at lambdas
         push :: [String] -> Exp -> Unique Exp
         push seen o@(Let (BDecls xs) y) = descendM (push (nub $ seen++concat [pats v | PatBind _ v _ _ _ <- xs])) o
         push seen o@(Lambda a xs y) = do
             v <- fresh
-            let next = concatMap pats xs
-                now = seen \\ next
+            let used = [x | Var (UnQual (Ident x)) <- universe y]
+                next = concatMap pats xs `intersect` used
+                now = (seen \\ next) `intersect` used
             y <- push (nub $ now++next) y
             xs <- return $ map (PVar . Ident) now ++ xs
             o <- return $ Lambda a xs y
@@ -88,9 +91,7 @@ lambdaLift = concatMap f . transformBi add
 
         -- introduce a root
         root (PatBind a b@(PVar (Ident name)) c (UnGuardedRhs d) e) = PatBind a b c (UnGuardedRhs bod) e
-            where bod = Let (BDecls [PatBind sl (PVar $ Ident $ name ++ "_root_") Nothing (UnGuardedRhs $ transformBi f d) (BDecls [])]) (var $ name ++ "_root_")
-                  -- f (PatBind a (PVar (Ident n)) c d e) = PatBind a (PVar $ Ident $ name ++ "_" ++ n) c d e
-                  f x = x::Int
+            where bod = Let (BDecls [PatBind sl (PVar $ Ident $ name ++ "_root_") Nothing (UnGuardedRhs d) (BDecls [])]) (var $ name ++ "_root_")
 
         -- introduce lambdas
         add (FunBind [Match a b c d (UnGuardedRhs e) f]) = PatBind a (PVar b) d (UnGuardedRhs $ Lambda a c e) f
