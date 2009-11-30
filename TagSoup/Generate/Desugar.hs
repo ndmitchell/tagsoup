@@ -59,14 +59,17 @@ core = lambdaLift . transformBi flatMatches . transformBi removeWhere
 lambdaLift :: [Decl] -> [Decl]
 lambdaLift = concatMap f . transformBi add
     where
-        f (PatBind a (PVar b) c (UnGuardedRhs (Lambda x y z)) d) | null [() | Lambda{} <- universe z] =
+        f (PatBind a (PVar b) c (UnGuardedRhs (Lambda x y z)) d) | not $ any isLambda $ universe z =
             [FunBind [Match a b y c (UnGuardedRhs z) d]]
-        f (PatBind a (PVar b) c (UnGuardedRhs z) d) | null [() | Lambda{} <- universe z] =
+        f (PatBind a (PVar b) c (UnGuardedRhs z) d) | not $ any isLambda $ universe z =
             [FunBind [Match a b [] c (UnGuardedRhs z) d]]
-        f x = pat $ uniques "l_" $ descendBiM (push []) $ root x
-    
+        f x@(PatBind _ (PVar (Ident name)) _ _ _) = pat $ uniques (name++"_") $ descendBiM (push []) $ root x
+        f x = [x]
+
         -- convert a PatBind in to several FunBind's
-        pat x = [x]
+        pat x = transformBi dropLam $ x : filter isPatLambda (universeBi x)
+            where dropLam (Let (BDecls x) y) = Let (BDecls $ filter (not . isPatLambda) x) y
+                  dropLam x = x
 
         -- include all variables at lambdas
         push :: [String] -> Exp -> Unique Exp
@@ -82,22 +85,20 @@ lambdaLift = concatMap f . transformBi add
                 (BDecls [PatBind sl (PVar $ Ident v) Nothing (UnGuardedRhs o) (BDecls [])])
                 (apps (var v) (map var now))
         push seen o = descendM (push seen) o
-        
-        -- let a = \b -> (let c = \d -> e in f) in g
-        -- ==>
-        -- let c = \b d -> e [c / c b]
-        --     a = \b -> f [c / c b]
-        -- in g
-        up x = x::Int
 
         -- introduce a root
-        root (PatBind a b c (UnGuardedRhs d) e) = PatBind a b c (UnGuardedRhs bod) e
-            where bod = Let (BDecls [PatBind sl (PVar $ Ident "root_") Nothing (UnGuardedRhs d) (BDecls [])]) (var "root_")
-        root x = x
+        root (PatBind a b@(PVar (Ident name)) c (UnGuardedRhs d) e) = PatBind a b c (UnGuardedRhs bod) e
+            where bod = Let (BDecls [PatBind sl (PVar $ Ident $ name ++ "_root_") Nothing (UnGuardedRhs $ transformBi f d) (BDecls [])]) (var $ name ++ "_root_")
+                  -- f (PatBind a (PVar (Ident n)) c d e) = PatBind a (PVar $ Ident $ name ++ "_" ++ n) c d e
+                  f x = x::Int
 
         -- introduce lambdas
         add (FunBind [Match a b c d (UnGuardedRhs e) f]) = PatBind a (PVar b) d (UnGuardedRhs $ Lambda a c e) f
         add x = x
+
+
+isLambda Lambda{} = True; isLambda _ = False
+isPatLambda (PatBind a b c (UnGuardedRhs d) e) = isLambda d; isPatLambda _ = False
 
 
 pats = concatMap f . universe
