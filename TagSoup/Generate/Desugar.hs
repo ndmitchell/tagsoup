@@ -6,6 +6,8 @@ module TagSoup.Generate.Desugar(
 import TagSoup.Generate.HSE
 import Data.Generics.PlateData
 import Data.Maybe
+import Data.List hiding (find)
+import Control.Monad.State
 
 
 find x xs = fromMaybe (error $ "Couldn't find: " ++ show x) $ lookup x xs
@@ -33,7 +35,7 @@ untyped = map (descendBi untyped) . filter (not . isTypeSig)
 
 
 core :: [Decl] -> [Decl]
-core = lambdaLift . transformBi addLambda . transformBi flatMatches . transformBi removeWhere
+core = lambdaLift . transformBi flatMatches . transformBi removeWhere
     where
         -- afterwards, no where
         removeWhere (Match a b c d bod (BDecls whr)) | whr /= [] = Match a b c d (f bod) (BDecls [])
@@ -52,37 +54,71 @@ core = lambdaLift . transformBi addLambda . transformBi flatMatches . transformB
                 g (GuardedRhs x y z) = GuardedAlt x y z
         flatMatches x = x
 
-        -- afterwards, no FunBind, all PatBind
-        addLambda (FunBind [Match a b c d (UnGuardedRhs e) f]) = PatBind a (PVar b) d (UnGuardedRhs $ Lambda a c e) f
-        addLambda x = x
-
 
 -- afterwards no PatBind or Lambda, only FunBind
 lambdaLift :: [Decl] -> [Decl]
-lambdaLift = concatMap f
+lambdaLift = concatMap f . transformBi add
     where
         f (PatBind a (PVar b) c (UnGuardedRhs (Lambda x y z)) d) | null [() | Lambda{} <- universe z] =
             [FunBind [Match a b y c (UnGuardedRhs z) d]]
         f (PatBind a (PVar b) c (UnGuardedRhs z) d) | null [() | Lambda{} <- universe z] =
             [FunBind [Match a b [] c (UnGuardedRhs z) d]]
-        f x = pat $ transformBi up $ transformBi ren $ root x
+        f x = pat $ uniques "l_" $ descendBiM (push []) $ root x
     
         -- convert a PatBind in to several FunBind's
         pat x = [x]
 
-        -- move a lambda up one level
+        -- include all variables at lambdas
+        push :: [String] -> Exp -> Unique Exp
+        push seen o@(Let (BDecls xs) y) = descendM (push (nub $ seen++concat [pats v | PatBind _ v _ _ _ <- xs])) o
+        push seen o@(Lambda a xs y) = do
+            v <- fresh
+            let next = concatMap pats xs
+                now = seen \\ next
+            y <- push (nub $ now++next) y
+            xs <- return $ map (PVar . Ident) now ++ xs
+            o <- return $ Lambda a xs y
+            return $ Let
+                (BDecls [PatBind sl (PVar $ Ident v) Nothing (UnGuardedRhs o) (BDecls [])])
+                (apps (var v) (map var now))
+        push seen o = descendM (push seen) o
+        
+        -- let a = \b -> (let c = \d -> e in f) in g
+        -- ==>
+        -- let c = \b d -> e [c / c b]
+        --     a = \b -> f [c / c b]
+        -- in g
         up x = x::Int
-
-        -- rename everyone to be unique
-        ren x = x::Int
 
         -- introduce a root
         root (PatBind a b c (UnGuardedRhs d) e) = PatBind a b c (UnGuardedRhs bod) e
             where bod = Let (BDecls [PatBind sl (PVar $ Ident "root_") Nothing (UnGuardedRhs d) (BDecls [])]) (var "root_")
         root x = x
 
+        -- introduce lambdas
+        add (FunBind [Match a b c d (UnGuardedRhs e) f]) = PatBind a (PVar b) d (UnGuardedRhs $ Lambda a c e) f
+        add x = x
+
+
+pats = concatMap f . universe
+    where f (PVar (Ident v)) = [v]
+          f (PAsPat (Ident v) _) = [v]
+          f _ = []
+
 {-
+
 | PatBind SrcLoc Pat (Maybe Type) Rhs Binds
 
 Match SrcLoc Name [Pat] (Maybe Type) Rhs Binds  
 -}
+
+type Unique a = State [String] a
+
+uniques :: String -> (Unique a) -> a
+uniques s o = evalState o $ map ((++) s . show) [1..]
+
+fresh :: Unique String
+fresh = do
+    s:ss <- get
+    put ss
+    return s

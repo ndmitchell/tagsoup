@@ -118,6 +118,7 @@ expandAmp = transformBi f . filter (not . isAmp)
         g Lit{} = "ampChar"
         g _ = "ampOut"
 
+
 -- For patterns (S v ...) => v@(S ...)
 -- For the type, loose the first field
 -- For construction, drop the first field
