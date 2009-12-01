@@ -47,7 +47,8 @@ optimise (Module x1 x2 x3 x4 x5 x6 x7) = unlines $
     ["type LBS = LBS.ByteString"
     ,"type BS = BS.ByteString"
     ,"type EntData str = str -> [Tag str]"
-    ,"type EntAttrib str = (str,Bool) -> (str,[Tag str])"] ++
+    ,"type EntAttrib str = (str,Bool) -> (str,[Tag str])"
+    ,"patternMatchFail = error \"Pattern match fail\""] ++
     map prettyPrint typedefs ++
     ["{-# NOINLINE parseTagsOptions #-}"
     ,"parseTagsOptions :: StringLike str => ParseOptions str -> str -> [Tag str]"] ++
@@ -90,7 +91,7 @@ isDecl _ = False
 
 desugar :: [Decl] -> [Decl]
 desugar =
-    Desugar.core . Desugar.untyped . expandAmp . expandS .
+    Desugar.core2 . Desugar.untyped . expandAmp . expandS .
     drop (length recordTypes) . Desugar.records . (recordTypes++)
 
 
