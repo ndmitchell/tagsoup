@@ -371,7 +371,7 @@ lam n = do
     v <- fresh
     vs <- replicateM n fresh
     seen <- getSeen
-    addExp $ \bod -> lams vs bod -- let1 v (lams (seen++vs) bod) (apps (var v) $ map var seen)
+    addExp $ \bod -> let1 v (lams (seen++vs) bod) (apps (var v) $ map var seen)
     addSeen vs
     return vs
 
