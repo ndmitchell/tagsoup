@@ -174,14 +174,15 @@ tagTextMerge (TagText x:xs) = TagText (strConcat (x:a)) : tagTextMerge b
     where
         (a,b) = f xs
 
+        -- additional brackets on 3 lines to work around HSE 1.3.2 bugs with pattern fixities
         f (TagText x:xs) = (x:a,b)
             where (a,b) = f xs
-        f (TagPosition{}:x@TagText{}:xs) = f $ x : xs
+        f (TagPosition{}:(x@TagText{}:xs)) = f $ x : xs
         f x = g x id x
 
-        g o op (p@TagPosition{}:w@TagWarning{}:xs) = g o (op . (p:) . (w:)) xs
+        g o op (p@TagPosition{}:(w@TagWarning{}:xs)) = g o (op . (p:) . (w:)) xs
         g o op (w@TagWarning{}:xs) = g o (op . (w:)) xs
-        g o op (p@TagPosition{}:x@TagText{}:xs) = f $ p : x : op xs
+        g o op (p@TagPosition{}:(x@TagText{}:xs)) = f $ p : x : op xs
         g o op (x@TagText{}:xs) = f $ x : op xs
         g o op _ = ([], o)
 
