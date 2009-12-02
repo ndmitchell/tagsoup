@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
 
 module TagSoup.Generate.Desugar(
-    records, untyped, core, core2
+    records, untyped, irrefutable, core, core2
     ) where
 
 import TagSoup.Generate.HSE
@@ -34,6 +34,17 @@ untyped :: [Decl] -> [Decl]
 untyped = map (descendBi untyped) . filter (not . isTypeSig)
     where isTypeSig TypeSig{} = True
           isTypeSig _ = False
+
+
+irrefutable :: [Decl] -> [Decl]
+irrefutable = concatMap f . descend irrefutable
+    where
+        f (PatBind sl (PTuple [PVar (Ident x), PVar (Ident y)]) a b c) =
+            [PatBind sl (pvar xy) a b c
+            ,PatBind sl (pvar x) Nothing (UnGuardedRhs $ App (var "fst") (var xy)) (BDecls [])
+            ,PatBind sl (pvar y) Nothing (UnGuardedRhs $ App (var "snd") (var xy)) (BDecls [])]
+            where xy = x++"_"++y
+        f x = [x]
 
 
 core :: [Decl] -> [Decl]
@@ -198,8 +209,9 @@ concatZipWithM f xs ys = fmap concat $ sequence $ zipWith f xs ys
 
 
 core2 :: [Decl] -> [Decl]
-core2 = map f . transformBi qname . transformBi name
+core2 = {- concatMap g . -} map f . transformBi qname . transformBi name
     where
+        -- transform
         f (PatBind a (PVar name) b c d) =
             PatBind a (PVar name) Nothing (UnGuardedRhs $ run $ fExp bod) (BDecls [])
             where bod = Let (BDecls [PatBind a (pvar "root") b c d]) (var "root")
@@ -208,6 +220,28 @@ core2 = map f . transformBi qname . transformBi name
             where bod = Let (BDecls [FunBind [Match a (Ident "root") b c d e | Match a _ b c d e <- ms]]) (var "root")
         f x = x
 
+        -- lambda lift
+        g (PatBind a (PVar (Ident name)) b (UnGuardedRhs x) c) =
+                [PatBind a (PVar (Ident name)) b (UnGuardedRhs $ transformBi dropPatLambda bod) c] ++
+                map (transformBi dropPatLambda) (filter isPatLambda (universeBi bod))
+            where
+                names = [n | PatBind _ (PVar (Ident n)) _ (UnGuardedRhs Lambda{}) _ <- universeBi x]
+                bod = f names $ transformBi ren x
+                    where f [] x = x
+                          f (n:ns) x = let1Simplify n (var $ name++"_"++n) x
+
+                ren (Let (BDecls [PatBind a (PVar (Ident n)) b c@(UnGuardedRhs Lambda{}) d]) bod) =
+                    Let (BDecls [PatBind a (PVar $ Ident n2) b c d]) (let1Simplify n (var n2) bod)
+                    where n2 = name++"_"++n
+                ren x = x
+
+                dropPatLambda (Let (BDecls xs) y) = if null xs2 then y else Let (BDecls xs2) y
+                    where xs2 = filter (not . isPatLambda) xs
+                dropPatLambda x = x
+
+        g x = [x]
+
+        -- pre simplify
         qname (Qual _ x) = UnQual x
         qname (Special x) = UnQual $ Ident $ "("++prettyPrint x++")"
         qname x = x
@@ -223,8 +257,8 @@ fExp x@(Lit _) = ret x
 fExp (Tuple xs) = fExp $ apps (var $ "(" ++ replicate (length xs - 1) ',' ++ ")") xs
 fExp (Paren x) = fExp x
 fExp (InfixApp x y z) = fExp $ App (App (opExp y) x) z
-fExp (LeftSection x op) = fExp $ App (App (var "flip") (opExp op)) x
-fExp (RightSection op x) = fExp $ App (opExp op) x
+fExp (LeftSection x op) = fExp $ App (opExp op) x
+fExp (RightSection op x) = fExp $ App (App (var "flip") (opExp op)) x
 fExp (App x y) = app (fExp x) (fExp y)
 fExp (Case on alts) = do
     v <- share $ fExp on
@@ -240,17 +274,10 @@ fExp x = err ("fExp",x)
 
 
 
-fDecls = mapM fDecl
+fDecls = binds . map fDecl
 
-fDecl (PatBind _ (PVar (Ident name)) _ (UnGuardedRhs bod) (BDecls whr)) = bind name (fDecls whr >> fExp bod)
-fDecl (PatBind _ p _ (UnGuardedRhs bod) (BDecls whr)) = do
-    fDecls whr
-    v <- share $ fExp bod
-    fPatLazy v p
-fDecl (FunBind xs@(Match _ (Ident name) ps _ _ _ : _)) = do
-    bind name $ do
-        vs <- lam $ length ps
-        branch $ map (fMatch vs) xs
+fDecl (PatBind _ (PVar (Ident name)) _ (UnGuardedRhs bod) (BDecls whr)) = (name, fDecls whr >> fExp bod)
+fDecl (FunBind xs@(Match _ (Ident name) ps _ _ _ : _)) = (name, do vs <- lam $ length ps ; branch $ map (fMatch vs) xs)
 fDecl x = err ("fDecl",x)
 
 fMatch vs (Match _ _ ps _ rhs (BDecls whr)) = fPats vs ps >> fDecls whr >> fRhs rhs
@@ -270,14 +297,6 @@ fPat v (PApp (UnQual (Ident x)) xs) = do
     vs <- match (ret $ var v) (x,length xs) 
     fPats vs xs
 fPat v x = err ("fPat",v,x)
-
-fPatLazy v (PTuple [x,y]) = do
-    vx <- share $ app (ret $ var "fst") (ret $ var v)
-    vy <- share $ app (ret $ var "snd") (ret $ var v)
-    fPatLazy vx x
-    fPatLazy vy y
-fPatLazy v (PVar (Ident x)) = bind x (ret $ var v)
-fPatLazy v x = err ("fPatLazy",v,x)
 
 
 fRhs (UnGuardedRhs x) = fExp x
@@ -319,6 +338,13 @@ bind name x = do
     addSeen [name]
     addExp $ let1Simplify name x
 
+binds :: [(String, M Exp)] -> M ()
+binds xs = do
+    let (vs,bs) = unzip xs
+    bs <- mapM go bs
+    addSeen vs
+    addExp $ lets $ zip vs bs
+
 branch :: [M Exp] -> M Exp
 branch [x] = x
 branch (x:xs) = bind "fail_" (branch xs) >> x
@@ -338,10 +364,13 @@ matchLit x lit = do
 
 lam :: Int -> M [String]
 lam n = do
+    v <- fresh
     vs <- replicateM n fresh
-    addExp $ lams vs
+    seen <- getSeen
+    addExp $ \bod -> lams vs bod -- let1 v (lams (seen++vs) bod) (apps (var v) $ map var seen)
     addSeen vs
     return vs
+
 
 app :: M Exp -> M Exp -> M Exp
 app x y = do
@@ -374,6 +403,9 @@ addExp x = modify $ \(k,s,i) -> (k . paren . x, s, i)
 addSeen :: [String] -> M ()
 addSeen x = modify $ \(k,s,i) -> (k, nub $ s ++ x, i)
 
+getSeen :: M [String]
+getSeen = do (k,s,i) <- get; return s
+
 fresh :: M String
 fresh = do
     (k,s,i) <- get
@@ -391,6 +423,8 @@ err x = error $ show x
 
 
 let1 x y z = Let (BDecls [PatBind sl (pvar x) Nothing (UnGuardedRhs y) (BDecls [])]) z
+
+lets xy z = Let (BDecls [PatBind sl (pvar x) Nothing (UnGuardedRhs y) (BDecls []) | (x,y) <- xy]) z
 
 let1Simplify name (fromParen -> Var (UnQual (Ident bind))) z = f z
     where
@@ -428,3 +462,5 @@ pats = concatMap f . universe
           f (PAsPat (Ident v) _) = [v]
           f _ = []
 
+isLambda Lambda{} = True; isLambda _ = False
+isPatLambda (PatBind a b c (UnGuardedRhs d) e) = isLambda d; isPatLambda _ = False

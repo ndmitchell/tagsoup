@@ -3,7 +3,7 @@ module TagSoup.Generate.HSE(
     module Language.Haskell.Exts,
     module TagSoup.Generate.HSE) where
 
-import Language.Haskell.Exts hiding (app, alt, paren, var, pvar, tuple)
+import Language.Haskell.Exts hiding (app, alt, paren, var, pvar, tuple, binds)
 
 
 apps = foldl App

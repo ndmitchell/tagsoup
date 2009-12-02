@@ -91,7 +91,7 @@ isDecl _ = False
 
 desugar :: [Decl] -> [Decl]
 desugar =
-    Desugar.core2 . Desugar.untyped . expandAmp . expandS .
+    Desugar.core2 . Desugar.irrefutable . Desugar.untyped . expandAmp . expandS .
     drop (length recordTypes) . Desugar.records . (recordTypes++)
 
 
