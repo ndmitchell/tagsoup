@@ -262,6 +262,7 @@ fExp (RightSection op x) = fExp $ App (App (var "flip") (opExp op)) x
 fExp (App x y) = app (fExp x) (fExp y)
 fExp (Case on alts) = do
     v <- share $ fExp on
+    patFail
     branch $ map (fAlt v) alts
 fExp (If x y z) = branch [match (fExp x) ("True",0) >> fExp y, fExp z]
 fExp (List []) = ret $ con "[]"
@@ -277,7 +278,7 @@ fExp x = err ("fExp",x)
 fDecls = binds . map fDecl
 
 fDecl (PatBind _ (PVar (Ident name)) _ (UnGuardedRhs bod) (BDecls whr)) = (name, fDecls whr >> fExp bod)
-fDecl (FunBind xs@(Match _ (Ident name) ps _ _ _ : _)) = (name, do vs <- lam $ length ps ; branch $ map (fMatch vs) xs)
+fDecl (FunBind xs@(Match _ (Ident name) ps _ _ _ : _)) = (name, do vs <- lam $ length ps ; patFail ; branch $ map (fMatch vs) xs)
 fDecl x = err ("fDecl",x)
 
 fMatch vs (Match _ _ ps _ rhs (BDecls whr)) = fPats vs ps >> fDecls whr >> fRhs rhs
@@ -345,6 +346,9 @@ binds xs = do
     addSeen vs
     addExp $ lets $ zip vs bs
 
+patFail :: M ()
+patFail = bind "fail_" (ret $ var "patternMatchFail")
+
 branch :: [M Exp] -> M Exp
 branch [x] = x
 branch (x:xs) = bind "fail_" (branch xs) >> x
@@ -384,7 +388,7 @@ app x y = do
 type M a = State (Exp -> Exp, [String], Int) a
 
 run :: M Exp -> Exp
-run x = evalState (bind "fail_" (ret $ var "patternMatchFail") >> x) (id, [], 1)
+run x = evalState x (id, [], 1)
 
 
 go :: M Exp -> M Exp
@@ -395,7 +399,6 @@ go x = do
     (k2,s2,i2) <- get
     put (k,s,i2)
     return res
-
 
 addExp :: (Exp -> Exp) -> M ()
 addExp x = modify $ \(k,s,i) -> (k . paren . x, s, i)
@@ -424,6 +427,7 @@ err x = error $ show x
 
 let1 x y z = Let (BDecls [PatBind sl (pvar x) Nothing (UnGuardedRhs y) (BDecls [])]) z
 
+lets [] z = z
 lets xy z = Let (BDecls [PatBind sl (pvar x) Nothing (UnGuardedRhs y) (BDecls []) | (x,y) <- xy]) z
 
 let1Simplify name (fromParen -> Var (UnQual (Ident bind))) z = f z
