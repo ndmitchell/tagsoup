@@ -203,12 +203,15 @@ concatZipWithM f xs ys = fmap concat $ sequence $ zipWith f xs ys
 
 
 lambdaLift :: Decl -> [Decl]
-lambdaLift (PatBind _ (PVar (Ident name)) _ (UnGuardedRhs bod) _) =
+lambdaLift (PatBind _ (PVar (Ident name)) _ (UnGuardedRhs bod) _) = transformBi remLams $
         PatBind sl (PVar (Ident name)) Nothing (UnGuardedRhs bod2) (BDecls []) :
-        []
+        filter isPatLambda (universeBi bod2)
     where
         bod2 = descendBi (addVars []) bod
 
+        remLams (Let (BDecls xs) y) = if null xs2 then y else Let (BDecls xs2) y
+            where xs2 = filter (not . isPatLambda) xs
+        remLams x = x
 
         addVars seen (Let (BDecls xs) y) = g (concat ns) $ lets ys $ addVars seen2 y
             where
@@ -216,13 +219,16 @@ lambdaLift (PatBind _ (PVar (Ident name)) _ (UnGuardedRhs bod) _) =
                 seen2 = nub $ seen ++ map fst (filter (not . isLambda . snd) xs2)
                 (ns,ys) = unzip $ map f xs2
 
-                f (n, Lambda sl ps bod) = ([(n,Paren $ apps (var n2) (map var now))], (n2, Lambda sl (map pvar now ++ ps) $ addVars now bod))
-                    where now = nub [x | Var (UnQual (Ident x)) <- universe bod] `intersect` delete "fail_" seen
+                f (n, Lambda sl ps bod) = ([(n,Paren $ apps (var n2) (map var now))], (n2, addVars [] $ Lambda sl (map pvar now ++ ps) bod))
+                    where now = delete "fail_" seen
                           n2 = name++"_"++n
                 f (n, x) = ([], (n, addVars seen2 x))
 
                 g ((x,y):xs) q = subst x y $ g xs q
                 g [] q = q
+
+        addVars seen (Lambda sl ps x) = Lambda sl ps $ addVars (nub $ seen ++ concatMap pats ps) x
+        addVars seen (Case on alts) = Case (addVars seen on) [alt ps $ addVars (nub $ seen ++ pats ps) x | Alt _ ps (UnGuardedAlt x) _ <- alts]
         addVars seen x = descend (addVars seen) x
 
 
@@ -297,9 +303,11 @@ fExp (If x y z) = branch [match (fExp x) ("True",0) >> fExp y, fExp z]
 fExp (List []) = ret $ con "[]"
 fExp (List (x:xs)) = fExp $ App (App (var "(:)") x) (List xs)
 fExp (Lambda _ ps x) = do
-    vs <- lam (length ps)
-    fPats vs ps
-    fExp x
+    v <- share $ do
+        vs <- lam (length ps)
+        fPats vs ps
+        fExp x
+    ret $ var v
 fExp x = err ("fExp",x)
 
 
