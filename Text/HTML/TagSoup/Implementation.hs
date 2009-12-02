@@ -105,6 +105,7 @@ output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ go 
         go x | Just a <- fromWarn x = if optTagWarning then pos x $ TagWarning (fromString a) : go (next x) else go (next x)
         go x | isEof x = []
 
+        atts :: ((Position,[Tag str]),[Out]) -> ( ((Position,[Tag str]),[Out]) , [(str,str)] )
         atts x | isAttName x = second ((a,b):) $ atts z
             where (y,a) = charsStr (next x)
                   (z,b) = if isAttVal y then charsEntsStr (next y) else (y, empty)
@@ -113,11 +114,12 @@ output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ go 
         atts x = (x, [])
 
         -- chars
-        chars = charss False
-        charsStr = (id *** fromString) .  chars
-        charsEntsStr = (id *** fromString) .  charss True
+        chars x = charss False x
+        charsStr x = (id *** fromString) $ chars x
+        charsEntsStr x = (id *** fromString) $ charss True x
 
         -- loop round collecting characters, if the b is set including entity
+        charss :: Bool -> ((Position,[Tag str]),[Out]) -> ( ((Position,[Tag str]),[Out]) , String)
         charss t x | Just a <- fromChr x = (y, a:b)
             where (y,b) = charss t (next x)
         charss t x | t, isEntity x = second (toString n ++) $ charss t $ addWarns m z
@@ -132,7 +134,7 @@ output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ go 
         charss t x = (x, [])
 
         -- utility functions
-        next = second (drop 1)
+        next x = second (drop 1) x
         skip f x = assert (isEof x || f x) (next x)
         addWarns ws x@((p,w),y) = ((p, reverse (poss x ws) ++ w), y)
         pos ((p,_),_) rest = if optTagPosition then tagPosition p : rest else rest
