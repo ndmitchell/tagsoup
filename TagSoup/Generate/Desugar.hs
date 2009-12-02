@@ -378,36 +378,41 @@ bind name x = do
 binds :: [(String, M Exp)] -> M ()
 binds xs = do
     let (vs,bs) = unzip xs
-    bs <- sequence [go $ addSeen (delete v vs) >> b | (v,b) <- xs]
+    bs <- mapM go bs
     addExp $ lets $ zip vs $ map fromParen bs
 
 patFail :: M ()
-patFail = bind "fail_" (ret $ var "patternMatchFail")
+patFail = do
+    fl <- freshFail
+    bind fl (ret $ var "patternMatchFail")
 
 branch :: [M Exp] -> M Exp
 branch [x] = x
-branch (x:xs) = bind "fail_" (branch xs) >> x
+branch (x:xs) = do
+    xs <- go $ branch xs
+    fl <- freshFail
+    bind fl (return xs)
+    x
 
 match :: M Exp -> (String,Int) -> M [String]
 match x (s,n) = do
     x <- go x
     vs <- replicateM n fresh
-    addExp $ \bod -> Case x [alt (PApp (UnQual $ Ident s) (map pvar vs)) bod, alt PWildCard (var "fail_")]
-    addSeen vs
+    fl <- getFail
+    addExp $ \bod -> Case x [alt (PApp (UnQual $ Ident s) (map pvar vs)) bod, alt PWildCard fl]
     return vs
 
 matchLit :: M Exp -> Literal -> M ()
 matchLit x lit = do
     x <- go x
-    addExp $ \bod -> Case x [alt (PLit lit) bod, alt PWildCard (var "fail_")]
+    fl <- getFail
+    addExp $ \bod -> Case x [alt (PLit lit) bod, alt PWildCard fl]
 
 lam :: Int -> M [String]
 lam n = do
     v <- fresh
     vs <- replicateM n fresh
-    seen <- getSeen
-    addExp $ \bod -> lams vs bod -- let1 v (lams (seen++vs) bod) (apps (var v) $ map var seen)
-    addSeen $ v:vs
+    addExp $ lams vs
     return vs
 
 
@@ -420,10 +425,10 @@ app x y = do
 
 
 
-type M a = State (Exp -> Exp, [String], Int) a
+type M a = State (Exp -> Exp, Int, Int) a
 
 run :: M Exp -> Exp
-run x = evalState x (id, [], 1)
+run x = evalState x (id, 0, 1)
 
 
 go :: M Exp -> M Exp
@@ -438,11 +443,16 @@ go x = do
 addExp :: (Exp -> Exp) -> M ()
 addExp x = modify $ \(k,s,i) -> (k . paren . x, s, i)
 
-addSeen :: [String] -> M ()
-addSeen x = modify $ \(k,s,i) -> (k, nub $ s ++ x, i)
+freshFail :: M String
+freshFail = do
+    (k,s,i) <- get
+    put (k,i,i+1)
+    return $ "f_" ++ show i
 
-getSeen :: M [String]
-getSeen = do (k,s,i) <- get; return s
+getFail :: M Exp
+getFail = do
+    (k,s,i) <- get
+    return $ var $ "f_" ++ show s
 
 fresh :: M String
 fresh = do

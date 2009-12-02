@@ -8,6 +8,7 @@ import Data.Generics.PlateData
 import TagSoup.Generate.HSE
 import TagSoup.Generate.Type
 import TagSoup.Generate.Convert
+import TagSoup.Generate.Simplify
 import qualified TagSoup.Generate.Desugar as Desugar
 import TagSoup.Generate.Supercompile
 
@@ -64,7 +65,7 @@ optimise (Module x1 x2 x3 x4 x5 x6 x7) = unlines $
         ,"fp"++t++showMode m++ " :: EntData " ++ t ++ " -> EntAttrib " ++ t ++ " -> " ++ t ++ " -> [Tag " ++ t ++ "]"
         ,"fp"++t++showMode m++ " entData entAttrib x = main x"
         ,"    where"] ++
-        map ("    "++) (concatMap (lines . prettyPrint) $ output $ supercompile $ input $ mainFunc t m : decls)
+        map ("    "++) (concatMap (lines . prettyPrint) $ output $ supercompile $ simplify $ input $ mainFunc t m : decls)
         | t <- types, m <- modes, let [pb,wb,mb] = map show m]
     where
         (decls,typedefs) = partition isDecl $ desugar x7
