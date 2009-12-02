@@ -248,8 +248,9 @@ fDecl (PatBind _ p _ (UnGuardedRhs bod) (BDecls whr)) = do
     v <- share $ fExp bod
     fPatLazy v p
 fDecl (FunBind xs@(Match _ (Ident name) ps _ _ _ : _)) = do
-    vs <- lam $ length ps
-    bind name $ branch $ map (fMatch vs) xs
+    bind name $ do
+        vs <- lam $ length ps
+        branch $ map (fMatch vs) xs
 fDecl x = err ("fDecl",x)
 
 fMatch vs (Match _ _ ps _ rhs (BDecls whr)) = fPats vs ps >> fDecls whr >> fRhs rhs
