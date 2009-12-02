@@ -78,32 +78,32 @@ state s = expand nullPosition s
 
 
 output :: forall str . StringLike str => ParseOptions str -> [Out] -> [Tag str]
-output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ f ((nullPosition,[]),x)
+output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ go ((nullPosition,[]),x)
     where
         -- main choice loop
-        f :: ((Position,[Tag str]),[Out]) -> [Tag str]
-        f ((p,ws),xs) | p `seq` False = [] -- otherwise p is a space leak when optTagPosition == False
-        f ((p,ws),xs) | not $ null ws = (if optTagWarning then (reverse ws++) else id) $ f ((p,[]),xs)
-        f ((p,ws),Pos p2:xs) = f ((p2,ws),xs)
+        go :: ((Position,[Tag str]),[Out]) -> [Tag str]
+        go ((p,ws),xs) | p `seq` False = [] -- otherwise p is a space leak when optTagPosition == False
+        go ((p,ws),xs) | not $ null ws = (if optTagWarning then (reverse ws++) else id) $ go ((p,[]),xs)
+        go ((p,ws),Pos p2:xs) = go ((p2,ws),xs)
 
-        f x | isChar x = pos x $ TagText a : f y
+        go x | isChar x = pos x $ TagText a : go y
             where (y,a) = charsStr x
-        f x | isTag x = pos x $ TagOpen a b : (if isTagEndClose z then pos x $ TagClose a : f (next z) else f (skip isTagEnd z))
+        go x | isTag x = pos x $ TagOpen a b : (if isTagEndClose z then pos x $ TagClose a : go (next z) else go (skip isTagEnd z))
             where (y,a) = charsStr $ next x
                   (z,b) = atts y
-        f x | isTagShut x = pos x $ (TagClose a:) $
+        go x | isTagShut x = pos x $ (TagClose a:) $
                 (if not (null b) then warn x "Unexpected attributes in close tag" else id) $
-                if isTagEndClose z then warn x "Unexpected self-closing in close tag" $ f (next z) else f (skip isTagEnd z)
+                if isTagEndClose z then warn x "Unexpected self-closing in close tag" $ go (next z) else go (skip isTagEnd z)
             where (y,a) = charsStr $ next x
                   (z,b) = atts y
-        f x | isComment x = pos x $ TagComment a : f (skip isCommentEnd y)
+        go x | isComment x = pos x $ TagComment a : go (skip isCommentEnd y)
             where (y,a) = charsStr $ next x
-        f x | isEntity x = poss x ((if optTagWarning then id else filter (not . isTagWarning)) $ optEntityData a) ++ f (skip isEntityEnd y) 
+        go x | isEntity x = poss x ((if optTagWarning then id else filter (not . isTagWarning)) $ optEntityData a) ++ go (skip isEntityEnd y) 
             where (y,a) = charsStr $ next x
-        f x | isEntityChr x = pos x $ TagText (fromChar $ entityChr x a) : f (skip isEntityEnd y)
+        go x | isEntityChr x = pos x $ TagText (fromChar $ entityChr x a) : go (skip isEntityEnd y)
             where (y,a) = chars $ next x
-        f x | Just a <- fromWarn x = if optTagWarning then pos x $ TagWarning (fromString a) : f (next x) else f (next x)
-        f x | isEof x = []
+        go x | Just a <- fromWarn x = if optTagWarning then pos x $ TagWarning (fromString a) : go (next x) else go (next x)
+        go x | isEof x = []
 
         atts x | isAttName x = second ((a,b):) $ atts z
             where (y,a) = charsStr (next x)
