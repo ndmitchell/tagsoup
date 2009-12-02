@@ -64,20 +64,15 @@ optimise (Module x1 x2 x3 x4 x5 x6 x7) = unlines $
         ,"fp"++t++showMode m++ " :: EntData " ++ t ++ " -> EntAttrib " ++ t ++ " -> " ++ t ++ " -> [Tag " ++ t ++ "]"
         ,"fp"++t++showMode m++ " entData entAttrib x = main x"
         ,"    where"] ++
-        map ("    "++) (concatMap (lines . prettyPrint) $ {- output $ supercompile $ input $ -} mainFunc t m :decls)
+        map ("    "++) (concatMap (lines . prettyPrint) $ output $ supercompile $ input $ mainFunc t m : decls)
         | t <- types, m <- modes, let [pb,wb,mb] = map show m]
     where
         (decls,typedefs) = partition isDecl $ desugar x7
 
 
-mainFunc t [a,b,c] = FunBind [Match sl (Ident "main") [PVar $ Ident "x"] Nothing (UnGuardedRhs bod) (BDecls [])]
-    where
-        bod = App (App (vr "output") popts) $ Paren $ App (vr "parse") $ Paren $ App (vr "toString") $ vr "x"
-        popts = Paren $ apps (vr "ParseOptions") [vb a,vb b,vr "entData",vr "entAttrib",vb c]
+mainFunc t [a,b,c] = fromParseResult $ parse $
+    "main = \\x -> output (ParseOptions " ++ show a ++ " " ++ show b ++ " entData entAttrib " ++ show c ++ ") (parse (toString x))"
 
-        sl = SrcLoc "" 0 0
-        vr = Var . UnQual . Ident
-        vb = Con . UnQual . Ident . show
 
 isDecl PatBind{} = True
 isDecl FunBind{} = True
