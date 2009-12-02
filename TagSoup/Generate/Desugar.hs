@@ -202,44 +202,73 @@ concatZipWithM f xs ys = fmap concat $ sequence $ zipWith f xs ys
 
 
 
+lambdaLift :: Decl -> [Decl]
+lambdaLift (PatBind _ (PVar (Ident name)) _ (UnGuardedRhs bod) _) =
+        PatBind sl (PVar (Ident name)) Nothing (UnGuardedRhs bod2) (BDecls []) :
+        []
+    where
+        bod2 = descendBi (addVars []) bod
 
 
+        addVars seen (Let (BDecls xs) y) = g (concat ns) $ lets ys $ addVars seen2 y
+            where
+                xs2 = [(a,b) | PatBind _ (PVar (Ident a)) _ (UnGuardedRhs b) _ <- xs]
+                seen2 = nub $ seen ++ map fst (filter (not . isLambda . snd) xs2)
+                (ns,ys) = unzip $ map f xs2
+
+                f (n, Lambda sl ps bod) = ([(n,Paren $ apps (var n2) (map var now))], (n2, Lambda sl (map pvar now ++ ps) $ addVars now bod))
+                    where now = nub [x | Var (UnQual (Ident x)) <- universe bod] `intersect` delete "fail_" seen
+                          n2 = name++"_"++n
+                f (n, x) = ([], (n, addVars seen2 x))
+
+                g ((x,y):xs) q = subst x y $ g xs q
+                g [] q = q
+        addVars seen x = descend (addVars seen) x
 
 
+{-
+lambdaLift x@(PatBind _ (PVar (Ident name)) _ _ _) = pat $ uniques (name++"_") $ descendBiM (push []) $ root x
+    where
+        -- convert a PatBind in to several FunBind's
+        pat x = map f $ transformBi dropLam $ x : filter isPatLambda (universeBi x)
+            where dropLam (Let (BDecls x) y) = let ds = filter (not . isPatLambda) x in if null ds then y else Let (BDecls ds) y
+                  dropLam x = x
+                  f (PatBind a (PVar b) c (UnGuardedRhs (Lambda x y z)) d) = FunBind [Match a b y c (UnGuardedRhs z) d]
+                  f x = x
+
+        -- include all variables at lambdas
+        push :: [String] -> Exp -> Unique Exp
+        push seen o@(Let (BDecls xs) y) = descendM (push (nub $ seen++concat [pats v | PatBind _ v _ _ _ <- xs])) o
+        push seen o@(Lambda a xs y) = do
+            v <- fresh
+            let used = [x | Var (UnQual (Ident x)) <- universe y]
+                next = concatMap pats xs `intersect` used
+                now = (seen \\ next) `intersect` used
+            y <- push (nub $ now++next) y
+            xs <- return $ map (PVar . Ident) now ++ xs
+            o <- return $ Lambda a xs y
+            return $ Let
+                (BDecls [PatBind sl (PVar $ Ident v) Nothing (UnGuardedRhs o) (BDecls [])])
+                (apps (var v) (map var now))
+        push seen o = descendM (push seen) o
+
+        -- introduce a root
+        root (PatBind a b@(PVar (Ident name)) c (UnGuardedRhs d) e) = PatBind a b c (UnGuardedRhs bod) e
+            where bod = Let (BDecls [PatBind sl (PVar $ Ident $ name ++ "_root_") Nothing (UnGuardedRhs d) (BDecls [])]) (var $ name ++ "_root_")
+-}
 
 
 core2 :: [Decl] -> [Decl]
-core2 = {- concatMap g . -} map f . transformBi qname . transformBi name
+core2 = concatMap f . transformBi qname . transformBi name
     where
         -- transform
         f (PatBind a (PVar name) b c d) =
-            PatBind a (PVar name) Nothing (UnGuardedRhs $ run $ fExp bod) (BDecls [])
+            lambdaLift $ PatBind a (PVar name) Nothing (UnGuardedRhs $ run $ fExp bod) (BDecls [])
             where bod = Let (BDecls [PatBind a (pvar "root") b c d]) (var "root")
         f (FunBind ms@(Match a name b c d e : _)) =
-            PatBind a (PVar name) Nothing (UnGuardedRhs $ run $ fExp bod) (BDecls [])
+            lambdaLift $ PatBind a (PVar name) Nothing (UnGuardedRhs $ run $ fExp bod) (BDecls [])
             where bod = Let (BDecls [FunBind [Match a (Ident "root") b c d e | Match a _ b c d e <- ms]]) (var "root")
-        f x = x
-
-        -- lambda lift
-        g (PatBind a (PVar (Ident name)) b (UnGuardedRhs x) c) =
-                [PatBind a (PVar (Ident name)) b (UnGuardedRhs $ transformBi dropPatLambda bod) c] ++
-                map (transformBi dropPatLambda) (filter isPatLambda (universeBi bod))
-            where
-                names = [n | PatBind _ (PVar (Ident n)) _ (UnGuardedRhs Lambda{}) _ <- universeBi x]
-                bod = f names $ transformBi ren x
-                    where f [] x = x
-                          f (n:ns) x = let1Simplify n (var $ name++"_"++n) x
-
-                ren (Let (BDecls [PatBind a (PVar (Ident n)) b c@(UnGuardedRhs Lambda{}) d]) bod) =
-                    Let (BDecls [PatBind a (PVar $ Ident n2) b c d]) (let1Simplify n (var n2) bod)
-                    where n2 = name++"_"++n
-                ren x = x
-
-                dropPatLambda (Let (BDecls xs) y) = if null xs2 then y else Let (BDecls xs2) y
-                    where xs2 = filter (not . isPatLambda) xs
-                dropPatLambda x = x
-
-        g x = [x]
+        f x = [x]
 
         -- pre simplify
         qname (Qual _ x) = UnQual x
@@ -336,15 +365,13 @@ share x = do
 bind :: String -> M Exp -> M ()
 bind name x = do
     x <- go x
-    addSeen [name]
-    addExp $ let1Simplify name x
+    addExp $ let1Simplify name $ fromParen x
 
 binds :: [(String, M Exp)] -> M ()
 binds xs = do
     let (vs,bs) = unzip xs
-    bs <- mapM go bs
-    addSeen vs
-    addExp $ lets $ zip vs bs
+    bs <- sequence [go $ addSeen (delete v vs) >> b | (v,b) <- xs]
+    addExp $ lets $ zip vs $ map fromParen bs
 
 patFail :: M ()
 patFail = bind "fail_" (ret $ var "patternMatchFail")
@@ -371,8 +398,8 @@ lam n = do
     v <- fresh
     vs <- replicateM n fresh
     seen <- getSeen
-    addExp $ \bod -> let1 v (lams (seen++vs) bod) (apps (var v) $ map var seen)
-    addSeen vs
+    addExp $ \bod -> lams vs bod -- let1 v (lams (seen++vs) bod) (apps (var v) $ map var seen)
+    addSeen $ v:vs
     return vs
 
 
@@ -430,11 +457,14 @@ let1 x y z = Let (BDecls [PatBind sl (pvar x) Nothing (UnGuardedRhs y) (BDecls [
 lets [] z = z
 lets xy z = Let (BDecls [PatBind sl (pvar x) Nothing (UnGuardedRhs y) (BDecls []) | (x,y) <- xy]) z
 
-let1Simplify name (fromParen -> Var (UnQual (Ident bind))) z = f z
+let1Simplify name bind@(fromParen -> Var _) = subst name bind
+let1Simplify name bind = let1 name bind
+
+subst name bind = f
     where
         f (App x y) = App (f x) (f y)
         f (Paren x) = Paren $ f x
-        f (Var (UnQual (Ident x))) = if x == name then var bind else var x
+        f (Var (UnQual (Ident x))) = if x == name then bind else var x
         f (Lit x) = Lit x
         f (Con x) = Con x
         f (Case on alts) = Case (f on) $ map g alts
@@ -445,8 +475,6 @@ let1Simplify name (fromParen -> Var (UnQual (Ident bind))) z = f z
 
         g a@(Alt sl pat (UnGuardedAlt bod) (BDecls [])) = if name `elem` pats pat then a else Alt sl pat (UnGuardedAlt $ f bod) (BDecls [])
         h (PatBind _ (PVar (Ident x)) _ (UnGuardedRhs _) (BDecls [])) = x
-
-let1Simplify x y z = let1 x y z
 
 
 lams xs y = Lambda sl (map pvar xs) y
@@ -468,3 +496,4 @@ pats = concatMap f . universe
 
 isLambda Lambda{} = True; isLambda _ = False
 isPatLambda (PatBind a b c (UnGuardedRhs d) e) = isLambda d; isPatLambda _ = False
+namePatBind (PatBind _ (PVar (Ident x)) _ _ _) = x
