@@ -3,6 +3,7 @@ module TagSoup.Generate.Convert(input,output) where
 
 import TagSoup.Generate.Type
 import TagSoup.Generate.HSE
+import Data.List
 
 
 input :: [Decl] -> [Func]
@@ -18,10 +19,19 @@ inExpr (Paren x) = inExpr x
 inExpr (Var (UnQual (Ident x))) = EVar x
 inExpr (Con (UnQual (Ident x))) = ECon x
 inExpr (App x y) = EApp (inExpr x) (inExpr y)
-inExpr (Let (BDecls xs) y) = ELet [(x,inExpr y) | PatBind _ (PVar (Ident x)) _ (UnGuardedRhs y) (BDecls []) <- xs] $ inExpr y
+inExpr (Let (BDecls xs) y) = unrecLet [(x,inExpr y) | PatBind _ (PVar (Ident x)) _ (UnGuardedRhs y) (BDecls []) <- xs] $ inExpr y
 inExpr (Case x ys) = ECase (inExpr x) [(inPatt p, inExpr x) | Alt _ p (UnGuardedAlt x) _ <- ys]
 inExpr (Lit x) = ELit x
 inExpr x = error $ show ("inExpr",x)
+
+
+unrecLet :: [(String, Expr)] -> Expr -> Expr
+unrecLet xy z | null xy = z
+              | null now = error $ "Recursive let: " ++ prettyPrint (outExpr $ ELet xy z)
+              | otherwise = ELet now $ unrecLet next z
+    where (now,next) = partition (disjoint xs . freeVars . snd) xy
+          xs = map fst xy
+
 
 inPatt (PApp (UnQual (Ident c)) vs) = Patt c (map fromPVar vs)
 inPatt PWildCard = PattAny

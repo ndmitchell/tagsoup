@@ -2,7 +2,8 @@
 module TagSoup.Generate.Supercompile(supercompile) where
 
 import TagSoup.Generate.Type
+import TagSoup.Generate.Simplify
 
 
-supercompile :: [Func] -> [Func]
-supercompile = id
+supercompile :: Prog -> Prog
+supercompile = simplifyProg

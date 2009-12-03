@@ -1,5 +1,5 @@
 
-module TagSoup.Generate.Simplify(simplify) where
+module TagSoup.Generate.Simplify(simplifyProg, simplifyExpr) where
 
 import TagSoup.Generate.Type
 import Data.Generics.PlateData
@@ -16,11 +16,11 @@ import Data.List
 -- let x = y in z, where x is used once = z[x/y]
 
 
-simplify :: [Func] -> [Func]
-simplify = descendBi simplifyExpr
+simplifyProg :: Prog -> Prog
+simplifyProg = descendBi simplifyExpr
 
 
-
+simplifyExpr :: Expr -> Expr
 simplifyExpr = transform f
     where
         f (ELet xy z) = eLet keep $ substs sub z
