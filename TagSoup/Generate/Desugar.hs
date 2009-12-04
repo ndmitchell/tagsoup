@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
 
 module TagSoup.Generate.Desugar(
-    records, untyped, irrefutable, core, core2
+    records, untyped, irrefutable, core, core2, singleCase
     ) where
 
 import TagSoup.Generate.HSE
@@ -45,6 +45,14 @@ irrefutable = concatMap f . descend irrefutable
             ,PatBind sl (pvar y) Nothing (UnGuardedRhs $ App (var "snd") (var xy)) (BDecls [])]
             where xy = x++"_"++y
         f x = [x]
+
+
+singleCase :: [String] -> [Decl] -> [Decl]
+singleCase single = transformBi f
+    where
+        f (Case (Var (UnQual (Ident "otherwise"))) (Alt _ (PApp (UnQual (Ident "True")) []) (UnGuardedAlt x) (BDecls []):_)) = x
+        f (Case on as@(Alt _ (PApp (UnQual (Ident x)) _) _ _:_)) | x `elem` single = Case on [head as]
+        f x = x
 
 
 core :: [Decl] -> [Decl]

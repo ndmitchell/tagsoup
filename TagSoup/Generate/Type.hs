@@ -61,6 +61,7 @@ eVar x = EVar x
 eApp x y = EApp (I $ getI x `unionI` getI y) x y
 eCase x y = ECase (I $ unionI (getI x) alts) x y
     where alts = Map.unionsWith max [minusI (getI x) (pattVars p) | (p,x) <- y] 
+eLet [] y = y
 eLet x y = ELet (I $ unionI binds body) x y
     where
         binds = unionsI $ map (getI . snd) x

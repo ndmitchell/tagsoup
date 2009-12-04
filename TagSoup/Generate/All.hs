@@ -86,6 +86,7 @@ isDecl _ = False
 
 desugar :: [Decl] -> [Decl]
 desugar =
+    Desugar.singleCase ["S","(,)","(,,)","(,,,)"] .
     Desugar.core2 . Desugar.irrefutable . Desugar.untyped . expandAmp . expandS .
     drop (length recordTypes) . Desugar.records . (recordTypes++)
 
