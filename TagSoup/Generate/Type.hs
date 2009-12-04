@@ -38,6 +38,10 @@ pattVars (Patt _ vs) = vs
 pattVars _ = []
 
 
+getFunc :: Prog -> Var -> Func
+getFunc prog name = head $ filter ((==) name . funcName) prog ++ error ("Couldn't find function " ++ name)
+
+
 -- the Expr is varNames is always undefined, just for a fast subst test
 newtype I = I {varCounts :: Map.Map Var Int}
             deriving (Data,Typeable,Show,Eq)

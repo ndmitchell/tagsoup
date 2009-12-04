@@ -6,4 +6,4 @@ import TagSoup.Generate.Simplify
 
 
 supercompile :: Prog -> Prog
-supercompile = simplifyProg
+supercompile = simplifyProg . reduceArity
