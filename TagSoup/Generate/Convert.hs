@@ -16,19 +16,19 @@ inFunc (PatBind _ (PVar (Ident name)) Nothing (UnGuardedRhs bod) (BDecls [])) =
 inFunc x = error $ show x
 
 inExpr (Paren x) = inExpr x
-inExpr (Var (UnQual (Ident x))) = EVar x
-inExpr (Con (UnQual (Ident x))) = ECon x
-inExpr (App x y) = EApp (inExpr x) (inExpr y)
+inExpr (Var (UnQual (Ident x))) = eVar x
+inExpr (Con (UnQual (Ident x))) = eCon x
+inExpr (App x y) = eApp (inExpr x) (inExpr y)
 inExpr (Let (BDecls xs) y) = unrecLet [(x,inExpr y) | PatBind _ (PVar (Ident x)) _ (UnGuardedRhs y) (BDecls []) <- xs] $ inExpr y
-inExpr (Case x ys) = ECase (inExpr x) [(inPatt p, inExpr x) | Alt _ p (UnGuardedAlt x) _ <- ys]
-inExpr (Lit x) = ELit x
+inExpr (Case x ys) = eCase (inExpr x) [(inPatt p, inExpr x) | Alt _ p (UnGuardedAlt x) _ <- ys]
+inExpr (Lit x) = eLit x
 inExpr x = error $ show ("inExpr",x)
 
 
 unrecLet :: [(String, Expr)] -> Expr -> Expr
 unrecLet xy z | null xy = z
-              | null now = error $ "Recursive let: " ++ prettyPrint (outExpr $ ELet xy z)
-              | otherwise = ELet now $ unrecLet next z
+              | null now = error $ "Recursive let: " ++ prettyPrint (outExpr $ eLet xy z)
+              | otherwise = eLet now $ unrecLet next z
     where (now,next) = partition (disjoint xs . freeVars . snd) xy
           xs = map fst xy
 
@@ -45,12 +45,12 @@ output = map outFunc
 
 outFunc (Func x y z) = PatBind sl (pvar x) Nothing (UnGuardedRhs $ (if null y then id else Lambda sl (map pvar y)) (outExpr z)) (BDecls [])
 
-outExpr (EVar x) = var x
 outExpr (ECon x) = con x
-outExpr (EApp x y) = Paren $ App (outExpr x) (outExpr y)
-outExpr (ELet xs y) = Paren $ Let (BDecls [PatBind sl (pvar a) Nothing (UnGuardedRhs $ outExpr b) (BDecls []) | (a,b) <- xs]) (outExpr y)
-outExpr (ECase on alts) = Paren $ Case (outExpr on) [Alt sl (outPatt p) (UnGuardedAlt $ outExpr x) (BDecls []) | (p,x) <- alts]
 outExpr (ELit x) = Lit x
+outExpr (EVar x) = var x
+outExpr (EApp _ x y) = Paren $ App (outExpr x) (outExpr y)
+outExpr (ECase _ on alts) = Paren $ Case (outExpr on) [Alt sl (outPatt p) (UnGuardedAlt $ outExpr x) (BDecls []) | (p,x) <- alts]
+outExpr (ELet _ xs y) = Paren $ Let (BDecls [PatBind sl (pvar a) Nothing (UnGuardedRhs $ outExpr b) (BDecls []) | (a,b) <- xs]) (outExpr y)
 
 outPatt (Patt c vs) = PApp (UnQual $ Ident c) (map pvar vs)
 outPatt PattAny = PWildCard

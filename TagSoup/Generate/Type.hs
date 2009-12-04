@@ -8,6 +8,8 @@ import Data.Data
 import Data.Maybe
 import Data.List
 import Data.Generics.PlateData
+import Control.Arrow
+import qualified Data.Map as Map
 
 type Var = String
 type Con = String
@@ -18,60 +20,79 @@ type Prog = [Func]
 data Func = Func {funcName :: Var, funcArgs :: [Var], funcBody :: Expr}
             deriving (Data,Typeable,Show)
 
-
-data Expr = EApp Expr Expr
-          | ELet [(Var,Expr)] Expr
-          | ECase Expr [(Patt,Expr)]
-          | EVar Var
-          | ECon Con
-          | ELit Literal
+data Expr = ECon  Con
+          | ELit  Literal
+          | EVar  Var
+          | EApp  I Expr Expr
+          | ECase I  Expr [(Patt,Expr)]
+          | ELet  I [(Var,Expr)] Expr
             deriving (Data,Typeable,Show,Eq)
+
 
 data Patt = Patt Con [Var]
           | PattAny
           | PattLit Literal
             deriving (Data,Typeable,Show,Eq)
 
-eLet [] x = x
-eLet x y = ELet x y
+pattVars (Patt _ vs) = vs
+pattVars _ = []
 
 
+-- the Expr is varNames is always undefined, just for a fast subst test
+newtype I = I {varCounts :: Map.Map Var Int}
+            deriving (Data,Typeable,Show,Eq)
 
-subst :: (String,Expr) -> Expr -> Expr
-subst vb = substs [vb]
+getI :: Expr -> Map.Map Var Int
+getI (ECon _) = Map.empty
+getI (ELit _) = Map.empty
+getI (EVar x) = Map.singleton x 1
+getI (EApp i _ _) = varCounts i
+getI (ECase i _ _) = varCounts i
+getI (ELet i _ _) = varCounts i
 
+unionI = Map.unionWith (+)
+unionsI = Map.unionsWith (+)
+minusI x [] = x
+minusI x (y:ys) = minusI (Map.delete y x) ys
 
-substs :: [(String,Expr)] -> Expr -> Expr
-substs [] x = x
-substs vb x = case x of
-    EVar x -> fromMaybe (EVar x) $ lookup x vb
-    ELet xy z -> ELet [(x, substs vb y) | (x,y) <- xy] $ substsWithout (map fst xy) z
-    ECase x alts -> ECase (substs vb x) (map f alts)
-    x -> descend (substs vb) x
+eCon x = ECon x
+eLit x = ELit x
+eVar x = EVar x
+eApp x y = EApp (I $ getI x `unionI` getI y) x y
+eCase x y = ECase (I $ unionI (getI x) alts) x y
+    where alts = Map.unionsWith max [minusI (getI x) (pattVars p) | (p,x) <- y] 
+eLet x y = ELet (I $ unionI binds body) x y
     where
-        f (Patt c vs, x) = (Patt c vs, substsWithout vs x)
-        f (p, x) = (p, substs vb x)
-        
-        substsWithout vs = substs $ filter (flip notElem vs . fst) vb
+        binds = unionsI $ map (getI . snd) x
+        body = minusI (getI y) $ map fst x
 
 
--- is the variable used once or fewer times
-once :: String -> Expr -> Bool
-once v x = length (filter (==EVar "") $ universe $ subst (v,EVar "") x) <= 1
+subst :: Var -> Expr -> Expr -> Expr
+subst v b = substsWith id $ Map.singleton v b
 
 
--- is the variable free in the expression
-used :: String -> Expr -> Bool
-used v x = not $ null $ filter (==EVar "") $ universe $ subst (v,EVar "") x
+substs :: [(Var,Expr)] -> Expr -> Expr
+substs bs = substsWith id (Map.fromList bs)
+
+substsWith :: (Expr -> Expr) -> Map.Map Var Expr -> Expr -> Expr
+substsWith op mp x | Map.null mp2 = x
+                   | otherwise = case x of
+        EVar v -> op $ Map.findWithDefault (error "substs logic error") v mp2 -- must be there, or would have gone the empty route
+        EApp _ x y -> op $ eApp (f mp2 x) (f mp2 y)
+        ECase _ x y -> op $ eCase (f mp2 x) [(a, f (minusI mp2 $ pattVars a) b) | (a,b) <- y]
+        ELet _ xy z -> op $ eLet (map (second $ f mp2) xy) (f (minusI mp2 $ map fst xy) z)
+        _ -> error "substs logic error (2)"
+    where mp2 = mp `Map.intersection` getI x
+          f = substsWith op
 
 
-freeVars :: Expr -> [String]
-freeVars (EVar x) = [x]
-freeVars (ELet xy z) = nub $ concatMap (freeVars . snd) xy ++ (freeVars z \\ map fst xy)
-freeVars (ECase x alts) = nub $ freeVars x ++ concatMap f alts
-    where f (Patt c vs, x) = freeVars x \\ vs
-          f (p, x) = freeVars x
-freeVars x = nub $ concatMap freeVars $ children x
+-- is the variable used at most once down any evaluation path
+linear :: Var -> Expr -> Bool
+linear v x = Map.findWithDefault 0 v (getI x) <= 1
+
+
+freeVars :: Expr -> [Var]
+freeVars = Map.keys . getI
+
 
 disjoint x y = null $ x `intersect` y
-
