@@ -67,6 +67,14 @@ eLet x y = ELet (I $ unionI binds body) x y
         binds = unionsI $ map (getI . snd) x
         body = minusI (getI y) $ map fst x
 
+eApps x [] = x
+eApps x y = eApp (eApps x (init y)) (last y)
+
+
+fromEApps (EApp _ x y) = (a, b ++ [y])
+    where (a,b) = fromEApps x
+fromEApps x = (x, [])
+
 
 subst :: Var -> Expr -> Expr -> Expr
 subst v b = substsWith id $ Map.singleton v b

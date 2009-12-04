@@ -1,3 +1,4 @@
+{-# LANGUAGE PatternGuards #-}
 
 module TagSoup.Generate.Simplify(simplifyProg, simplifyExpr) where
 
@@ -26,9 +27,25 @@ simplifyExpr = transform f
     where
         f (ELet _ xy z) | not $ null sub = f $ eLet keep $ rep sub z
             where (sub,keep) = partition (flip linear z . fst) xy
+
+        f (ECase _ on alts) | (PattAny,ECase _ on2 alts2) <- last alts, on == on2 = f $ eCase on (init alts ++ alts2)
+
+        f (ECase _ (EVar on) alts) | any fst alts2 = eCase (EVar on) $ map snd alts2
+            where alts2 = map g alts
+                  g (Patt c vs, x) = let b = any (`Map.member` getI x) vs in (b, (Patt c vs, rep [(on,eApps (eCon c) (map eVar vs)) | b] x))
+                  g x = (False, x)
+
+        f (ECase _ on alts) | (ECon c, vs) <- fromEApps on = head $ concatMap (g c vs) alts ++ [error "simplifyExpr bougus case"]
+            where g c vs (PattAny,x) = [x]
+                  g c vs (Patt c2 vs2, x) = [rep (zip vs2 vs) x | c == c2]
+                  g c vs _ = []
+
+        f (EApp _ (EApp _ (EVar "($)") x) y) = f $ eApp x y
+
         f x = x
 
 
+        rep [] z = z
         rep xy z = substsWith f (Map.fromList xy) z
 
 {-
