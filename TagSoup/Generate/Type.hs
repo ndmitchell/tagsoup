@@ -13,14 +13,16 @@ import qualified Data.Map as Map
 
 type Var = String
 type Con = String
+type Fun = String
 
 
 type Prog = [Func]
 
-data Func = Func {funcName :: Var, funcArgs :: [Var], funcBody :: Expr}
+data Func = Func {funcName :: Fun, funcArgs :: [Var], funcBody :: Expr}
             deriving (Data,Typeable,Show)
 
 data Expr = ECon  Con
+          | EFun  Fun
           | ELit  Literal
           | EVar  Var
           | EApp  I Expr Expr
@@ -38,21 +40,26 @@ pattVars (Patt _ vs) = vs
 pattVars _ = []
 
 
-getFunc :: Prog -> Var -> Func
-getFunc prog name = head $ filter ((==) name . funcName) prog ++ error ("Couldn't find function " ++ name)
+getFunc :: Prog -> (Var -> Func)
+getFunc prog = \name -> fromMaybe (error $ "Couldn't find function " ++ name) $ func name
+    where func = getFuncMaybe prog
+
+getFuncMaybe :: Prog -> (Var -> Maybe Func)
+getFuncMaybe prog = \name -> Map.lookup name mp
+    where mp = Map.fromList $ map (funcName &&& id) prog
 
 
 -- the Expr is varNames is always undefined, just for a fast subst test
-newtype I = I {varCounts :: Map.Map Var Int}
-            deriving (Data,Typeable,Show,Eq)
+type I = Map.Map Var Int
 
 getI :: Expr -> Map.Map Var Int
 getI (ECon _) = Map.empty
 getI (ELit _) = Map.empty
+getI (EFun _) = Map.empty
 getI (EVar x) = Map.singleton x 1
-getI (EApp i _ _) = varCounts i
-getI (ECase i _ _) = varCounts i
-getI (ELet i _ _) = varCounts i
+getI (EApp i _ _) = i
+getI (ECase i _ _) = i
+getI (ELet i _ _) = i
 
 unionI = Map.unionWith (+)
 unionsI = Map.unionsWith (+)
@@ -60,13 +67,14 @@ minusI x [] = x
 minusI x (y:ys) = minusI (Map.delete y x) ys
 
 eCon x = ECon x
+eFun x = EFun x
 eLit x = ELit x
 eVar x = EVar x
-eApp x y = EApp (I $ getI x `unionI` getI y) x y
-eCase x y = ECase (I $ unionI (getI x) alts) x y
+eApp x y = EApp (getI x `unionI` getI y) x y
+eCase x y = ECase (unionI (getI x) alts) x y
     where alts = Map.unionsWith max [minusI (getI x) (pattVars p) | (p,x) <- y] 
 eLet [] y = y
-eLet x y = ELet (I $ unionI binds body) x y
+eLet x y = ELet (unionI binds body) x y
     where
         binds = unionsI $ map (getI . snd) x
         body = minusI (getI y) $ map fst x
@@ -109,3 +117,8 @@ freeVars = Map.keys . getI
 
 
 disjoint x y = null $ x `intersect` y
+
+
+-- normalise bound variables as best you can
+normalise :: Expr -> Expr
+normalise = id

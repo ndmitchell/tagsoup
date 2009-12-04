@@ -67,12 +67,17 @@ optimise (Module x1 x2 x3 x4 x5 x6 x7) = unlines $
         map ("    "++) (concatMap (lines . prettyPrint) $ output $ supercompile $ input $ mainFunc t m : decls)
         | t <- types, m <- modes, let [pb,wb,mb] = map show m]
     where
-        (decls,typedefs) = partition isDecl $ desugar x7
+        (decls,typedefs) = partition isDecl $ desugar $ prelude ++ x7
 
 
 mainFunc t [a,b,c] = fromParseResult $ parse $
     "main = \\x -> output (ParseOptions " ++ show a ++ " " ++ show b ++ " entData entAttrib " ++ show c ++ ") (parse (toString x))"
 
+prelude = map (fromParseResult . parse)
+    ["id x = x"
+    ,"seq x y = y"
+    ,"null x = case x of [] -> True ; _ -> False"
+    ,"not x = case x of True -> False; _ -> True"]
 
 isDecl PatBind{} = True
 isDecl FunBind{} = True

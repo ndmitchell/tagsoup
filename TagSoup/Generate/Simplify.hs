@@ -1,6 +1,6 @@
 {-# LANGUAGE PatternGuards #-}
 
-module TagSoup.Generate.Simplify(reduceArity, simplifyProg, simplifyExpr) where
+module TagSoup.Generate.Simplify(reduceArity, simplifyProg, simplifyExpr, forwarding) where
 
 import TagSoup.Generate.Type
 import Data.Generics.PlateData
@@ -26,7 +26,7 @@ simplifyExpr :: Expr -> Expr
 simplifyExpr = transform f
     where
         f (ELet _ xy z) | not $ null sub = f $ eLet keep $ rep sub z
-            where (sub,keep) = partition (flip linear z . fst) xy
+            where (sub,keep) = partition (\(x,y) -> linear x z || simple y) xy
 
         f (ECase _ on alts) | (PattAny,ECase _ on2 alts2) <- last alts, on == on2 = f $ eCase on (init alts ++ alts2)
 
@@ -40,7 +40,7 @@ simplifyExpr = transform f
                   g c vs (Patt c2 vs2, x) = [rep (zip vs2 vs) x | c == c2]
                   g c vs _ = []
 
-        f (EApp _ (EApp _ (EVar "($)") x) y) = f $ eApp x y
+        f (EApp _ (EApp _ (EFun "($)") x) y) = f $ eApp x y
 
         f x = x
 
@@ -48,6 +48,11 @@ simplifyExpr = transform f
         rep [] z = z
         rep xy z = substsWith f (Map.fromList xy) z
 
+
+simple EVar{} = True
+simple EFun{} = True
+simple ECon{} = True
+simple _ = False
 
 
 reduceArity :: Prog -> Prog
@@ -61,14 +66,14 @@ reduceArity prog = deleteArgs (Map.keys $ reduce mp) prog
             where x2 = Map.filter (\xs -> all (`Map.member` x) xs) x
 
 
-deleteArgs :: [(Var,Int)] -> Prog -> Prog
+deleteArgs :: [(Fun,Int)] -> Prog -> Prog
 deleteArgs xs = map f
     where
         mp = Map.unionsWith (++) [Map.singleton a [b] | (a,b) <- xs]
 
         f (Func name args bod) = Func name (del name args) $ g bod
 
-        g x | (EVar y, z) <- fromEApps x = eApps (EVar y) (del y $ map (descend g) z)
+        g x | (EFun y, z) <- fromEApps x = eApps (EFun y) (del y $ map (descend g) z)
         g x = descend g x
 
         del name xs = [x | (i,x) <- zip [0..] xs, i `notElem` ys]
@@ -76,20 +81,21 @@ deleteArgs xs = map f
 
 
 -- what is the minimum calling arity of each function
-minArity :: Prog -> Map.Map Var Int
+minArity :: Prog -> Map.Map Fun Int
 minArity prog = Map.filterWithKey (\k v -> v /= 0 && k `elem` map funcName prog) $ Map.unionsWith min $ map f $ childrenBi prog
     where
         f x = Map.unionsWith min $ case fromEApps x of
-            (EVar a, b) -> Map.singleton a (length b) : map f (concatMap children b)
+            (EFun a, b) -> Map.singleton a (length b) : map f (concatMap children b)
             _ -> map f $ children x
 
 
 -- which functions get given this argument, Nothing if it's used directly
-callers :: Var -> Expr -> Maybe [(Var,Int)]
-callers v x | (EVar y, z) <- fromEApps x = comb $
-    (if v == y then Nothing else Just []) :
+callers :: Var -> Expr -> Maybe [(Fun,Int)]
+callers v x | (EFun y, z) <- fromEApps x = comb $
     (Just $ map ((,) y) $ findIndices (== EVar v) z) :
     map (callers v) (concatMap children z)
+
+callers v (EVar y) = if v == y then Nothing else Just []
 
 callers v (ELet _ xy z) = comb $
     (if v `elem` map fst xy then Just [] else callers v z) :
@@ -99,10 +105,26 @@ callers v (ECase _ on alts) = comb $
     (callers v on) :
     [if v `elem` pattVars a then Just [] else callers v b | (a,b) <- alts]
 
-callers v _ = Just []
+callers v x = comb $ map (callers v) $ children x
 
 comb [] = Just []
 comb (x:xs) = both x $ comb xs
 
 both (Just a) (Just b) = Just $ a ++ b
 both _ _ = Nothing
+
+
+
+-- if a is just a synonym for b, replace every occurence of a with b
+-- doesn't work if multiple functions are just _|_
+forwarding  :: Prog -> Prog
+forwarding prog = filter (not . flip Map.member fwd . funcName) $ transformBi f prog
+    where
+        f (EFun x) = case Map.lookup x fwd of
+                         Nothing -> EFun x
+                         Just y -> f $ EFun y
+        f x = x
+
+        fwd = Map.fromList $ concatMap g prog
+        g (Func name args bod) | (EFun x,y) <- fromEApps bod, map eVar args == y = [(name,x)]
+        g _ = []

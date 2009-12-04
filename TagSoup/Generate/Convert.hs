@@ -1,28 +1,34 @@
 
-module TagSoup.Generate.Convert(input,output) where
+module TagSoup.Generate.Convert(input,output,showProg,showFunc,showExpr) where
 
 import TagSoup.Generate.Type
 import TagSoup.Generate.HSE
 import Data.List
 
 
+showProg = unlines . map showFunc
+showFunc = prettyPrint . outFunc
+showExpr = prettyPrint . outExpr
+
+
 input :: [Decl] -> [Func]
-input = map inFunc
+input xs = map (inFunc names) xs
+    where names = [name | PatBind _ (PVar (Ident name)) _ _ _ <- xs]
 
-inFunc (PatBind _ (PVar (Ident name)) Nothing (UnGuardedRhs bod) (BDecls [])) =
+inFunc names (PatBind _ (PVar (Ident name)) Nothing (UnGuardedRhs bod) (BDecls [])) =
     case bod of
-        Lambda _ ps x -> Func name (map fromPVar ps) (inExpr x)
-        _ -> Func name [] (inExpr bod)
-inFunc x = error $ show x
+        Lambda _ ps x -> Func name (map fromPVar ps) (inExpr names x)
+        _ -> Func name [] (inExpr names bod)
+inFunc names x = error $ show x
 
-inExpr (Paren x) = inExpr x
-inExpr (Var (UnQual (Ident x))) = eVar x
-inExpr (Con (UnQual (Ident x))) = eCon x
-inExpr (App x y) = eApp (inExpr x) (inExpr y)
-inExpr (Let (BDecls xs) y) = unrecLet [(x,inExpr y) | PatBind _ (PVar (Ident x)) _ (UnGuardedRhs y) (BDecls []) <- xs] $ inExpr y
-inExpr (Case x ys) = eCase (inExpr x) [(inPatt p, inExpr x) | Alt _ p (UnGuardedAlt x) _ <- ys]
-inExpr (Lit x) = eLit x
-inExpr x = error $ show ("inExpr",x)
+inExpr names (Paren x) = inExpr names x
+inExpr names (Var (UnQual (Ident x))) = if x `elem` names then eFun x else eVar x
+inExpr names (Con (UnQual (Ident x))) = eCon x
+inExpr names (App x y) = eApp (inExpr names x) (inExpr names y)
+inExpr names (Let (BDecls xs) y) = unrecLet [(x,inExpr names y) | PatBind _ (PVar (Ident x)) _ (UnGuardedRhs y) (BDecls []) <- xs] $ inExpr names y
+inExpr names (Case x ys) = eCase (inExpr names x) [(inPatt p, inExpr names x) | Alt _ p (UnGuardedAlt x) _ <- ys]
+inExpr names (Lit x) = eLit x
+inExpr names x = error $ show ("inExpr",x)
 
 
 unrecLet :: [(String, Expr)] -> Expr -> Expr
@@ -48,6 +54,7 @@ outFunc (Func x y z) = PatBind sl (pvar x) Nothing (UnGuardedRhs $ (if null y th
 outExpr (ECon x) = con x
 outExpr (ELit x) = Lit x
 outExpr (EVar x) = var x
+outExpr (EFun x) = var x
 outExpr (EApp _ x y) = Paren $ App (outExpr x) (outExpr y)
 outExpr (ECase _ on alts) = Paren $ Case (outExpr on) [Alt sl (outPatt p) (UnGuardedAlt $ outExpr x) (BDecls []) | (p,x) <- alts]
 outExpr (ELet _ xs y) = Paren $ Let (BDecls [PatBind sl (pvar a) Nothing (UnGuardedRhs $ outExpr b) (BDecls []) | (a,b) <- xs]) (outExpr y)
@@ -69,3 +76,6 @@ data Expr = EApp Expr Expr
 
 
 fromPVar (PVar (Ident x)) = x
+
+
+
