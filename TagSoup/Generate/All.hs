@@ -48,7 +48,10 @@ optimise (Module x1 x2 x3 x4 x5 x6 x7) = unlines $
     ,"type BS = BS.ByteString"
     ,"type EntData str = str -> [Tag str]"
     ,"type EntAttrib str = (str,Bool) -> (str,[Tag str])"
-    ,"patternMatchFail = error \"Pattern match fail\""] ++
+    ,"patternMatchFail = error \"Pattern match fail\""
+    ,"primEq x y = x == y"
+    ,"primGeq x y = x >= y"
+    ,"primLeq x y = x <= y"] ++
     map prettyPrint typedefs ++
     ["{-# NOINLINE parseTagsOptions #-}"
     ,"parseTagsOptions :: StringLike str => ParseOptions str -> str -> [Tag str]"] ++
@@ -77,7 +80,17 @@ prelude = map (fromParseResult . parse)
     ["id x = x"
     ,"seq x y = y"
     ,"null x = case x of [] -> True ; _ -> False"
-    ,"not x = case x of True -> False; _ -> True"]
+    ,"not x = case x of True -> False; _ -> True"
+    ,"dol x y = x y"
+    ,"dot f g x = f (g x)"
+    ,"opOr x y = if x then True else y"
+    ,"opAnd x y = if x then y else False"
+    ,"opEq x y = primEq x y"
+    ,"opGeq x y = primGeq x y"
+    ,"opLeq x y = primLeq x y"
+    ,"opPlusPlus x y = case x of [] -> y ; z:zs -> z : opPlusPlus zs y"
+    ,"opStarStarStar f g x = (f (fst x), g (snd x))"]
+
 
 isDecl PatBind{} = True
 isDecl FunBind{} = True
@@ -92,7 +105,7 @@ isDecl _ = False
 desugar :: [Decl] -> [Decl]
 desugar =
     Desugar.singleCase ["S","(,)","(,,)","(,,,)"] .
-    Desugar.core2 . Desugar.irrefutable . Desugar.untyped . expandAmp . expandS .
+    Desugar.core2 . Desugar.irrefutable . Desugar.untyped . expandOps . expandAmp . expandS .
     drop (length recordTypes) . Desugar.records . (recordTypes++)
 
 
@@ -133,3 +146,19 @@ expandS = transformBi fRec . transformBi fPat . descendBi fExp
         fPat x = x
         fRec (RecDecl s (x:xs)) | prettyPrint s == "S" = RecDecl s xs
         fRec x = x
+
+
+expandOps :: [Decl] -> [Decl]
+expandOps = transformBi f
+    where
+        f (Symbol "$") = Ident "dol"
+        f (Symbol ".") = Ident "dot"
+        f (Symbol "||") = Ident "opOr"
+        f (Symbol "&&") = Ident "opAnd"
+        f (Symbol "==") = Ident "opEq"
+        f (Symbol ">=") = Ident "opGeq"
+        f (Symbol "<=") = Ident "opLeq"
+        f (Symbol "++") = Ident "opPlusPlus"
+        f (Symbol "***") = Ident "opStarStarStar"
+        f (Symbol x) = error $ "Unknown symbol: " ++ x
+        f x = x

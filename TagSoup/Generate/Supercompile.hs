@@ -22,7 +22,7 @@ supercompile = {- supero . -} simplifyProg . reduceArity . forwarding
 
 supero :: Prog -> Prog
 supero prog = unsafePerformIO $ do
-    writeFile "test.log" $ showExpr $ funcBody $ func "main"
+    writeFile "test.log" $ showExpr $ f $ funcBody $ func "main"
     error "done"
     where
         func = getFunc prog
