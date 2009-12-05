@@ -274,7 +274,7 @@ cdataSection S{..} = pos $ case hd of
 -- Change from spec: this is reponsible for writing '&' if nothing is to be written
 charRef :: Parser -> Bool -> Maybe Char -> S -> [Out]
 charRef resume att end S{..} = pos $ case hd of
-    _ | eof || hd `elem` "\t\n\f <&" || Just hd == end -> '&' & resume s
+    _ | eof || hd `elem` "\t\n\f <&" || maybe False (== hd) end -> '&' & resume s
     '#' -> charRefNum resume s tl
     _ -> charRefAlpha resume att s
 
