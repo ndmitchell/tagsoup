@@ -9,6 +9,9 @@ import Data.Maybe
 import Data.List
 import Data.Generics.PlateData
 import Control.Arrow
+import Control.Monad
+import Control.Monad.State
+import Control.Monad.Identity
 import qualified Data.Map as Map
 
 type Var = String
@@ -89,19 +92,19 @@ fromEApps x = (x, [])
 
 
 subst :: Var -> Expr -> Expr -> Expr
-subst v b = substsWith id $ Map.singleton v b
+subst v b = runIdentity . substsWith return (Map.singleton v b)
 
 
 substs :: [(Var,Expr)] -> Expr -> Expr
-substs bs = substsWith id (Map.fromList bs)
+substs bs = runIdentity . substsWith return (Map.fromList bs)
 
-substsWith :: (Expr -> Expr) -> Map.Map Var Expr -> Expr -> Expr
-substsWith op mp x | Map.null mp2 = x
-                   | otherwise = case x of
-        EVar v -> op $ Map.findWithDefault (error "substs logic error") v mp2 -- must be there, or would have gone the empty route
-        EApp _ x y -> op $ eApp (f mp2 x) (f mp2 y)
-        ECase _ x y -> op $ eCase (f mp2 x) [(a, f (minusI mp2 $ pattVars a) b) | (a,b) <- y]
-        ELet _ xy z -> op $ eLet (map (second $ f mp2) xy) (f (minusI mp2 $ map fst xy) z)
+substsWith :: Monad m => (Expr -> m Expr) -> Map.Map Var Expr -> Expr -> m Expr
+substsWith op mp x | Map.null mp2 = return x
+                   | otherwise = op =<< case x of
+        EVar v -> return $ Map.findWithDefault (error "substs logic error") v mp2 -- must be there, or would have gone the empty route
+        EApp _ x y -> liftM2 eApp (f mp2 x) (f mp2 y)
+        ECase _ x y -> liftM2 eCase (f mp2 x) $ sequence [liftM ((,) a) $ f (minusI mp2 $ pattVars a) b | (a,b) <- y]
+        ELet _ xy z -> liftM2 eLet (mapM (\(x,y) -> liftM ((,) x) $ f mp2 y) xy) (f (minusI mp2 $ map fst xy) z)
         _ -> error "substs logic error (2)"
     where mp2 = mp `Map.intersection` getI x
           f = substsWith op
@@ -119,6 +122,50 @@ freeVars = Map.keys . getI
 disjoint x y = null $ x `intersect` y
 
 
--- normalise bound variables as best you can
-normalise :: Expr -> Expr
-normalise = id
+-- normalise bound variables and make them all unique
+normalise :: Func -> Unique Func
+normalise (Func name args bod) = do
+    vs <- freshN (length args)
+    fmap (Func name vs) $ f (Map.fromList $ zip args vs) bod
+    where
+        f mp (EVar v) = return $ eVar $ Map.findWithDefault v v mp
+        f mp (EApp _ x y) = liftM2 eApp (f mp x) (f mp y)
+        f mp (ECase _ x y) = do
+            x <- f mp x
+            y <- mapM (g mp) y
+            return $ eCase x y
+        f mp (ELet _ xy z) = do
+            let (xs,ys) = unzip xy
+            vs <- freshN (length xy)
+            xy <- fmap (zip vs) $ mapM (f mp) ys
+            z <- f (Map.fromList (zip xs vs) `Map.union` mp) z
+            return $ eLet xy z
+        f mp x = return x
+
+        g mp (Patt c vs, x) = do
+            vs2 <- freshN (length vs)
+            fmap ((,) (Patt c vs2)) $ f (Map.fromList (zip vs vs2) `Map.union` mp) x
+        g mp (p,x) = fmap ((,) p) $ f mp x
+
+
+type Unique a = State Int a
+
+unique :: Unique a -> a
+unique = flip evalState 1
+
+fresh :: Unique String
+fresh = do
+    i <- get
+    put $ i+1
+    return $ "v" ++ show i
+
+freshN :: Int -> Unique [String]
+freshN n = replicateM n fresh
+
+fromUnique :: Unique a -> (Int,a)
+fromUnique = (\(x,y) -> (y,x)) . flip runState 1
+
+toUnique :: Int -> Unique a -> Unique a
+toUnique i x = do
+    put i
+    x

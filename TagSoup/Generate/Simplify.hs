@@ -19,33 +19,36 @@ import qualified Data.Map as Map
 
 
 simplifyProg :: Prog -> Prog
-simplifyProg = descendBi simplifyExpr
+simplifyProg = descendBi (unique . simplifyExpr)
 
 
-simplifyExpr :: Expr -> Expr
-simplifyExpr = transform f
+simplifyExpr :: Expr -> Unique Expr
+simplifyExpr = transformM f
     where
-        f (ELet _ xy z) | not $ null sub = f $ eLet keep $ rep sub z
+        f (ELet _ xy z) | not $ null sub = f . eLet keep =<< rep sub z
             where (sub,keep) = partition (\(x,y) -> linear x z || simple y) xy
+
+        -- only safe because variables are unique
+        f (ECase _ (ELet _ xy z) alts) = f . eLet xy =<< f (eCase z alts)
 
         f (ECase _ on alts) | (PattAny,ECase _ on2 alts2) <- last alts, on == on2 = f $ eCase on (init alts ++ alts2)
 
-        f (ECase _ (EVar on) alts) | any fst alts2 = eCase (EVar on) $ map snd alts2
+        f (ECase _ (EVar on) alts) | any fst alts2 = fmap (eCase (EVar on)) $ sequence $ map snd alts2
             where alts2 = map g alts
-                  g (Patt c vs, x) = let b = any (`Map.member` getI x) vs in (b, (Patt c vs, rep [(on,eApps (eCon c) (map eVar vs)) | b] x))
-                  g x = (False, x)
+                  g (Patt c vs, x) = let b = any (`Map.member` getI x) vs in (b, fmap ((,) (Patt c vs)) $ rep [(on,eApps (eCon c) (map eVar vs)) | b] x)
+                  g x = (False, return x)
 
         f (ECase _ on alts) | (ECon c, vs) <- fromEApps on = head $ concatMap (g c vs) alts ++ [error "simplifyExpr bougus case"]
-            where g c vs (PattAny,x) = [x]
+            where g c vs (PattAny,x) = [return x]
                   g c vs (Patt c2 vs2, x) = [rep (zip vs2 vs) x | c == c2]
                   g c vs _ = []
 
         f (EApp _ (EApp _ (EFun "($)") x) y) = f $ eApp x y
 
-        f x = x
+        f x = return x
 
 
-        rep [] z = z
+        rep [] z = return z
         rep xy z = substsWith f (Map.fromList xy) z
 
 
