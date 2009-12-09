@@ -58,6 +58,7 @@ outExpr (EFun x) = var x
 outExpr (EApp _ x y) = Paren $ App (outExpr x) (outExpr y)
 outExpr (ECase _ on alts) = Paren $ Case (outExpr on) [Alt sl (outPatt p) (UnGuardedAlt $ outExpr x) (BDecls []) | (p,x) <- alts]
 outExpr (ELet _ xs y) = Paren $ Let (BDecls [PatBind sl (pvar a) Nothing (UnGuardedRhs $ outExpr b) (BDecls []) | (a,b) <- xs]) (outExpr y)
+outExpr (ELam _ v x) = Lambda sl [pvar v] $ outExpr x
 
 outPatt (Patt c vs) = PApp (UnQual $ Ident c) (map pvar vs)
 outPatt PattAny = PWildCard
