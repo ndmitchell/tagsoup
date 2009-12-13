@@ -43,7 +43,7 @@ simplifyExpr = transformM f
                   g c vs (Patt c2 vs2, x) = [rep (zip vs2 vs) x | c == c2]
                   g c vs _ = []
 
-        f (EApp _ (EApp _ (EFun "($)") x) y) = f $ eApp x y
+        f (ECase _ on [(Patt "(:)" vs,x), (PattAny,y)]) = f $ eCase on [(Patt "(:)" vs,x), (Patt "[]" [],y)]
 
         f x = return x
 
