@@ -167,6 +167,10 @@ normaliseExpr = fmap funcBody . normalise . Func "" []
 
 type Unique a = State Int a
 
+
+runUnique :: Unique a -> Int -> (a, Int)
+runUnique = runState
+
 unique :: Unique a -> a
 unique = flip evalState 1
 

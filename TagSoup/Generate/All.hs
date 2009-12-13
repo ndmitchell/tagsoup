@@ -67,7 +67,7 @@ optimise (Module x1 x2 x3 x4 x5 x6 x7) = unlines $
         ,"fp"++t++showMode m++ " :: EntData " ++ t ++ " -> EntAttrib " ++ t ++ " -> " ++ t ++ " -> [Tag " ++ t ++ "]"
         ,"fp"++t++showMode m++ " entData entAttrib x = main x"
         ,"    where"] ++
-        map ("    "++) (concatMap (lines . prettyPrint) $ output $ supercompile $ input $ mainFunc t m : decls)
+        map ("    "++) (concatMap (lines . prettyPrint) $ output $ supercompiler $ input $ mainFunc t m : decls)
         | t <- types, m <- modes, let [pb,wb,mb] = map show m]
     where
         (decls,typedefs) = partition isDecl $ desugar $ prelude ++ x7
@@ -79,8 +79,9 @@ mainFunc t [a,b,c] = fromParseResult $ parse $
 prelude = map (fromParseResult . parse)
     ["id x = x"
     ,"seq x y = y"
-    ,"null x = case x of [] -> True ; _ -> False"
+    ,"null x = case x of z:zs -> False ; _ -> True"
     ,"not x = case x of True -> False; _ -> True"
+    ,"head x = case x of z:zs -> z ; _ -> error \"head on empty\" ; "
     ,"dol x y = x y"
     ,"dot f g x = f (g x)"
     ,"opOr x y = if x then True else y"
@@ -89,7 +90,10 @@ prelude = map (fromParseResult . parse)
     ,"opGeq x y = primGeq x y"
     ,"opLeq x y = primLeq x y"
     ,"opPlusPlus x y = case x of [] -> y ; z:zs -> z : opPlusPlus zs y"
-    ,"opStarStarStar f g x = (f (fst x), g (snd x))"]
+    ,"opStarStarStar f g x = (f (fst x), g (snd x))"
+    -- specific to String!
+    ,"toString x = x"
+    ]
 
 
 isDecl PatBind{} = True
