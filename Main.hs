@@ -5,7 +5,6 @@ import System.Environment
 import TagSoup.Sample
 import TagSoup.Test
 import TagSoup.Benchmark
-import TagSoup.Generate.All
 import Data.Char(toLower)
 import Text.HTML.TagSoup -- just to make it easier to use in GHCi
 
@@ -42,7 +41,6 @@ actions = [("test","Run the test suite",Left test)
           ,("time","Current time",Left currentTime)
           ,("google","Google Tech News",Left googleTechNews)
           ,("sequence","Creators on sequence.complete.org",Left rssCreators)
-          ,("generate","Generate parsers",Left generate)
           ,("help","This help message",Left helpMsg)
           ]
 
