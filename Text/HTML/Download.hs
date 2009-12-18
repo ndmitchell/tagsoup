@@ -24,6 +24,9 @@ import System.IO.Unsafe
 import Network
 import Data.List
 
+{-# DEPRECATED openItem, openURL "Use package HTTP, module Network.HTTP, simpleHTTP . getRequest" #-}
+
+
 -- | This function opens a URL on the internet.
 --   Any @http:\/\/@ prefix is ignored.
 --

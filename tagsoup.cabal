@@ -50,7 +50,7 @@ executable tagsoup
         buildable: True
     else
         buildable: False
-    build-depends: QuickCheck == 2.1.*, time, deepseq == 1.1.0.0
+    build-depends: QuickCheck == 2.1.*, time, deepseq == 1.1.0.0, HTTP
 
     main-is: Main.hs
     other-modules:
