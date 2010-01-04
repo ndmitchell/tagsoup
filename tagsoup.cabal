@@ -1,4 +1,4 @@
-cabal-version:  >= 1.2
+cabal-version:  >= 1.6
 name:           tagsoup
 version:        0.8
 copyright:      Neil Mitchell 2006-2009
