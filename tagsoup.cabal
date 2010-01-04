@@ -35,6 +35,7 @@ library
         Text.HTML.TagSoup.Tree
         Text.StringLike
     other-modules:
+        Text.HTML.TagSoup.Generated
         Text.HTML.TagSoup.Implementation
         Text.HTML.TagSoup.Manual
         Text.HTML.TagSoup.Match
