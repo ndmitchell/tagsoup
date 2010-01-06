@@ -83,22 +83,12 @@ p.rule {
 <h3>Acknowledgements</h3>
 
 <p>
-    Thanks to Mike Dodds for persuading me to write this up as a library. Thanks to many people for debugging and code contributions, including: Gleb Alexeev, Ketil Malde, Conrad Parker, Henning Thielemann, Dino Morelli, Emily Mitchell.
+    Thanks to Mike Dodds for persuading me to write this up as a library. Thanks to many people for debugging and code contributions, including: Gleb Alexeev, Ketil Malde, Conrad Parker, Henning Thielemann, Dino Morelli, Emily Mitchell, Gwern Branwen.
 </p>
 
 <h3>Version History</h3>
 
-<h4>0.7</h4>
-<ul>
-    <li>Rewrite the parser using lazy parser combinators.</li>
-    <li>Generalise the parser to work on any string type, including <tt>ByteString</tt>.</li>
-</ul>
-<h4>0.4-0.6</h4>
-<ul>
-    <li>Addition of <tt>Text.HTML.TagSoup.Tree</tt> and <tt>Text.HTML.TagSoup.Render</tt>. Both these modules need review, so if they are useful to you please do send suggestions and comments.</li>
-    <li>In <tt>Text.HTML.TagSoup.Parser</tt>, the <tt>Options</tt> type has been renamed to <tt>ParseOptions</tt>.</li>
-    <li>In <tt>Text.HTML.TagSoup.Parser</tt>, the <tt>options</tt> function has been renamed to <tt>parseOptions</tt>.</li>
-</ul>
+<p>A changelog is kept at <a href="http://community.haskell.org/~ndm/darcs/tagsoup/CHANGES.txt">http://community.haskell.org/~ndm/darcs/tagsoup/CHANGES.txt</a>.</p>
 
 <h2>Potential Bugs</h2>
 
@@ -106,11 +96,8 @@ p.rule {
     There are two things that may go wrong with these examples:
 </p>
 <ul>
-    <li>
-        <i>The Websites being scraped may change.</i> There is nothing I can do about this, but if you suspect this is the case let me know, and I'll update the examples and tutorials. I have already done so once or twice, its only a few minutes work.
-    </li>
-    <li>
-        <i>The <tt>openURL</tt> method may not work.</i> This happens quite regularly, and depending on your server, proxies and direction of the wind, they may not work. The solution is to use <tt>wget</tt> to download the page locally, then use <tt>readFile</tt> instead. Hopefully a decent Haskell HTTP library will emerge, and that can be used instead.
+<li><i>The Websites being scraped may change.</i> There is nothing I can do about this, but if you suspect this is the case let me know, and I'll update the examples and tutorials. I have already done so once or twice, its only a few minutes work.    </li>
+    <li><i>The <tt>openURL</tt> method may not work.</i> This happens quite regularly, and depending on your server, proxies and direction of the wind, they may not work. The solution is to use <tt>wget</tt> to download the page locally, then use <tt>readFile</tt> instead. Hopefully a decent Haskell HTTP library will emerge, and that can be used instead.
     </li>
 </ul>
 
@@ -144,15 +131,17 @@ title="HaskellWiki:Copyrights"&gt;a simple permissive license&lt;/a&gt;.&lt;/p&g
     Scrape from what the page returns, not what a browser renders, or what view-source gives.
 </p>
 <p>
-    Some web servers will serve different content depending on the user agent, some browsers will have scripting modify their displayed HTML, some pages will display differently depending on your cookies. Before you can start to figure out how to start scraping, first decide what the input to your program will be. There are three ways to get the page as it will appear to your program.
+    Some web servers will serve different content depending on the user agent, some browsers will have scripting modify their displayed HTML, some pages will display differently depending on your cookies. Before you can start to figure out how to start scraping, first decide what the input to your program will be. There are two ways to get the page as it will appear to your program.
 </p>
 
-<h4>Using <tt>Text.Html.Download</tt></h4>
+<h4>Using the HTTP package</h4>
 <p>
-    Tagsoup provides a module <tt>Text.Html.Download</tt>, which contains <tt>openURL</tt>.
+	We can write a simple HTTP downloader with using the <a href="http://hackage.haskell.org/package/HTTP">HTTP package</a>:
 </p>
 <pre>
-import Text.HTML.Download
+import Network.HTTP
+
+openURL x = getResponseBody =<< simpleHTTP (getRequest x)
 
 main = do src <- openURL "http://haskell.org/haskellwiki/Haskell"
           writeFile "temp.htm" src
@@ -169,20 +158,6 @@ main = do src <- openURL "http://haskell.org/haskellwiki/Haskell"
 $ tagsoup grab http://haskell.org/haskellwiki/Haskell > temp.htm
 </pre>
 
-<h4>Using <tt>Network.HTTP</tt></h4>
-<p>
-    An alternative fragment of text for reading in the original web page, using the network library, can be written as:
-</p>
-<pre>
-import qualified Data.ByteString.Lazy.Char8 as BS
-import Network.HTTP (rspBody)
-import Network.HTTP.UserAgent as UA
-
-main :: IO ()
-main = do rsp <- UA.get "http://haskell.org/haskellwiki/Haskell"
-          let src = BS.unpack $ rspBody rsp
-          writeFile "temp.htm" src
-</pre>
 
 <h3>Finding the Information</h3>
 
@@ -201,7 +176,7 @@ main = do rsp <- UA.get "http://haskell.org/haskellwiki/Haskell"
 </p>
 <pre>
 haskellHitCount = do
-    tags <- liftM parseTags $ openURL "http://haskell.org/haskellwiki/Haskell"
+    tags <- fmap parseTags $ openURL "http://haskell.org/haskellwiki/Haskell"
     let count = fromFooter $ head $ sections (~== "&lt;div class=printfooter&gt;") tags
     putStrLn $ "haskell.org has been hit " ++ show count ++ " times"
 </pre>
@@ -236,7 +211,7 @@ fromFooter x = read (filter isDigit num) :: Int
 <h2>Simon's Papers</h2>
 
 <p>
-    Our next very important task is to extract a list of all Simon Peyton Jones' recent research papers off his <a href="http://research.microsoft.com/~simonpj/">home page</a>. The largest change to the previous example is that now we desire a list of papers, rather than just a single result.
+    Our next very important task is to extract a list of all Simon Peyton Jones' recent research papers off his <a href="http://research.microsoft.com/en-us/people/simonpj/">home page</a>. The largest change to the previous example is that now we desire a list of papers, rather than just a single result.
 </p>
 <p>
     As before we first start by writing a simple program that downloads the appropriate page, and look for common patterns. This time we want to look for all patterns which occur every time a paper is mentioned, but no where else. The other difference from last time is that previous we grabbed an automatically generated piece of information - this time the information is entered in a more freeform way by a human.
@@ -245,17 +220,17 @@ fromFooter x = read (filter isDigit num) :: Int
     First we spot that the page helpfully has named anchors, there is a current work anchor, and after that is one for Haskell. We can extract all the information between them with a simple <tt>take</tt>/<tt>drop</tt> pair:
 </p>
 <pre>
-takeWhile (~/= "&lt;a name=haskell&gt;") $
-drop 5 $ dropWhile (~/= "&lt;a name=current&gt;") tags
+takeWhile (~/= "&lt;A name=haskell&gt;") $
+drop 5 $ dropWhile (~/= "&lt;A name=current&gt;") tags
 </pre>
 <p>
     This code drops until you get to the "current" section, then takes until you get to the "haskell" section, ensuring we only look at the important bit of the page. Next we want to find all hyperlinks within this section:
 </p>
 <pre>
-map f $ sections (~== "&lt;a&gt;") $ ...
+map f $ sections (~== "&lt;A&gt;") $ ...
 </pre>
 <p>
-    Remember that the function to select all tags with name "a" could have been written as <tt>(~== TagOpen "a" [])</tt>, or alternatively <tt>isTagOpenName "a"</tt>. Afterwards we map each item with an <tt>f</tt> function. This function needs to take the tags starting just after the link, and find the text inside the link.
+    Remember that the function to select all tags with name "A" could have been written as <tt>(~== TagOpen "A" [])</tt>, or alternatively <tt>isTagOpenName "A"</tt>. Afterwards we map each item with an <tt>f</tt> function. This function needs to take the tags starting just after the link, and find the text inside the link.
 </p>
 <pre>
 f = dequote . unwords . words . fromTagText . head . filter isTagText
@@ -269,10 +244,10 @@ f = dequote . unwords . words . fromTagText . head . filter isTagText
 <pre>
 spjPapers :: IO ()
 spjPapers = do
-        tags <- liftM parseTags $ openURL "http://research.microsoft.com/~simonpj/"
-        let links = map f $ sections (~== "&lt;a&gt;") $
-                    takeWhile (~/= "&lt;a name=haskell&gt;") $
-                    drop 5 $ dropWhile (~/= "&lt;a name=current&gt;") tags
+        tags <- fmap parseTags $ openURL "http://research.microsoft.com/en-us/people/simonpj/"
+        let links = map f $ sections (~== "&lt;A&gt;") $
+                    takeWhile (~/= "&lt;A name=haskell&gt;") $
+                    drop 5 $ dropWhile (~/= "&lt;A name=current&gt;") tags
         putStr $ unlines links
     where
         f :: [Tag] -> String
@@ -294,7 +269,7 @@ spjPapers = do
 <pre>
 ndmPapers :: IO ()
 ndmPapers = do
-        tags <- liftM parseTags $ openURL "http://community.haskell.org/~ndm/downloads/"
+        tags <- fmap parseTags $ openURL "http://community.haskell.org/~ndm/downloads/"
         let papers = map f $ sections (~== "&lt;li class=paper&gt;") tags
         putStr $ unlines papers
     where
@@ -307,7 +282,7 @@ ndmPapers = do
 <pre>
 currentTime :: IO ()
 currentTime = do
-        tags <- liftM parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
+        tags <- fmap parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
         let time = fromTagText (dropWhile (~/= "&lt;strong id=ct&gt;") tags !! 1)
         putStrLn time
 </pre>
