@@ -9,14 +9,14 @@ license:        BSD3
 category:       XML
 license-file:   LICENSE
 build-type:     Simple
-synopsis:       Parsing and extracting information from (possibly malformed) HTML documents
+synopsis:       Parsing and extracting information from (possibly malformed) HTML/XML documents
 description:
-    TagSoup is a library for extracting information out of unstructured HTML code,
-    sometimes known as tag-soup. The HTML does not have to be well formed, or render
-    properly within any particular framework. This library is for situations where
-    the author of the HTML is not cooperating with the person trying to extract the
-    information, but is also not trying to hide the information. The parser is based
-    on the HTML 5 specification.
+    TagSoup is a library for parsing HTML/XML. It supports the HTML 5 specification,
+    and can be used to parse either well-formed XML, or unstructured and malformed HTML
+    from the web. The library also provides useful functions to extract information
+    from an HTML document, making it ideal for screen-scraping.
+    .
+    Users should start from the "Text.HTML.TagSoup" module.
 extra-source-files:
     tagsoup.htm
 
