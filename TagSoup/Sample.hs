@@ -22,7 +22,7 @@ parse :: String -> IO ()
 parse x = openItem x >>= putStr . show2 . parseTags
     where
         show2 [] = "[]"
-        show2 xs = "[" ++ concat (intersperseNotBroken "\n," $ map show xs) ++ "\n]"
+        show2 xs = "[" ++ concat (intersperseNotBroken "\n," $ map show xs) ++ "\n]\n"
 
 
 -- the standard intersperse has a strictness bug which sucks!
