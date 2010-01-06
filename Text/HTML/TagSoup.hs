@@ -1,26 +1,18 @@
 {-# LANGUAGE FlexibleInstances, PatternGuards #-}
 
 {-|
-    Module      :  Text.HTML.TagSoup
-    Copyright   :  (c) Neil Mitchell 2006-2009
-    License     :  BSD-style
+    This module is for parsing HTML/XML. It supports the HTML 5 specification,
+    and can be used to parse either well-formed XML, or unstructured and malformed HTML
+    from the web. The module also provides useful functions to extract information
+    from an HTML document, making it ideal for screen-scraping.
 
-    Maintainer  :  http://community.haskell.org/~ndm/
-    Stability   :  unstable
-    Portability :  portable
-
-    This module is for extracting information out of unstructured HTML code,
-    sometimes known as tag-soup. This is for situations where the author of
-    the HTML is not cooperating with the person trying to extract the information,
-    but is also not trying to hide the information.
-
-    The standard practice is to parse a String to 'Tag String's using 'parseTags',
+    The standard practice is to parse a 'String' to @[@'Tag' 'String'@]@ using 'parseTags',
     then operate upon it to extract the necessary information.
 -}
 
 module Text.HTML.TagSoup(
     -- * Data structures and parsing
-    Tag(..), Attribute,
+    Tag(..), Row, Column, Attribute,
     module Text.HTML.TagSoup.Parser,
     module Text.HTML.TagSoup.Render,
     canonicalizeTags,

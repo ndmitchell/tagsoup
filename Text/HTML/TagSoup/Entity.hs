@@ -1,4 +1,5 @@
--- this should be in Text.HTML but then we provoke name clashes
+-- | This module converts between HTML/XML entities (i.e. @&amp;@) and
+--   the characters they represent.
 module Text.HTML.TagSoup.Entity(
     lookupEntity, lookupNamedEntity, lookupNumericEntity,
     escapeXMLChar,

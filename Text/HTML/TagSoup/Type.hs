@@ -3,7 +3,7 @@
 
 module Text.HTML.TagSoup.Type(
     -- * Data structures and parsing
-    Tag(..), Attribute, Row, Column,
+    StringLike, Tag(..), Attribute, Row, Column,
     
     -- * Position manipulation
     Position(..), tagPosition, nullPosition, positionChar, positionString,
@@ -28,7 +28,10 @@ import Data.Data(Data, Typeable)
 -- | An HTML attribute @id=\"name\"@ generates @(\"id\",\"name\")@
 type Attribute str = (str,str)
 
+-- | The row/line of a position, starting at 1
 type Row = Int
+
+-- | The column of a position, starting at 1
 type Column = Int
 
 
@@ -52,8 +55,8 @@ tagPosition :: Position -> Tag str
 tagPosition (Position r c) = TagPosition r c
 
 
--- | An HTML element, a document is @[Tag]@.
---   There is no requirement for 'TagOpen' and 'TagClose' to match
+-- | An HTML element, a document is @[Tag str]@.
+--   There is no requirement for 'TagOpen' and 'TagClose' to match.
 data Tag str =
      TagOpen str [Attribute str]  -- ^ An open tag with 'Attribute's in their original order.
    | TagClose str                 -- ^ A closing tag

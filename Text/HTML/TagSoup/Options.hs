@@ -12,12 +12,13 @@ data ParseOptions str = ParseOptions
     {optTagPosition :: Bool -- ^ Should 'TagPosition' values be given before some items (default=False,fast=False)
     ,optTagWarning :: Bool  -- ^ Should 'TagWarning' values be given (default=False,fast=False)
     ,optEntityData :: str -> [Tag str] -- ^ How to lookup an entity
-    ,optEntityAttrib :: (str,Bool) -> (str,[Tag str]) -- ^ How to lookup an entity in an attribute (Bool = has ending ';'?)
+    ,optEntityAttrib :: (str,Bool) -> (str,[Tag str]) -- ^ How to lookup an entity in an attribute (Bool = has ending @';'@?)
     ,optTagTextMerge :: Bool -- ^ Require no adjacent 'TagText' values (default=True,fast=False)
     }
     deriving Typeable
 
 
+-- | Standard 'ParseOptions' structure, following the defaults.
 parseOptions :: StringLike str => ParseOptions str
 parseOptions = ParseOptions False False entityData entityAttrib True
     where
@@ -33,10 +34,12 @@ parseOptions = ParseOptions False False entityData entityAttrib True
             where y = toString x
 
 
+-- | 'ParseOptions' structure optimised for speed, following the fast options.
 parseOptionsFast :: StringLike str => ParseOptions str
 parseOptionsFast = parseOptions{optTagTextMerge=False}
 
 
+-- | Change the underlying string type of a 'ParseOptions' value.
 fmapParseOptions :: (StringLike from, StringLike to) => ParseOptions from -> ParseOptions to
 fmapParseOptions (ParseOptions a b c d e) = ParseOptions a b c2 d2 e
     where

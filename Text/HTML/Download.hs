@@ -1,15 +1,11 @@
 {-|
-    Module      :  Text.HTML.Download
-    Copyright   :  (c) Neil Mitchell 2006-2007
-    License     :  BSD-style
+    /DEPRECATED/: Use the HTTP package instead:
 
-    Maintainer  :  http://community.haskell.org/~ndm/
-    Stability   :  unstable
-    Portability :  portable
+    > import Network.HTTP
+    > openURL x = getResponseBody =<< simpleHTTP (getRequest x)
 
     This module simply downloads a page off the internet. It is very restricted,
-    and it not intended for proper use. The primary purpose is to allow more
-    interesting examples for the "Data.Html.TagSoup" module.
+    and it not intended for proper use.
     
     The original version was by Alistair Bayley, with additional help from
     Daniel McAllansmith. It is taken from the Haskell-Cafe mailing list

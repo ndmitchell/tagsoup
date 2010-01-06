@@ -1,5 +1,6 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
+-- | This module is /not/ intended for use outside the TagSoup library.
 module Text.StringLike where
 
 import Data.List
@@ -10,6 +11,7 @@ import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as LBS
 
 
+-- | A class to generalise TagSoup parsing over many types of string-like types.
 class (Typeable a, Eq a) => StringLike a where
     -- Primitive operations
     empty :: a
@@ -24,11 +26,12 @@ class (Typeable a, Eq a) => StringLike a where
     append :: a -> a -> a
 
 
+-- | Convert a String from one type to another.
 castString :: (StringLike a, StringLike b) => a -> b
 castString = fromString . toString
 
 
-instance StringLike [Char] where
+instance StringLike String where
     uncons [] = Nothing
     uncons (x:xs) = Just (x, xs)
     toString = id
