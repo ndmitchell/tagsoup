@@ -2,7 +2,7 @@
 module TagSoup.Sample where
 
 import Text.HTML.TagSoup
-import Text.HTML.Download(openURL)
+import Network.HTTP
 
 import Data.Char
 import Data.List
@@ -11,7 +11,7 @@ import System.IO
 
 
 openItem :: String -> IO String
-openItem x | "http://" `isPrefixOf` x = openURL $ drop 7 x
+openItem x | "http://" `isPrefixOf` x = getResponseBody =<< simpleHTTP (getRequest x)
            | otherwise = readFile x
 
 
