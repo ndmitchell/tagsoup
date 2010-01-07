@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+0.8
     Parser now based on HTML5 specification
     Tag is now parameterised by the string type
 0.6
