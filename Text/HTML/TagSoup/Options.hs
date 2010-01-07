@@ -8,6 +8,7 @@ import Text.HTML.TagSoup.Entity
 import Text.StringLike
 
 
+-- | These options control how 'parseTags' works.
 data ParseOptions str = ParseOptions
     {optTagPosition :: Bool -- ^ Should 'TagPosition' values be given before some items (default=False,fast=False)
     ,optTagWarning :: Bool  -- ^ Should 'TagWarning' values be given (default=False,fast=False)
@@ -18,7 +19,7 @@ data ParseOptions str = ParseOptions
     deriving Typeable
 
 
--- | Standard 'ParseOptions' structure, following the defaults.
+-- | The default parse options value, described in 'ParseOptions'.
 parseOptions :: StringLike str => ParseOptions str
 parseOptions = ParseOptions False False entityData entityAttrib True
     where
@@ -34,7 +35,7 @@ parseOptions = ParseOptions False False entityData entityAttrib True
             where y = toString x
 
 
--- | 'ParseOptions' structure optimised for speed, following the fast options.
+-- | A 'ParseOptions' structure optimised for speed, following the fast options.
 parseOptionsFast :: StringLike str => ParseOptions str
 parseOptionsFast = parseOptions{optTagTextMerge=False}
 

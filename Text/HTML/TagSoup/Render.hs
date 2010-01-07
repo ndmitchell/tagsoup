@@ -6,7 +6,7 @@
 module Text.HTML.TagSoup.Render
     (
     renderTags, renderTagsOptions,
-    RenderOptions(..), renderOptions, fmapRenderOptions
+    RenderOptions(..), renderOptions
     ) where
 
 import Data.Char
@@ -16,14 +16,17 @@ import Text.HTML.TagSoup.Type
 import Text.StringLike
 
 
+-- | These options control how 'renderTags' works.
+--
+--   The strange quirk of only minimizing @\<br\>@ tags is due to Internet Explorer treating
+--   @\<br\>\<\/br\>@ as @\<br\>\<br\>@.
 data RenderOptions str = RenderOptions
-    {optEscape :: str -> str        -- ^ Escape a piece of text
-    ,optMinimize :: str -> Bool     -- ^ Minimise <b></b> -> <b/>
+    {optEscape :: str -> str        -- ^ Escape a piece of text (default = escape the four characters @&\"\<\>@)
+    ,optMinimize :: str -> Bool     -- ^ Minimise \<b\>\<\/b\> -> \<b/\> (default = minimise only @\<br\>@ tags)
     }
 
 
--- | A configuration which escapes the four characters @&\"\<\>@, and only minimises @\<br\>@ tags.
---   This configuration is chosen to be compatible with Internet Explorer.
+-- | The default render options value, described in 'RenderOptions'.
 renderOptions :: StringLike str => RenderOptions str
 renderOptions = RenderOptions
         (\x -> fromString $ concatMap esc1 $ toString x)
@@ -36,17 +39,18 @@ fmapRenderOptions :: (StringLike a, StringLike b) => RenderOptions a -> RenderOp
 fmapRenderOptions (RenderOptions x y) = RenderOptions (castString . x . castString) (y . castString)
 
 
--- | Show a list of tags, as they might have been parsed. Note that this makes use of
---   'renderOptions'. If you do not desire renderOption's behavior, try instead 'renderTagsOptions'.
+-- | Show a list of tags, as they might have been parsed, using the default settings given in
+--   'RenderOptions'.
+--
+-- > renderTags [TagOpen "hello" [],TagText "my&",TagClose "world"] == "<hello>my&amp;</world>"
 renderTags :: StringLike str => [Tag str] -> str
 renderTags = renderTagsOptions renderOptions
 
 
--- | Show a list of tags as a String. You need to supply a 'RenderOptions' configuration
---   value. One is provided for you as 'renderOptions'; override it as necessary, eg. to avoid
---   escaping any characters one could do:
+-- | Show a list of tags using settings supplied by the 'RenderOptions' parameter,
+--   eg. to avoid escaping any characters one could do:
 --
--- > renderTagsOptions (renderOptions{optEscape = (:[])})
+-- > renderTagsOptions renderOptions{optEscape = id} [TagText "my&"] == "my&"
 renderTagsOptions :: StringLike str => RenderOptions str -> [Tag str] -> str
 renderTagsOptions opts = strConcat . tags
     where

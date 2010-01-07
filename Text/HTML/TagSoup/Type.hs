@@ -55,14 +55,14 @@ tagPosition :: Position -> Tag str
 tagPosition (Position r c) = TagPosition r c
 
 
--- | An HTML element, a document is @[Tag str]@.
+-- | A single HTML element. A whole document is represented by a list of @Tag@.
 --   There is no requirement for 'TagOpen' and 'TagClose' to match.
 data Tag str =
-     TagOpen str [Attribute str]  -- ^ An open tag with 'Attribute's in their original order.
+     TagOpen str [Attribute str]  -- ^ An open tag with 'Attribute's in their original order
    | TagClose str                 -- ^ A closing tag
    | TagText str                  -- ^ A text node, guaranteed not to be the empty string
    | TagComment str               -- ^ A comment
-   | TagWarning str               -- ^ Meta: Mark a syntax error in the input file
+   | TagWarning str               -- ^ Meta: A syntax error in the input file
    | TagPosition !Row !Column     -- ^ Meta: The position of a parsed element
      deriving (Show, Eq, Ord, Data, Typeable)
 

@@ -1,10 +1,14 @@
-{-# LANGUAGE FlexibleInstances, PatternGuards #-}
+{-# LANGUAGE TypeSynonymInstances, PatternGuards #-}
 
 {-|
-    This module is for parsing HTML/XML. It supports the HTML 5 specification,
-    and can be used to parse either well-formed XML, or unstructured and malformed HTML
-    from the web. The module also provides useful functions to extract information
-    from an HTML document, making it ideal for screen-scraping.
+    This module is for working with HTML/XML. It deals with both well-formed XML and
+    malformed HTML from the web. It features:
+
+    * A lazy parser, based on the HTML 5 specification - see 'parseTags'.
+
+    * A renderer that can write out HTML/XML - see 'renderTags'.
+
+    * Utilities for extracting information from a document - see '~==', 'sections' and 'partitions'.
 
     The standard practice is to parse a 'String' to @[@'Tag' 'String'@]@ using 'parseTags',
     then operate upon it to extract the necessary information.
@@ -61,7 +65,7 @@ class TagRep a where
 
 instance StringLike str => TagRep (Tag str) where toTagRep = fmap castString
 
-instance TagRep [Char] where
+instance TagRep String where
     toTagRep x = case parseTags x of
                      [a] -> toTagRep a
                      _ -> error $ "When using a TagRep it must be exactly one tag, you gave: " ++ x
