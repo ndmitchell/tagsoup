@@ -174,6 +174,7 @@ renderTests = do
     rp "<?xml foo?>" === "<?xml foo ?>"
     rp "<?xml foo?>" === "<?xml foo ?>"
     rp "<!-- neil -->" === "<!-- neil -->"
+    escapeHTML "this is a &\" <test>" === "this is a &amp;&quot; &lt;test&gt;"
     check $ \(HTML x) -> let y = rp x in rp y == (y :: String)
 
     

@@ -5,7 +5,7 @@
 
 module Text.HTML.TagSoup.Render
     (
-    renderTags, renderTagsOptions,
+    renderTags, renderTagsOptions, escapeHTML,
     RenderOptions(..), renderOptions
     ) where
 
@@ -26,13 +26,16 @@ data RenderOptions str = RenderOptions
     }
 
 
--- | The default render options value, described in 'RenderOptions'.
-renderOptions :: StringLike str => RenderOptions str
-renderOptions = RenderOptions
-        (\x -> fromString $ concatMap esc1 $ toString x)
-        (\x -> toString x == "br")
+-- | Replace the four characters @&\"\<\>@ with their HTML entities.
+escapeHTML :: StringLike str => str -> str
+escapeHTML = fromString . concatMap esc1 . toString
     where esc = IntMap.fromList [(b, "&"++a++";") | (a,b) <- htmlEntities]
           esc1 x = IntMap.findWithDefault [x] (ord x) esc
+
+
+-- | The default render options value, described in 'RenderOptions'.
+renderOptions :: StringLike str => RenderOptions str
+renderOptions = RenderOptions escapeHTML (\x -> toString x == "br")
 
 
 fmapRenderOptions :: (StringLike a, StringLike b) => RenderOptions a -> RenderOptions b
