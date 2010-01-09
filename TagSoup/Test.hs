@@ -6,7 +6,6 @@ import Text.HTML.TagSoup
 import Text.HTML.TagSoup.Entity
 import Text.HTML.TagSoup.Match
 
-import Control.Exception
 import Control.Monad
 import Data.List
 import Test.QuickCheck

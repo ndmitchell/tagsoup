@@ -8,7 +8,6 @@ import Control.Monad
 import Data.List
 import Data.Maybe
 import Data.Char
-import System.CPUTime
 import System.IO
 import System.IO.Unsafe(unsafeInterleaveIO)
 import qualified Data.ByteString.Char8 as BS

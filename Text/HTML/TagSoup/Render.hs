@@ -38,10 +38,6 @@ renderOptions :: StringLike str => RenderOptions str
 renderOptions = RenderOptions escapeHTML (\x -> toString x == "br")
 
 
-fmapRenderOptions :: (StringLike a, StringLike b) => RenderOptions a -> RenderOptions b
-fmapRenderOptions (RenderOptions x y) = RenderOptions (castString . x . castString) (y . castString)
-
-
 -- | Show a list of tags, as they might have been parsed, using the default settings given in
 --   'RenderOptions'.
 --
