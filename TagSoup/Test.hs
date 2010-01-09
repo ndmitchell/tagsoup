@@ -41,6 +41,7 @@ instance Arbitrary HTML where
 
 test :: IO ()
 test = runTest $ do
+    warnTests
     parseTests
     optionsTests
     renderTests
@@ -205,15 +206,6 @@ combiTests = do
 
 warnTests :: Test ()
 warnTests = do
-    return ()
-{-
-    -- TODO: Check that when there is a warning, it shows up at the right place
-    warns "neil &foo bar" = missing ;
-    let parse = parseTagsOptions parseOptions{
-    let noWarn x = 
-    
-    
-    
-        {optTagPosition :: Bool -- ^ Should 'TagPosition' values be given before some items (default=False,fast=False)
-        ,optTagWarning :: Bool  -- ^ Should 'TagWarning' values be given (default=False,fast=False)
--}
+    let p = parseTagsOptions parseOptions{optTagPosition=True,optTagWarning=True}
+        wt x = [(msg,c) | TagWarning msg:TagPosition _ c:_ <- tails $ p x]
+    wt "neil &foo bar" === [("Unknown entity: foo",10)]
