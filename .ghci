@@ -1,5 +1,6 @@
 :set -fno-warn-overlapping-patterns -w -fwarn-unused-binds -fwarn-unused-imports
-:load Main Text.HTML.TagSoup
+:load Main
+:module +Text.HTML.TagSoup
 
 let cmdTest _ = return ":main test"
 :def test cmdTest
