@@ -4,3 +4,9 @@
 let cmdTest _ = return ":main test"
 :def test cmdTest
 
+let cmdUngenerate _ = System.Directory.copyFile "TagSoup/Generate/Generated.hs" "Text/HTML/TagSoup/Generated.hs" >> return ""
+:def ungen cmdUngenerate
+
+let cmdGenerate _ = return ":!runhaskell TagSoup/Generate/Main.hs"
+:def gen cmdGenerate
+
