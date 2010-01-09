@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
-module TagSoup.Generate.Type(module TagSoup.Generate.Type, Literal(..)) where
+module Type(module Type, Literal(..)) where
 
 import Language.Haskell.Exts(Literal(..))
 

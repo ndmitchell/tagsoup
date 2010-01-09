@@ -1,11 +1,11 @@
 {-# LANGUAGE PatternGuards, RecordWildCards, ViewPatterns #-}
 {-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
 
-module TagSoup.Generate.Supercompile(supercompiler) where
+module Supercompile(supercompiler) where
 
-import TagSoup.Generate.Type
-import TagSoup.Generate.Simplify
-import TagSoup.Generate.Convert
+import Type
+import Simplify
+import Convert
 import Data.Maybe
 
 import qualified Data.Map as Map

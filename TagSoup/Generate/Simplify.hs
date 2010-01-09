@@ -1,8 +1,8 @@
 {-# LANGUAGE PatternGuards #-}
 
-module TagSoup.Generate.Simplify(reduceArity, simplifyProg, simplifyExpr, forwarding) where
+module Simplify(reduceArity, simplifyProg, simplifyExpr, forwarding) where
 
-import TagSoup.Generate.Type
+import Type
 import Data.Generics.PlateData
 import Data.List
 import qualified Data.Map as Map

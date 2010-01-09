@@ -1,11 +1,11 @@
 {-# LANGUAGE ViewPatterns, PatternGuards #-}
 {-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
 
-module TagSoup.Generate.Desugar(
+module Desugar(
     records, untyped, irrefutable, core, core2, singleCase
     ) where
 
-import TagSoup.Generate.HSE
+import HSE
 import Data.Generics.PlateData
 import Data.Maybe
 import Data.List hiding (find)

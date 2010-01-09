@@ -1,8 +1,8 @@
 
-module TagSoup.Generate.Convert(input,output,showProg,showFunc,showExpr) where
+module Convert(input,output,showProg,showFunc,showExpr) where
 
-import TagSoup.Generate.Type
-import TagSoup.Generate.HSE
+import Type
+import HSE
 import Data.List
 
 

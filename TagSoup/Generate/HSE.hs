@@ -1,7 +1,7 @@
 
-module TagSoup.Generate.HSE(
+module HSE(
     module Language.Haskell.Exts,
-    module TagSoup.Generate.HSE) where
+    module HSE) where
 
 import Language.Haskell.Exts hiding (app, alt, paren, var, pvar, tuple, binds, EVar)
 
