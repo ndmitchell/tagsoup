@@ -18,7 +18,7 @@ main = do
         mode = defaultParseMode{fixities=infixr_ 5 ["&"] ++ baseFixities}
     spec <- parse "Text/HTML/TagSoup/Specification.hs"
     impl <- parse "Text/HTML/TagSoup/Implementation.hs"
-    putStr "Optimising... "
+    putStrLn "Optimising... "
     writeFile "Text/HTML/TagSoup/Generated.hs" $ optimise $ mergeModules spec impl
     putStrLn "done"
 
