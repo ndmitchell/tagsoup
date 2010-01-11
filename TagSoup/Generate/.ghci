@@ -1,0 +1,3 @@
+:cd ../..
+:set -iTagSoup/Generate
+:load TagSoup/Generate/Main.hs
