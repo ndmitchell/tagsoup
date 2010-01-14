@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, PatternGuards #-}
 
 module Type(module Type, Literal(..)) where
 
@@ -162,6 +162,7 @@ normalise (Func name args bod) = do
         g mp (p,x) = fmap ((,) p) $ f mp x
 
 
+normaliseExpr :: Expr -> Unique Expr
 normaliseExpr = fmap funcBody . normalise . Func "" []
 
 
@@ -190,3 +191,80 @@ toUnique :: Int -> Unique a -> Unique a
 toUnique i x = do
     put i
     x
+
+
+---------------------------------------------------------------------
+-- REDEX
+
+data Redex = RLet [(Var, Redex)] Redex
+           | RApp Var [Var]
+           | RFun Fun
+           | RCase Var [(Patt, Redex)]
+           | RCon Con [Var]
+           | RLit Literal
+           | RLam [Var] Redex
+             deriving (Data, Typeable, Show, Eq)
+
+
+fromRedex :: Redex -> Expr
+fromRedex (RLet xs y) = eLet (map (second fromRedex) xs) (fromRedex y)
+fromRedex (RApp x xs) = eApps (EVar x) (map EVar xs)
+fromRedex (RFun x) = EFun x
+fromRedex (RCase x xs) = eCase (EVar x) (map (second fromRedex) xs)
+fromRedex (RCon x xs) = eApps (ECon x) (map EVar xs)
+fromRedex (RLit x) = ELit x
+fromRedex (RLam vs x) = eLams vs (fromRedex x)
+
+rVar x = RApp x []
+rLam vs x = if null vs then x else RLam vs x
+rLet xs x = if null xs then x else RLet xs x
+
+toRedex :: Func -> Unique Redex
+toRedex func = do
+    Func _ args bod <- normalise func
+    fmap (rLam args) $ f bod
+    where
+        f x@EApp{} | (x,xs) <- fromEApps x = bind (x:xs) $ \(y:ys) -> RApp y ys
+        f (ECon x) = return $ RCon x []
+        f (EFun x) = return $ RFun x
+        f (EVar x) = return $ rVar x
+        f (ELit x) = return $ RLit x
+        f (ECase _ x xs) = do
+            let (x1,x2) = unzip xs
+            x2 <- mapM f x2
+            bind [x] $ \[x] -> RCase x $ zip x1 x2
+        f x@ELam{} | (ys,y) <- fromELams x = fmap (RLam ys) $ f y
+        f (ELet _ bind x) = do
+            let (x1,x2) = unzip bind
+            x2 <- mapM f x2
+            x <- f x
+            return $ RLet (zip x1 x2) x
+
+        bind xs op = do
+            (new,vs) <- mapAndUnzipM g xs
+            return $ rLet (concat new) $ op vs
+
+        g (EVar v) = return ([], v)
+        g x = do
+            v <- fresh
+            y <- f x
+            return ([(v,y)],v)
+
+
+-- | Note: Currently approximate
+freeVarsR :: Redex -> [Var]
+freeVarsR (RLet xs x) = concatMap (freeVarsR . snd) xs ++ freeVarsR x
+freeVarsR (RApp x xs) = x:xs
+freeVarsR (RCase x xs) = x : concatMap (freeVarsR . snd) xs
+freeVarsR (RCon x xs) = xs
+freeVarsR (RLam xs x) = freeVarsR x
+freeVarsR _ = []
+
+
+normaliseRedex :: Redex -> Unique Redex
+normaliseRedex x = toRedex $ Func "" [] $ fromRedex x
+
+
+fromRLam (RLam xs y) = (xs,y)
+fromRLam x = ([], x)
+

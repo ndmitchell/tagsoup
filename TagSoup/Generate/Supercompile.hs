@@ -54,34 +54,34 @@ data Sem = Sem
     {semFreeVars :: [Var] -- free variables in this expression (lambda arguments when residuated)
     ,semUnique :: Int -- unique index for creating fresh variables
     ,semStack :: [Var] -- stack of expressions to evaluate
-    ,semBind :: Map.Map Var Expr -- bindings
+    ,semBind :: Map.Map Var Redex -- bindings
     }
 
 instance Show Sem where
     show (Sem free _ vs mp) = unlines $ unwords ("with":free) : map (f "*") vs ++ map (f "") (Map.keys mp \\ vs)
-        where f str v = str ++ v ++ " := " ++ showExpr (fromJust $ Map.lookup v mp)
+        where f str v = str ++ v ++ " := " ++ showExpr (fromRedex $ fromJust $ Map.lookup v mp)
 
     showList xs = showString $ f Map.empty xs
         where
             f seen [x] = show x
             f seen [] = ""
-            f seen (Sem vars i vs mp:rest) = show (Sem vars i vs $ Map.mapWithKey (\k x -> if Map.lookup k seen == Just x then EVar "..." else x) mp) ++
+            f seen (Sem vars i vs mp:rest) = show (Sem vars i vs $ Map.mapWithKey (\k x -> if Map.lookup k seen == Just x then rVar "..." else x) mp) ++
                 "\n\n\n" ++ f mp rest
 
 
 sem vs o = Sem [] minBound vs $ fix $ Map.filterWithKey (\v _ -> v `elem` vs) o
     where
         fix mp = if Map.size mp == Map.size mp2 then mp else fix mp2
-            where now = [v | EVar v <- universeBi $ Map.elems mp]
+            where now = concatMap freeVarsR $ Map.elems mp
                   mp2 = Map.filterWithKey (\v _ -> Map.member v mp || v `elem` now) o
 
 
 toSem :: Func -> Sem
-toSem x = Sem (funcArgs y) i ["root"] (Map.singleton "root" (funcBody y))
-    where (i,y) = fromUnique $ normalise x
+toSem x = Sem args i ["root"] (Map.singleton "root" bod)
+    where (i,(args,bod)) = fromUnique $ fmap fromRLam $ toRedex =<< normalise x
 
 apply :: Sem -> [Fun] -> Expr
-apply (Sem free i vs binds) vars = eLet (zip free (map eFun vars) ++ Map.toList binds) (eVar $ last vs)
+apply (Sem free i vs binds) vars = eLet (zip free (map eFun vars) ++ map (second fromRedex) (Map.toList binds)) (eVar $ last vs)
 
 runSem :: Sem -> Unique Sem -> Sem
 runSem (Sem free i _ _) x = Sem free i2 vs mp
@@ -171,6 +171,9 @@ terminate _ _ = Nothing
 
 split :: Maybe Evidence -> Sem -> (Sem, [Sem])
 
+split _ x = error $ "todo, split: " ++ show x
+
+{-
 split Nothing o@(Sem free i (v:vs) mp)
     | Just (ECase _ (EVar on) alts) <- Map.lookup v mp = (root, as)
     where
@@ -202,6 +205,7 @@ split Nothing o@(Sem free i [v] mp)
 
 
 split _ sem = dump (show sem) $ error "todo: split"
+-}
 
 {-
 split Nothing sem@(Sem vars i (v:vs) mp)
@@ -230,66 +234,60 @@ step func o@(Sem vars i (v:vs) mp) = case f $ grab v of
         grab x = Map.findWithDefault (error "eek, can't find") x mp
         add x = Map.fromList x `Map.union` mp
 
-        isWhnf (fromEApps -> (ECon _, _)) = True
-        isWhnf (ELam _ _ _) = True
-        isWhnf (ELit _) = True
+        isWhnf RCon{} = True
+        isWhnf RLam{} = True
+        isWhnf RLit{} = True
         isWhnf _ = False
 
-        whnf :: Expr -> (Expr -> Expr) -> (Expr -> Unique Sem) -> Maybe (Unique Sem)
-        whnf (EVar w) rep op = case Map.lookup w mp of
+        whnf :: Var -> (Redex -> Unique Sem) -> Maybe (Unique Sem)
+        whnf w op = case Map.lookup w mp of
             Nothing -> Nothing
             Just e | isWhnf e -> Just $ op e
-            Just (EVar w) -> whnf (EVar w) rep op
-            Just _ -> Just $ return $ sem (w:v:vs) $ add [(v, rep $ EVar w)]
-        whnf e rep op | isWhnf e = Just $ op e
-        whnf e rep op = Just $ do w <- fresh ; return $ sem (w:v:vs) $ add [(w,e), (v, rep $ EVar w)]
+            Just (RApp w []) -> whnf w op
+            Just _ -> Just $ return $ sem (w:v:vs) $ add []
 
         f x | isWhnf x = if null vs then Nothing else Just $ return $ sem vs mp
 
-        f (EFun x) = Just $ do
-            Func{..} <- normalise $ func x
-            return $ sem (v:vs) $ add [(v,eLams funcArgs funcBody)]
+        f (RFun x) = Just $ do
+            y <- toRedex $ func x
+            return $ sem (v:vs) $ add [(v,y)]
 
-        f (ELet _ bind x) = Just $ return $ sem (v:vs) $ add $ (v,x) : bind
+        f (RLet bind x) = Just $ return $ sem (v:vs) $ add $ (v,x) : bind
 
-        f (EVar x) = case Map.lookup x mp of
-            Nothing -> case vs of
+        f (RApp x []) = case Map.lookup x mp of
+            Nothing -> Nothing {- case vs of
                 [] -> Nothing
-                v2:vs2 -> Just $ return $ sem vs $ add [(v2, repVar v x $ grab v2)] 
-            Just e -> Just $ return $ sem (v:vs) $ add [(v,e),(x,EVar v)]
+                v2:vs2 -> Just $ return $ sem vs $ add [(v2, repVar v x $ grab v2)]  -}
+            Just e -> Just $ return $ sem (v:vs) $ add [(v,e),(x,rVar v)]
 
-        f (ECase _ on alts) = whnf on (`eCase` alts) $ \e -> do
-                let (ECon c, xs) = fromEApps e
-                    (pattVars -> ps, x) = head $ filter (g c . fst) alts ++ error "no matching case in step"
-                return $ sem (v:vs) $ add $ (v,x) : zip ps xs
+        f (RCase on alts) = whnf on $ \(RCon c xs) -> do
+                let (pattVars -> ps, x) = head $ filter (g c . fst) alts ++ error "no matching case in step"
+                return $ sem (v:vs) $ add $ (v,x) : zip ps (map rVar xs)
             where
                 g y (Patt c _) = c == y
                 g y PattAny = True
                 g y _ = False
 
-        f (fromEApps -> (x,xs)) | xs /= [] = whnf x (`eApps` xs) $ \x -> do
-            case fromEApps x of
-                (ELam{},_) -> do
-                    (xv,xx) <- fmap fromELams $ normaliseExpr x
+        f (RApp x xs) | xs /= [] = whnf x $ \x -> do
+            case x of
+                RLam{}-> do
+                    RLam xv xx <- normaliseRedex x
                     let n = min (length xs) (length xv)
                     w <- fresh
                     return $ sem (v:vs) $ add $ if null $ drop n xs
-                        then (v,eLams (drop n xv) xx) : zip xv xs
-                        else (v,eApps (EVar w) (drop n xs)) : (w,eLams (drop n xv) xx) : zip xv xs
-                (ECon c,ys) -> do
-                    xs2 <- freshN $ length ys
-                    ys2 <- freshN $ length ys
-                    -- NOTE: Only time we ever create an entirely new expression not there before
-                    return $ sem vs $ add $ (v,eApps (ECon c) (map EVar $ ys2++xs2)) : zip xs2 xs ++ zip ys2 ys
+                        then (v,rLam (drop n xv) xx) : zip xv (map rVar xs)
+                        else (v,RApp w (drop n xs)) : (w,rLam (drop n xv) xx) : zip xv (map rVar xs)
+                RCon c ys -> do
+                    return $ sem vs $ add [(v, RCon c (ys++xs))]
 
 
-        f x = dump (showExpr x) $ error $ "Don't know what to do on expression"
+        f x = dump (showExpr $ fromRedex x) $ error $ "Don't know what to do on expression"
 
 
-repVar :: Var -> Var -> Expr -> Expr
+repVar :: Var -> Var -> Redex -> Redex
 repVar from to = transform f
-    where f (EVar x) = EVar $ if x == from then to else x
-          f x = x
+    where -- f (EVar x) = EVar $ if x == from then to else x
+          f x = error "todo, repVar on Redex"
 
 
 
