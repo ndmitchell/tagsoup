@@ -131,9 +131,9 @@ data SRelabel = SRelabel {relabelOld :: Map.Map Var Var, relabelNew :: Map.Map V
 
 relabel :: Sem -> Sem
 relabel (Sem free root mp) = flip evalState s0 $ do
-    free2 <- freshN (length free)
-    zipWithM_ rename free free2
     root2 <- move root
+    old <- gets relabelOld
+    free2 <- return [Map.findWithDefault "_" x old | x <- free]
     fmap (Sem free2 root2) $ gets relabelNew
     where
         s0 = SRelabel Map.empty Map.empty ['x':show i | i <- [1..]]
@@ -147,7 +147,8 @@ relabel (Sem free root mp) = flip evalState s0 $ do
             old <- gets relabelOld
             case (Map.lookup v old, Map.lookup v mp) of
                 (Just y, _) -> return y
-                (_, Nothing) -> return v
+                (_, Nothing) | v `elem` free -> do y <- fresh; rename v y; return y
+                             | otherwise -> return v
                 (_, Just (RVar y)) -> move y
                 (_, Just x) -> do
                     y <- fresh
