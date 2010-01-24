@@ -24,3 +24,10 @@ fromPParen x = x
 fromParen (Paren x) = fromParen x
 fromParen x = x
 
+moduleDecls (Module _ _ _ _ _ _ x) = x
+
+opToExp (QVarOp op) = Var op
+opToExp (QConOp op) = Con op
+
+
+
