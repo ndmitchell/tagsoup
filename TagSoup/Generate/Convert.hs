@@ -13,14 +13,14 @@ showExpr = prettyPrint . outExpr
 
 input :: [Decl] -> [Func]
 input xs = map (inFunc names) xs2
-    where names = [name | PatBind _ (PVar (Ident name)) _ _ _ <- xs2]
+    where names = [prettyPrint name | PatBind _ name _ _ _ <- xs2]
           xs2 = map toPatBind xs
 
 
-inFunc names (PatBind _ (PVar (Ident name)) Nothing (UnGuardedRhs bod) (BDecls [])) =
+inFunc names (PatBind _ name Nothing (UnGuardedRhs bod) (BDecls [])) =
     case bod of
-        Lambda _ ps x -> Func name (map fromPVar ps) (inExpr names x)
-        _ -> Func name [] (inExpr names bod)
+        Lambda _ ps x -> Func (prettyPrint name) (map fromPVar ps) (inExpr names x)
+        _ -> Func (prettyPrint name) [] (inExpr names bod)
 inFunc names x = error $ show ("inFunc",x)
 
 toPatBind (FunBind [Match sl name ps _ (UnGuardedRhs bod) whr]) = PatBind sl (PVar name) Nothing (UnGuardedRhs $ Lambda sl ps bod) whr
