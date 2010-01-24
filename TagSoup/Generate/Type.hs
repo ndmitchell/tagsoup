@@ -32,13 +32,13 @@ data Expr = ECon  Con
           | ECase I  Expr [(Patt,Expr)]
           | ELet  I [(Var,Expr)] Expr
           | ELam  I Var Expr -- not supported in many places!
-            deriving (Data,Typeable,Show,Eq)
+            deriving (Data,Typeable,Show,Eq,Ord)
 
 
 data Patt = Patt Con [Var]
           | PattAny
           | PattLit Literal
-            deriving (Data,Typeable,Show,Eq)
+            deriving (Data,Typeable,Show,Eq,Ord)
 
 pattVars (Patt _ vs) = vs
 pattVars _ = []
@@ -204,7 +204,7 @@ data Redex = RLet [(Var, Redex)] Redex
            | RCon Con [Var]
            | RCase Var [(Patt, Redex)]
            | RLit Literal
-             deriving (Data, Typeable, Show, Eq)
+             deriving (Data, Typeable, Show, Eq, Ord)
 
 
 fromRedex :: Redex -> Expr

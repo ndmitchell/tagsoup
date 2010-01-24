@@ -68,7 +68,7 @@ closeLogFile x = unsafePerformIO $ finally (return $! x) $ do
 type Env = Var -> Func
 type Split = ([Sem], [Fun] -> Expr)
 
-data Sem = Sem [Var] Var (Map.Map Var Redex)
+data Sem = Sem [Var] Var (Map.Map Var Redex) deriving (Eq,Ord)
 
 instance Show Sem where
     show (Sem free v mp) = unlines $ line1 : map f (Map.toList mp)
@@ -209,7 +209,7 @@ supercompile env t name x | terminate t x = f t name (stop t x)
                 Just y -> return (y, return ())
                 Nothing -> do
                     [y] <- freshNames 1
-                    addSeen y x
+                    -- addSeen y x
                     return (y, supercompile env t y x)
 
 
@@ -288,7 +288,8 @@ freshNames n = do
     return $ map ((:) 'f' . show) $ take n [resultFresh r ..]
 
 seen :: Sem -> Result (Maybe Fun)
-seen sem = return Nothing -- FIXME
+seen sem = fmap (lookup sem) $ gets resultSeen
+
 
 ---------------------------------------------------------------------
 -- TERMINATION
@@ -315,31 +316,66 @@ stop = error "stop"
 
 
 split :: Sem -> Split
-split (Sem free root mp) = f [] root
+split (Sem free root mp) = (a, eLams free . b)
     where
-        f args v = case Map.lookup v mp of
-            Just o@(RCase w alt) | w `Map.member` mp -> f [] w
-                                 | otherwise -> splitCase v w alt
-            Just RCon{} -> ([], \_ -> eFun "TODO! Outer constructor")
-            Just (RApp x y) -> f (y:args) x
-            Nothing -> ([], \_ -> eFun $ "TODO! unresolved variable " ++ show v ++ " @ " ++ show args)
-            x -> error $ "how do i split on " ++ show x ++ " @ " ++ show args
+        (a,b) = f root
+    
+        f v = case Map.lookup v mp of
+            Just (RCase w alt) | w `Map.member` mp -> f w
+                               | otherwise -> splitCase v w alt
+            Just (RCon c xs) -> splitApp v (eCon c) xs
+            Just (RApp x y) | x `Map.member` mp -> f x
+                            | otherwise -> splitApp v (eFun x) [y]
+            Just (RFun v) -> splitFun
+            Just (RLit x) -> ([], \_ -> eLit x)
+            Nothing -> ([], \_ -> eVar v)
+            x -> ([], const $ eFun $ "how do i split on " ++ show x)
 
 
+        splitFun = ([b], \[name] -> eLam "newArg" $ eApps (eFun name) $ map eVar a)
+            where (a,b) = semTop (free ++ ["newArg"]) "newRoot" $ Map.insert "newRoot" (RApp root "newArg") mp
+
+
+        splitApp v gen xs = (map snd ss, \names -> eLet ((v, eApps gen (map eVar xs)) :  zip (delete v keep) (zipWith g names ss)) (eVar root))
+            where
+                keep = share (Sem free root mp) $ root:xs
+                ss = map f $ delete v keep
+                f w = semTop (delete w $ free ++ keep) w (Map.filterWithKey (\k _ -> k `notElem` keep || k == w) mp)
+                g name (vs,_) = eApps (eFun name) (map eVar vs)
 
 
         -- type Split = ([Sem], [Fun] -> Expr)
-        splitCase v on alt = (map semMin ss,
-                \names -> eLams free $ eCase (eVar on) $ zip (map fst alt) (zipWith3 g alt names ss))
+        splitCase v on alt = (map snd ss,
+                \names -> eCase (eVar on) $ zipWith3 g names ss alt)
             where
                 ss = map f alt
-                f (Patt c vs, x) = sem (vs ++ delete on free) root $ Map.insert on (RCon c vs) mp
-                f (PattLit c, x) = sem (delete on free) root $ Map.insert on (RLit c) mp
-                f (PattAny, x) = sem free root $ Map.insert v x mp
-                g (p, _) name s = eApps (eFun name) (map eVar $ semNeed s $ pattVars p ++ if isPattAny p then free else delete on free)
+                f (Patt c vs, x) = semTop (vs ++ delete on free) root $ Map.insert on (RCon c vs) mp
+                f (PattLit c, x) = semTop (delete on free) root $ Map.insert on (RLit c) mp
+                f (PattAny, x) = semTop free root $ Map.insert v x mp
+                g name (vs,_) (pat,_) = (pat, eApps (eFun name) (map eVar vs))
 
-                semMin (Sem free root mp) = Sem (filter (/= "_") free) root mp
-                semNeed (Sem free _ _) vs = [v | (f,v) <- zip free vs, f /= "_"]
+
+-- top level sem, which can throw away free vars
+semTop :: [Var] -> Var -> Map.Map Var Redex -> ([Var], Sem)
+semTop free root mp = ([v | (v,w) <- zip free free2, w /= "_"], Sem (filter (/= "_") free2) root2 mp2)
+    where Sem free2 root2 mp2 = sem free root mp
+
+
+-- given a Sem, I need these variables at the top level, which other ones to keep sharing? only those from mp
+-- at worst, will be all the bound variables (never puts free vars in)
+-- at best, will be just those in the input set that are bound in mp
+share :: Sem -> [Var] -> [Var]
+share (Sem free root mp) top = fixEq f (top \\ free)
+    where
+        fixEq f x = if x == x2 then x2 else fixEq f x2
+            where x2 = f x
+
+        f xs = filter (`Map.member` mp) $ sort $ nub $ xs ++ new
+            where new = map head $ filter ((>1) . length) $ group $ sort $ concatMap follow xs
+        
+        follow x = case Map.lookup x mp of
+            Nothing -> []
+            Just r -> childrenBi r :: [String]
 
 
 ---------------------------------------------------------------------
