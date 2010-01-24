@@ -12,22 +12,31 @@ showExpr = prettyPrint . outExpr
 
 
 input :: [Decl] -> [Func]
-input xs = map (inFunc names) xs
-    where names = [name | PatBind _ (PVar (Ident name)) _ _ _ <- xs]
+input xs = map (inFunc names) xs2
+    where names = [name | PatBind _ (PVar (Ident name)) _ _ _ <- xs2]
+          xs2 = map toPatBind xs
+
 
 inFunc names (PatBind _ (PVar (Ident name)) Nothing (UnGuardedRhs bod) (BDecls [])) =
     case bod of
         Lambda _ ps x -> Func name (map fromPVar ps) (inExpr names x)
         _ -> Func name [] (inExpr names bod)
-inFunc names x = error $ show x
+inFunc names x = error $ show ("inFunc",x)
+
+toPatBind (FunBind [Match sl name ps _ (UnGuardedRhs bod) whr]) = PatBind sl (PVar name) Nothing (UnGuardedRhs $ Lambda sl ps bod) whr
+toPatBind x = x
+
 
 inExpr names (Paren x) = inExpr names x
 inExpr names (Var (UnQual (Ident x))) = if x `elem` names then eFun x else eVar x
-inExpr names (Con (UnQual (Ident x))) = eCon x
+inExpr names (Var (UnQual (Symbol x))) = eVar $ "(" ++ x ++ ")"
+inExpr names (Con x) = eCon $ prettyPrint x
 inExpr names (App x y) = eApp (inExpr names x) (inExpr names y)
 inExpr names (Let (BDecls xs) y) = unrecLet [(x,inExpr names y) | PatBind _ (PVar (Ident x)) _ (UnGuardedRhs y) (BDecls []) <- xs] $ inExpr names y
 inExpr names (Case x ys) = eCase (inExpr names x) [(inPatt p, inExpr names x) | Alt _ p (UnGuardedAlt x) _ <- ys]
 inExpr names (Lit x) = eLit x
+inExpr names (List []) = eCon "[]"
+inExpr names (InfixApp x y z) = inExpr names $ App (App (opToExp y) x) z
 inExpr names x = error $ show ("inExpr",x)
 
 
@@ -39,10 +48,12 @@ unrecLet xy z | null xy = z
           xs = map fst xy
 
 
-inPatt (PApp (UnQual (Ident c)) vs) = Patt c (map fromPVar vs)
+inPatt (PApp c vs) = Patt (prettyPrint c) (map fromPVar vs)
 inPatt PWildCard = PattAny
 inPatt (PParen x) = inPatt x
 inPatt (PLit x) = PattLit x
+inPatt (PInfixApp x y z) = inPatt $ PApp y [x,z]
+inPatt (PList []) = Patt "[]" []
 inPatt x = error $ show ("inPatt",x)
 
 
