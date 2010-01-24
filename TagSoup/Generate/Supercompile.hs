@@ -66,19 +66,18 @@ closeLogFile x = unsafePerformIO $ finally (return $! x) $ do
 
 
 type Env = Var -> Func
+type Tag = String
 type Split = ([Sem], [Fun] -> Expr)
 
-data Sem = Sem [Var] Var (Map.Map Var Redex) deriving (Eq,Ord)
+data Sem = Sem [Var] Var (Map.Map Var (Tag,Redex)) deriving (Eq,Ord)
 
 instance Show Sem where
     show (Sem free v mp) = unlines $ line1 : map f (Map.toList mp)
         where line1 = "\\" ++ unwords free ++ " -> " ++ v ++ " where"
-              f (k,v) = "  " ++ k ++ " = " ++ showExpr (fromRedexShort v)
+              f (k,(s,v)) = "  " ++ k ++ " " ++ show s ++ " = " ++ showExpr (fromRedexShort v)
 
 
-data SemS = SemS {semOld :: Map.Map Var (Maybe Redex, Maybe Var), semNew :: Map.Map Var Redex, semVars :: [Var]}
-
-sem :: [Var] -> Var -> Map.Map Var Redex -> Sem
+sem :: [Var] -> Var -> Map.Map Var (Tag,Redex) -> Sem
 sem free v mp = relabel $ simplify $ relabel $ Sem free v mp
 
 
@@ -86,48 +85,53 @@ sem free v mp = relabel $ simplify $ relabel $ Sem free v mp
 -- all the bound redexes must be fully simple
 -- none of the redexes may have a root let statement
 
-data SSimplify = SSimplify {simplifyNew :: Map.Map Var Redex}
+data SSimplify = SSimplify {simplifyNew :: Map.Map Var (Tag,Redex)}
 
 simplify :: Sem -> Sem
 simplify (Sem free root mp) = flip evalState (SSimplify Map.empty) $ do
     mapM_ var $ Map.keys mp
     fmap (Sem free root) $ gets simplifyNew
     where
-        simp v x = do
-            x <- redex x
-            modify $ \s -> s{simplifyNew = Map.insert v x $ simplifyNew s}
-            return x
+        simp :: Var -> Tag -> Redex -> State SSimplify (Tag, Redex)
+        simp v tag x = do
+            (tag,x) <- redex tag x
+            modify $ \s -> s{simplifyNew = Map.insert v (tag,x) $ simplifyNew s}
+            return (tag,x)
 
+        var :: Var -> State SSimplify (Tag, Redex)
         var v = do
             new <- gets simplifyNew
             case (Map.lookup v new, Map.lookup v mp) of
                 (Just y, _) -> return y
-                (_, Nothing) -> return $ RVar v
-                (_, Just x) -> simp v x
+                (_, Nothing) -> return $ ("unbound" ++ v,RVar v)
+                (_, Just (tag,x)) -> simp v tag x
 
-        redex (RVar v) = var v
-        redex (RLet vs x) = mapM_ (uncurry simp) vs >> redex x
-        redex o@(RApp v y) = do
+        redex :: Tag -> Redex -> State SSimplify (Tag, Redex)
+        redex tag (RVar v) = var v
+        redex tag (RLet vs x) = do
+            sequence_ [simp v (tag ++ "_" ++ show i) x | (i,(v,x)) <- zip [1..] vs]
+            redex (tag ++ "_0") x
+        redex tag o@(RApp v y) = do
             x <- var v
             case x of
-                RCon c xs -> return $ RCon c (xs ++ [y])
-                _ -> return o
-        redex o@(RCase v alts) = do
-            x <- var v
+                (tag,RCon c xs) -> return (tag ++ "_", RCon c (xs ++ [y]))
+                _ -> return (tag,o)
+        redex tag o@(RCase v alts) = do
+            (_,x) <- var v
             case x of
-                RCon{} -> redex $ head $ concatMap (f x) alts
-                RLit{} -> redex $ head $ concatMap (f x) alts
-                _ -> return o
+                RCon{} -> redex (tag++"_") $ head $ concatMap (f x) alts
+                RLit{} -> redex (tag++"_") $ head $ concatMap (f x) alts
+                _ -> return (tag,o)
             where f (RCon c vs) (Patt c2 vs2, x) | c == c2 = [RLet (zip vs2 $ map RVar vs) x]
                   f (RLit c) (PattLit c2, x) | c == c2 = [x]
                   f _ (PattAny, x) = [x]
                   f _ _ = []
-        redex x = return x
+        redex tag x = return (tag,x)
 
 
 -- do a GC, variable normalisation, variable flattening
 
-data SRelabel = SRelabel {relabelOld :: Map.Map Var Var, relabelNew :: Map.Map Var Redex, relabelVars :: [Var]}
+data SRelabel = SRelabel {relabelOld :: Map.Map Var Var, relabelNew :: Map.Map Var (Tag,Redex), relabelVars :: [Var]}
 
 relabel :: Sem -> Sem
 relabel (Sem free root mp) = flip evalState s0 $ do
@@ -149,12 +153,12 @@ relabel (Sem free root mp) = flip evalState s0 $ do
                 (Just y, _) -> return y
                 (_, Nothing) | v `elem` free -> do y <- fresh; rename v y; return y
                              | otherwise -> return v
-                (_, Just (RVar y)) -> move y
-                (_, Just x) -> do
+                (_, Just (_, RVar y)) -> move y
+                (_, Just (tag,x)) -> do
                     y <- fresh
                     rename v y
                     x <- f Map.empty x
-                    record y x
+                    record y (tag,x)
                     return y
 
         f mp (RApp x y) = liftM2 RApp (var mp x) (var mp y)
@@ -182,7 +186,7 @@ relabel (Sem free root mp) = flip evalState s0 $ do
 
 
 toSem :: Func -> Sem
-toSem x = sem args "?v" (Map.singleton "?v" bod)
+toSem x = sem args "?v" (Map.singleton "?v" ("main",bod))
     where (args,bod) = unique $ toRedex x
 
 
@@ -294,21 +298,35 @@ seen sem = fmap (lookup sem) $ gets resultSeen
 ---------------------------------------------------------------------
 -- TERMINATION
 
-data Term = Term
+data Term = Term [Past]
+
+type Past = [(String,Int)]
+
+past (Sem _ _ mp) = map (head &&& length) $ sort $ group $ sort $ map fst $ Map.elems mp
+
+-- return True if new is greater than old in every way
+bad ((x1,x2):xs) ((y1,y2):ys) = case compare x1 y1 of
+    LT -> bad xs ((y1,y2):ys)
+    GT -> False
+    EQ -> x2 >= y2 && bad xs ys
+bad _ [] = True
+bad [] _ = False
+
 
 newTerm :: Term
-newTerm = Term
+newTerm = Term []
 
 terminate :: Term -> Sem -> Bool
-terminate _ _ = False
+terminate (Term xs) sem | any (bad $ past sem) xs = True -- error $ show (sem, xs)
+                        | otherwise = False
 
 (+=) :: Term -> Sem -> Term
-(+=) x _ = x
+(+=) (Term xs) sem = Term $ past sem : xs
 
 
 
 stop :: Term -> Sem -> Split
-stop = error "stop"
+stop term sem = error $ "stop: " ++ show sem
 
 
 ---------------------------------------------------------------------
@@ -320,7 +338,7 @@ split (Sem free root mp) = (a, eLams free . b)
     where
         (a,b) = f root
     
-        f v = case Map.lookup v mp of
+        f v = case fmap snd $ Map.lookup v mp of
             Just (RCase w alt) | w `Map.member` mp -> f w
                                | otherwise -> splitCase v w alt
             Just (RCon c xs) -> splitApp v (eCon c) xs
@@ -333,7 +351,7 @@ split (Sem free root mp) = (a, eLams free . b)
 
 
         splitFun = ([b], \[name] -> eLam "newArg" $ eApps (eFun name) $ map eVar a)
-            where (a,b) = semTop (free ++ ["newArg"]) "newRoot" $ Map.insert "newRoot" (RApp root "newArg") mp
+            where (a,b) = semTop (free ++ ["newArg"]) "newRoot" $ Map.insert "newRoot" ("newRoot",RApp root "newArg") mp
 
 
         splitApp v gen xs = (map snd ss, \names -> eLet ((v, eApps gen (map eVar xs)) :  zip (delete v keep) (zipWith g names ss)) (eVar root))
@@ -349,14 +367,14 @@ split (Sem free root mp) = (a, eLams free . b)
                 \names -> eCase (eVar on) $ zipWith3 g names ss alt)
             where
                 ss = map f alt
-                f (Patt c vs, x) = semTop (vs ++ delete on free) root $ Map.insert on (RCon c vs) mp
-                f (PattLit c, x) = semTop (delete on free) root $ Map.insert on (RLit c) mp
-                f (PattAny, x) = semTop free root $ Map.insert v x mp
+                f (Patt c vs, x) = semTop (vs ++ delete on free) root $ Map.insert on ("con",RCon c vs) mp
+                f (PattLit c, x) = semTop (delete on free) root $ Map.insert on ("lit",RLit c) mp
+                f (PattAny, x) = semTop free root $ Map.insert v ("case",x) mp
                 g name (vs,_) (pat,_) = (pat, eApps (eFun name) (map eVar vs))
 
 
 -- top level sem, which can throw away free vars
-semTop :: [Var] -> Var -> Map.Map Var Redex -> ([Var], Sem)
+semTop :: [Var] -> Var -> Map.Map Var (Tag,Redex) -> ([Var], Sem)
 semTop free root mp = ([v | (v,w) <- zip free free2, w /= "_"], Sem (filter (/= "_") free2) root2 mp2)
     where Sem free2 root2 mp2 = sem free root mp
 
@@ -385,12 +403,12 @@ share (Sem free root mp) top = fixEq f (top \\ free)
 step :: Env -> Sem -> Maybe Sem
 step e (Sem free root mp) = f [] root
     where
-        f app v = case Map.lookup v mp of
+        f app v = case fmap snd $ Map.lookup v mp of
             Nothing -> Nothing
             Just (RCase on _) -> f [] on
             Just (RApp x y) -> f ((v,y):app) x
-            Just (RFun x) | length args == 0 -> Just $ sem free root $ Map.insert v bod mp
-                          | length args <= length app -> Just $ sem free root $ Map.insert (fst $ last_ "step" app2) new mp
+            Just (RFun x) | length args == 0 -> Just $ sem free root $ Map.insert v (x,bod) mp
+                          | length args <= length app -> Just $ sem free root $ Map.insert (fst $ last_ "step" app2) (x,new) mp
                 where new = RLet (zip args $ map (RVar . snd) app2) bod
                       app2 = take (length args) app
                       (args,bod) = unique $ toRedex $ e x
