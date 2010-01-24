@@ -12,12 +12,14 @@ import qualified Data.Map as Map
 import Control.Monad
 import System.IO.Unsafe
 import System.IO
+import Data.IORef
 import System.Directory
 import Control.Arrow
 import Data.List
 import Debug.Trace
 import Data.Generics.PlateData
 import Control.Monad.State
+import Control.Exception
 
 
 supercompiler :: Prog -> Prog
@@ -25,74 +27,277 @@ supercompiler = supero . simplifyProg . map (unique . normalise) . reduceArity .
 
 
 supero :: Prog -> Prog
-supero prog = runResult $ supercompile func newTerm "supermain" $ toSem $ func "main"
+supero prog = closeLogFile $ runResult $ supercompile func newTerm "supermain" $ toSem $ func "main"
     where func = getFunc prog
 
 
 ---------------------------------------------------------------------
 -- LOGGING
 
-type Log = String -> ()
 
-logFile :: FilePath -> (Log -> a) -> a
-logFile file op = unsafePerformIO $ do
-    createDirectoryIfMissing True "log"
-    let f h str = unsafePerformIO $ hPutStrLn h str >> hFlush h
+{-# NOINLINE logState #-}
+logState :: IORef (Maybe Handle)
+logState = unsafePerformIO $ newIORef Nothing
+
+
+openLogFile :: String -> ()
+openLogFile file = unsafePerformIO $ do
+    h <- readIORef logState
+    case h of
+        Just h -> hClose h
+        Nothing -> createDirectoryIfMissing True "log"
     h <- openFile ("log/" ++ file ++ ".log") WriteMode
-    return $! op (f h)
+    writeIORef logState $ Just h
 
-dump :: String -> a -> a
-dump x y = logFile "dump" $ \f -> f x `seq` y
 
+appendLogFile :: String -> ()
+appendLogFile msg = unsafePerformIO $ do
+    Just h <- readIORef logState
+    hPutStrLn h msg
+
+
+closeLogFile :: a -> a
+closeLogFile x = unsafePerformIO $ finally (return $! x) $ do
+    h <- readIORef logState
+    when (isJust h) $ hClose $ fromJust h
 
 ---------------------------------------------------------------------
 -- TYPE
 
-type Env = Var -> Func
 
-data Sem = Sem
-    {semFreeVars :: [Var] -- free variables in this expression (lambda arguments when residuated)
-    ,semUnique :: Int -- unique index for creating fresh variables
-    ,semStack :: [Var] -- stack of expressions to evaluate
-    ,semBind :: Map.Map Var Redex -- bindings
-    }
+type Env = Var -> Func
+type Split = ([Sem], [Fun] -> Expr)
+
+data Sem = Sem [Var] Var (Map.Map Var Redex)
 
 instance Show Sem where
-    show (Sem free _ vs mp) = unlines $ unwords ("with":free) : map (f "*") vs ++ map (f "") (Map.keys mp \\ vs)
-        where f str v = str ++ v ++ " := " ++ showExpr (fromRedex $ fromJust $ Map.lookup v mp)
-
-    showList xs = showString $ f Map.empty xs
-        where
-            f seen [x] = show x
-            f seen [] = ""
-            f seen (Sem vars i vs mp:rest) = show (Sem vars i vs $ Map.mapWithKey (\k x -> if Map.lookup k seen == Just x then rVar "..." else x) mp) ++
-                "\n\n\n" ++ f mp rest
+    show (Sem free v mp) = unlines $ line1 : map f (Map.toList mp)
+        where line1 = "\\" ++ unwords free ++ " -> " ++ v ++ " where"
+              f (k,v) = "  " ++ k ++ " = " ++ showExpr (fromRedexShort v)
 
 
-sem vs o = Sem [] minBound vs $ fix $ Map.filterWithKey (\v _ -> v `elem` vs) o
+data SemS = SemS {semOld :: Map.Map Var (Maybe Redex, Maybe Var), semNew :: Map.Map Var Redex, semVars :: [Var]}
+
+sem :: [Var] -> Var -> Map.Map Var Redex -> Sem
+sem free v mp = relabel $ simplify $ relabel $ Sem free v mp
+
+
+{-
+flip evalState s0 $ do
+        free2 <- freshN $ length free
+        modify $ \s -> s{semOld = Map.fromList (zip free $ map ((,) Nothing . Just) free2) `Map.union` semOld s}
+        v2 <- label v
+        mp2 <- gets semNew
+        return $ Sem free2 v2 mp2
     where
-        fix mp = if Map.size mp == Map.size mp2 then mp else fix mp2
-            where now = concatMap freeVarsR $ Map.elems mp
-                  mp2 = Map.filterWithKey (\v _ -> Map.member v mp || v `elem` now) o
+        mp2 = Map.map simplify mp
+
+        s0 = SemS (Map.map (\x -> (Just x,Nothing)) mp) Map.empty ['x':show i | i <- [1..]]
+        fresh = do v:vs <- gets semVars ; modify $ \s -> s{semVars=vs} ; return v
+        freshN n = replicateM n fresh
+
+        label :: Var -> State SemS Var
+        label v = do
+            s <- get
+            let (x,v2) = Map.findWithDefault (Nothing, Just v) v $ semOld s
+            case v2 of
+                Just v2 -> return v2
+                Nothing -> do
+                    v2 <- f $ simplify s (RVar v)
+                    modify $ \s -> s{semOld = Map.insert v (x,Just v2) $ semOld s}
+                    return v2
+            where
+                f (RLet vs x) = do
+                    old <- gets semOld
+                    let safe = all (\x -> not $ fst x `Map.member` old) vs
+                    if not safe then error "binding conflict with let" else do
+                        modify $ \s -> s{semOld = Map.fromList [(v, (Just x, Nothing)) | (v,x) <- vs] `Map.union` semOld s}
+                        s <- get
+                        f $ simplify s x
+                f (RVar v) = label v
+                f x = do
+                    v <- fresh
+                    x <- relabel x
+                    modify $ \s -> s{semNew = Map.insert v x $ semNew s}
+                    return v
+
+
+        relabel :: Redex -> State SemS Redex
+        relabel = f Map.empty
+            where
+                f mp (RApp x y) = liftM2 RApp (use mp x) (use mp y)
+                f mp (RCase x xs) = liftM2 RCase (use mp x) (mapM (alt mp) xs)
+                f mp (RFun x) = return $ RFun x
+                f mp (RLit x) = return $ RLit x
+                f mp (RCon c xs) = liftM (RCon c) $ mapM (use mp) xs
+                f mp (RVar x) = do
+                    x <- label x
+                    return $ RVar x
+                f mp (RLet vxs x) = do
+                    let (vs,xs) = unzip vxs
+                    vs2 <- replicateM (length vs) fresh
+                    xs2 <- mapM (f mp) xs
+                    x2 <- f (Map.fromList (zip vs vs2) `Map.union` mp) x
+                    return $ RLet (zip vs2 xs2) x2
+                f mp x = error $ "todo, relabel: " ++ show x
+
+                alt mp (Patt c vs, x) = do
+                    vs2 <- replicateM (length vs) fresh
+                    x2 <- f (Map.fromList (zip vs vs2) `Map.union` mp) x
+                    return (Patt c vs2, x2)
+                alt mp (v, x) = fmap ((,) v) $ f mp x
+
+                use mp v = case Map.lookup v mp of
+                    Nothing -> label v
+                    Just y -> return y
+-}
+
+
+-- all the bound redexes must be fully simple
+-- none of the redexes may have a root let statement
+
+data SSimplify = SSimplify {simplifyNew :: Map.Map Var Redex}
+
+simplify :: Sem -> Sem
+simplify (Sem free root mp) = flip evalState (SSimplify Map.empty) $ do
+    mapM_ var $ Map.keys mp
+    fmap (Sem free root) $ gets simplifyNew
+    where
+        simp v x = do
+            x <- redex x
+            modify $ \s -> s{simplifyNew = Map.insert v x $ simplifyNew s}
+            return x
+
+        var v = do
+            new <- gets simplifyNew
+            case (Map.lookup v new, Map.lookup v mp) of
+                (Just y, _) -> return y
+                (_, Nothing) -> return $ RVar v
+                (_, Just x) -> simp v x
+
+        redex (RVar v) = var v
+        redex (RLet vs x) = mapM_ (uncurry simp) vs >> redex x
+        redex o@(RApp v y) = do
+            x <- var v
+            case x of
+                RCon c xs -> return $ RCon c (xs ++ [y])
+                _ -> return o
+        redex o@(RCase v alts) = do
+            x <- var v
+            case x of
+                RCon{} -> redex $ head $ concatMap (f x) alts
+                RLit{} -> redex $ head $ concatMap (f x) alts
+                _ -> return o
+            where f (RCon c vs) (Patt c2 vs2, x) | c == c2 = [RLet (zip vs2 $ map RVar vs) x]
+                  f (RLit c) (PattLit c2, x) | c == c2 = [x]
+                  f _ (PattAny, x) = [x]
+                  f _ _ = []
+        redex x = return x
+
+
+-- do a GC, variable normalisation, variable flattening
+
+data SRelabel = SRelabel {relabelOld :: Map.Map Var Var, relabelNew :: Map.Map Var Redex, relabelVars :: [Var]}
+
+relabel :: Sem -> Sem
+relabel (Sem free root mp) = flip evalState s0 $ do
+    free2 <- freshN (length free)
+    zipWithM_ rename free free2
+    root2 <- move root
+    fmap (Sem free2 root2) $ gets relabelNew
+    where
+        s0 = SRelabel Map.empty Map.empty ['x':show i | i <- [1..]]
+        fresh = do v:vs <- gets relabelVars ; modify $ \s -> s{relabelVars=vs} ; return v
+        freshN n = replicateM n fresh
+
+        rename x y = modify $ \s -> s{relabelOld = Map.insert x y $ relabelOld s}
+        record x y = modify $ \s -> s{relabelNew = Map.insert x y $ relabelNew s}
+
+        move v = do
+            old <- gets relabelOld
+            case (Map.lookup v old, Map.lookup v mp) of
+                (Just y, _) -> return y
+                (_, Nothing) -> return v
+                (_, Just (RVar y)) -> move y
+                (_, Just x) -> do
+                    y <- fresh
+                    rename v y
+                    x <- f Map.empty x
+                    record y x
+                    return y
+
+        f mp (RApp x y) = liftM2 RApp (var mp x) (var mp y)
+        f mp (RCase x xs) = liftM2 RCase (var mp x) (mapM (alt mp) xs)
+        f mp (RFun x) = return $ RFun x
+        f mp (RLit x) = return $ RLit x
+        f mp (RCon c xs) = liftM (RCon c) $ mapM (var mp) xs
+        f mp (RVar x) = liftM RVar (var mp x)
+        f mp (RLet vxs x) = do
+            let (vs,xs) = unzip vxs
+            vs2 <- replicateM (length vs) fresh
+            xs2 <- mapM (f mp) xs
+            x2 <- f (Map.fromList (zip vs vs2) `Map.union` mp) x
+            return $ RLet (zip vs2 xs2) x2
+
+        alt mp (Patt c vs, x) = do
+            vs2 <- replicateM (length vs) fresh
+            x2 <- f (Map.fromList (zip vs vs2) `Map.union` mp) x
+            return (Patt c vs2, x2)
+        alt mp (v, x) = fmap ((,) v) $ f mp x
+
+        var mp v = case Map.lookup v mp of
+            Nothing -> move v
+            Just y -> return y
 
 
 toSem :: Func -> Sem
-toSem x = Sem args i ["root"] (Map.singleton "root" bod)
-    where (i,(args,bod)) = fromUnique $ fmap fromRLam $ toRedex =<< normalise x
+toSem x = sem args "?v" (Map.singleton "?v" bod)
+    where (args,bod) = unique $ toRedex x
 
-apply :: Sem -> [Fun] -> Expr
-apply (Sem free i vs binds) vars = eLet (zip free (map eFun vars) ++ map (second fromRedex) (Map.toList binds)) (eVar $ last vs)
-
-runSem :: Sem -> Unique Sem -> Sem
-runSem (Sem free i _ _) x = Sem free i2 vs mp
-    where (Sem _ _ vs mp, i2) = runUnique x i
-
-semMinFree = id
-
-semAddFree xs sem = sem{semFreeVars = xs ++ semFreeVars sem}
 
 ---------------------------------------------------------------------
 -- MANAGER
+
+supercompile :: Env -> Term -> Fun -> Sem -> Result ()
+supercompile env t name x | terminate t x = f t name (stop t x)
+                          | otherwise = do
+        () <- return $ openLogFile name
+        let (x',t') = reduce env x
+        res <- seen x' ; case res of
+            Just y -> addSeen y x >> addResult name (forward y)
+            _ -> addSeen name x' >> f (t += x') name t'
+    where
+        f t name (xs',gen) = do
+            (names,acts) <- mapAndUnzipM (g t) xs'
+            () <- addResult name (gen names)
+            () <- return $ appendLogFile $ showExpr $ gen names
+            sequence_ acts
+
+        g t x = do
+            res <- seen x ; case res of
+                Just y -> return (y, return ())
+                Nothing -> do
+                    [y] <- freshNames 1
+                    addSeen y x
+                    return (y, supercompile env t y x)
+
+
+-- return the Sem, and the split version you'd like to use
+-- both are equivalent
+reduce :: Env -> Sem -> (Sem, Split)
+reduce env = f newTerm
+    where
+        f t x | () <- appendLogFile $ show x, False = undefined
+              | terminate t x = (x, stop t x)
+              | Just x' <- step env x = f (t += x) x'
+              | otherwise = (x, split x)
+
+
+forward :: Fun -> Expr
+forward = EFun
+
+{-
+
 
 supercompile :: Env -> Term -> Fun -> Sem -> Result ()
 supercompile env global name x = logFile ("func_" ++ name) $ \out -> f out newTerm x
@@ -121,24 +326,29 @@ supercompile env global name x = logFile ("func_" ++ name) $ \out -> f out newTe
                             () <- return $ out ("answer\n" ++ showExpr (apply y vs))
                             zipWithM_ (supercompile env (global+=y)) vs ys
 
+-}
 
 ---------------------------------------------------------------------
 -- RESULTS
 
 type Result a = State ResultState a
 
-data ResultState = ResultState {resultSeen :: [(Sem,Fun)], resultFresh :: !Int, resultProg :: Prog, resultLog :: Log}
+data ResultState = ResultState {resultSeen :: [(Sem,Fun)], resultFresh :: !Int, resultProg :: Prog}
 
 
 runResult :: Result a -> Prog
-runResult x = logFile "result" $ \out -> resultProg $ execState x $ ResultState [] 1 [] out
+runResult x = unsafePerformIO $ do
+    writeFile "log/result.log" ""
+    return $ resultProg $ execState x $ ResultState [] 1 []
 
 addSeen :: Fun -> Sem -> Result ()
 addSeen fun sem = modify $ \r -> r{resultSeen = (sem,fun) : resultSeen r}
 
 addResult :: Fun -> Expr -> Result ()
-addResult fun expr = modify $ \r -> let x = Func fun [] expr in
-    resultLog r (showFunc x) `seq` r{resultProg = x : resultProg r}
+addResult fun expr = unsafePerformIO $ do
+    let x = Func fun [] expr
+    appendFile "log/result.log" (showFunc x ++ "\n\n")
+    return $ modify $ \r -> r{resultProg = x : resultProg r}
 
 freshNames :: Int -> Result [Fun]
 freshNames n = do
@@ -153,199 +363,72 @@ seen sem = return Nothing -- FIXME
 -- TERMINATION
 
 data Term = Term
-data Evidence = Evidence
 
 newTerm :: Term
 newTerm = Term
 
-terminate :: Term -> Sem -> Maybe Evidence
-terminate _ _ = Nothing
+terminate :: Term -> Sem -> Bool
+terminate _ _ = False
 
 (+=) :: Term -> Sem -> Term
 (+=) x _ = x
+
+
+
+stop :: Term -> Sem -> Split
+stop = error "stop"
 
 
 ---------------------------------------------------------------------
 -- SPLIT
 
 
-split :: Maybe Evidence -> Sem -> (Sem, [Sem])
-
-split _ x = error $ "todo, split: " ++ show x
-
-{-
-split Nothing o@(Sem free i (v:vs) mp)
-    | Just (ECase _ (EVar on) alts) <- Map.lookup v mp = (root, as)
+split :: Sem -> Split
+split (Sem free root mp) = f [] root
     where
-        Just (ECase _ (EVar on) alts) = Map.lookup v mp 
-    
-        as = [semMinFree $ semAddFree (pattVars p) $ runSem o $ return $ sem (v:vs) $
-              Map.fromList ((v,x) : [(on,eApps (ECon c) $ map eVar vs) | Patt c vs <- [p]]) `Map.union` mp | (p,x) <- alts]
-
-        root = semAddFree new $ runSem o{semUnique=i + length alts} $ return $ sem [v] $ Map.singleton v $ eCase (EVar on)
-               [(p,eApps (eVar n) (map eVar $ semFreeVars a)) | (n,a,(p,x)) <- zip3 new as alts]
-        new = take (length alts) $ map ((:) 'v' . show) [i..]
-
-split Nothing o@(Sem free i (v:vs) mp)
-    | Just (fromEApps -> (EVar x, xs)) <- Map.lookup v mp
-    , not $ Map.member x mp
-    = (Sem free i vs $ Map.delete v mp, []) -- FIXME: Entirely wrong
-    where
-     --   root = Sem free i [v] $ Map.singleton v $ eApps (EVar x) xs
-     --   rest = semMinFree $ semAddFree v $ runSem o{semUnique=i + length xs} $ return $ sem 
-    
-split Nothing o@(Sem free i [v] mp)
-    | Just (fromEApps -> (ECon x, xs)) <- Map.lookup v mp = (root, as)
-    where
-        Just (fromEApps -> (ECon x, xs)) = Map.lookup v mp
-        as = [semMinFree $ semAddFree (delete v $ Map.keys mp) $ sem [v] $ Map.singleton v x | x <- xs]
-        root = semAddFree new $ runSem o{semUnique=i + length xs} $ return $ sem [v] $ Map.singleton v $ eApps (ECon x)
-               [eApps (eVar n) $ map eVar $ semFreeVars a | (n,a) <- zip new as]
-        new = take (length xs) $ map ((:) 'v' . show) [i..]
+        f args v = case Map.lookup v mp of
+            Just o@(RCase w alt) | w `Map.member` mp -> f [] w
+                                 | otherwise -> splitCase v w alt
+            Just RCon{} -> ([], \_ -> eFun "TODO! Outer constructor")
+            Just (RApp x y) -> f (y:args) x
+            Nothing -> ([], \_ -> eFun $ "TODO! unresolved variable " ++ show v ++ " @ " ++ show args)
+            x -> error $ "how do i split on " ++ show x ++ " @ " ++ show args
 
 
-split _ sem = dump (show sem) $ error "todo: split"
--}
-
-{-
-split Nothing sem@(Sem vars i (v:vs) mp)
-    | Just (ECase _ (EVar on) alts) <- Map.lookup v mp = (Sem vars i2 v 
-
-    where
-        i2 = i + length alts
-        let i = 
-    
-    
-    error $ "split\n" ++ show sem
 
 
-split _ _ = error "todo: split"
--}
+        -- type Split = ([Sem], [Fun] -> Expr)
+        splitCase v on alt = (map semMin ss,
+                \names -> eLams free $ eCase (eVar on) $ zip (map fst alt) (zipWith3 g alt names ss))
+            where
+                ss = map f alt
+                f (Patt c vs, x) = sem (vs ++ delete on free) root $ Map.insert on (RCon c vs) mp
+                f (PattLit c, x) = sem (delete on free) root $ Map.insert on (RLit c) mp
+                f (PattAny, x) = sem free root $ Map.insert v x mp
+                g (p, _) name s = eApps (eFun name) (map eVar $ semNeed s $ pattVars p ++ if isPattAny p then free else delete on free)
+
+                semMin (Sem free root mp) = Sem (filter (/= "_") free) root mp
+                semNeed (Sem free _ _) vs = [v | (f,v) <- zip free vs, f /= "_"]
 
 
 ---------------------------------------------------------------------
--- STEP SEMANTICS
+-- STEP
+
 
 step :: Env -> Sem -> Maybe Sem
-step func o@(Sem vars i (v:vs) mp) = case f $ grab v of
-        Nothing -> Nothing
-        Just y -> Just $ runSem o y
+step e (Sem free root mp) = f [] root
     where
-        grab x = Map.findWithDefault (error "eek, can't find") x mp
-        add x = Map.fromList x `Map.union` mp
-
-        isWhnf RCon{} = True
-        isWhnf RLam{} = True
-        isWhnf RLit{} = True
-        isWhnf _ = False
-
-        whnf :: Var -> (Redex -> Unique Sem) -> Maybe (Unique Sem)
-        whnf w op = case Map.lookup w mp of
+        f app v = case Map.lookup v mp of
             Nothing -> Nothing
-            Just e | isWhnf e -> Just $ op e
-            Just (RApp w []) -> whnf w op
-            Just _ -> Just $ return $ sem (w:v:vs) $ add []
-
-        f x | isWhnf x = if null vs then Nothing else Just $ return $ sem vs mp
-
-        f (RFun x) = Just $ do
-            y <- toRedex $ func x
-            return $ sem (v:vs) $ add [(v,y)]
-
-        f (RLet bind x) = Just $ return $ sem (v:vs) $ add $ (v,x) : bind
-
-        f (RApp x []) = case Map.lookup x mp of
-            Nothing -> Nothing {- case vs of
-                [] -> Nothing
-                v2:vs2 -> Just $ return $ sem vs $ add [(v2, repVar v x $ grab v2)]  -}
-            Just e -> Just $ return $ sem (v:vs) $ add [(v,e),(x,rVar v)]
-
-        f (RCase on alts) = whnf on $ \(RCon c xs) -> do
-                let (pattVars -> ps, x) = head $ filter (g c . fst) alts ++ error "no matching case in step"
-                return $ sem (v:vs) $ add $ (v,x) : zip ps (map rVar xs)
-            where
-                g y (Patt c _) = c == y
-                g y PattAny = True
-                g y _ = False
-
-        f (RApp x xs) | xs /= [] = whnf x $ \x -> do
-            case x of
-                RLam{}-> do
-                    RLam xv xx <- normaliseRedex x
-                    let n = min (length xs) (length xv)
-                    w <- fresh
-                    return $ sem (v:vs) $ add $ if null $ drop n xs
-                        then (v,rLam (drop n xv) xx) : zip xv (map rVar xs)
-                        else (v,RApp w (drop n xs)) : (w,rLam (drop n xv) xx) : zip xv (map rVar xs)
-                RCon c ys -> do
-                    return $ sem vs $ add [(v, RCon c (ys++xs))]
+            Just (RCase on _) -> f [] on
+            Just (RApp x y) -> f ((v,y):app) x
+            Just (RFun x) | length args == 0 -> Just $ sem free root $ Map.insert v bod mp
+                          | length args <= length app -> Just $ sem free root $ Map.insert (fst $ last_ "step" app2) new mp
+                where new = RLet (zip args $ map (RVar . snd) app2) bod
+                      app2 = take (length args) app
+                      (args,bod) = unique $ toRedex $ e x
+            _ -> Nothing
 
 
-        f x = dump (showExpr $ fromRedex x) $ error $ "Don't know what to do on expression"
-
-
-repVar :: Var -> Var -> Redex -> Redex
-repVar from to = transform f
-    where -- f (EVar x) = EVar $ if x == from then to else x
-          f x = error "todo, repVar on Redex"
-
-
-
-{-
-
-| fun@Func{..} <- func y, length zs == length funcArgs = do
-    Func{..} <- normalise fun
-    let (zs1,zs2) = splitAt (length funcArgs) zs
-    return $ Sem $ (root,funcBody) : zip funcArgs zs ++ rest
-
-step func (Sem ((root, ECase _ (EVar x) alts) : rest)) | Just (fromEApps -> (ECon y, zs)) <- lookup x rest = do
-    let (p,x) = head $ filter (f y . fst) alts ++ error "no matching case in step"
-    return $ Sem $ (root,x) : zip (pattVars p) zs ++ rest
-    where
-        f y (Patt c _) = c == y
-        f y PattAny = True
-        f y _ = False
-
-step func (Sem rest@((root, fromEApps -> (EVar y, zs)) : _)) = do
-    let (a,b) = partition ((==) y . fst) rest
-    return $ Sem $ a ++ b
-
-step func (Sem (x:xs)) = error $ "Don't know what to do:\n" ++ show (snd x)
--}
-{-
----------------------------------------------------------------------
--- EVALUATE
--- what are the possible 1-step unfoldings, always in simplest form
-evaluate :: Env -> Func -> [Func]
-evaluate func x = map g $ f $ funcBody x
-    where
-        g y = x{funcBody = unique $ simplifyExpr . funcBody =<< normalise x{funcBody=y}}
-
-        f (fromEApps -> (EFun y, zs)) | Func{..} <- func y, length zs >= length funcArgs = (:[]) $
-            let (zs1,zs2) = splitAt (length funcArgs) zs
-            in eApps (eLet (zip funcArgs zs1) funcBody) zs2
-
-        f (ECase _ on alts) = map (`eCase` alts) $ f on
-
-        f (ELet _ xy z) = map (eLet xy) (f z)
-
-        f _ = []
-
----------------------------------------------------------------------
--- DULL
--- is this expression dull
-dull :: Expr -> Bool
-dull (ECase _ (EVar x) _) = True
-dull (fromEApps -> (EVar x, _)) = True
-dull _ = False
-
-
----------------------------------------------------------------------
--- RESIDATE
--- possibly with respect to the function who stopped you last time
-residuate :: Maybe Expr -> Expr -> ([Expr], [Var] -> Expr)
-residuate = undefined
-
--}
-
-
+last_ msg [] = error $ "last with " ++ msg
+last_ msg x = last x

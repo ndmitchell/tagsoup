@@ -42,6 +42,7 @@ data Patt = Patt Con [Var]
 
 pattVars (Patt _ vs) = vs
 pattVars _ = []
+isPattAny PattAny{} = True ; isPattAny _ = False
 
 
 getFunc :: Prog -> (Var -> Func)
@@ -197,43 +198,44 @@ toUnique i x = do
 -- REDEX
 
 data Redex = RLet [(Var, Redex)] Redex
-           | RApp Var [Var]
+           | RVar Var
            | RFun Fun
-           | RCase Var [(Patt, Redex)]
+           | RApp Var Var
            | RCon Con [Var]
+           | RCase Var [(Patt, Redex)]
            | RLit Literal
-           | RLam [Var] Redex
              deriving (Data, Typeable, Show, Eq)
 
 
 fromRedex :: Redex -> Expr
 fromRedex (RLet xs y) = eLet (map (second fromRedex) xs) (fromRedex y)
-fromRedex (RApp x xs) = eApps (EVar x) (map EVar xs)
+fromRedex (RApp x y) = eApp (EVar x) (EVar y)
+fromRedex (RVar x) = EVar x
 fromRedex (RFun x) = EFun x
 fromRedex (RCase x xs) = eCase (EVar x) (map (second fromRedex) xs)
 fromRedex (RCon x xs) = eApps (ECon x) (map EVar xs)
 fromRedex (RLit x) = ELit x
-fromRedex (RLam vs x) = eLams vs (fromRedex x)
 
-rVar x = RApp x []
-rLam vs x = if null vs then x else RLam vs x
+fromRedexShort :: Redex -> Expr
+fromRedexShort (RCase x xs) = fromRedex $ RCase x $ map (second $ const $ RVar "...") xs
+fromRedexShort x = fromRedex x
+
 rLet xs x = if null xs then x else RLet xs x
 
-toRedex :: Func -> Unique Redex
+toRedex :: Func -> Unique ([Var], Redex)
 toRedex func = do
     Func _ args bod <- normalise func
-    fmap (rLam args) $ f bod
+    fmap ((,) args) $ f bod
     where
-        f x@EApp{} | (x,xs) <- fromEApps x = bind (x:xs) $ \(y:ys) -> RApp y ys
+        f (EApp _ x y) = bind [x,y] $ \[x,y] -> RApp x y
         f (ECon x) = return $ RCon x []
         f (EFun x) = return $ RFun x
-        f (EVar x) = return $ rVar x
+        f (EVar x) = return $ RVar x
         f (ELit x) = return $ RLit x
         f (ECase _ x xs) = do
             let (x1,x2) = unzip xs
             x2 <- mapM f x2
             bind [x] $ \[x] -> RCase x $ zip x1 x2
-        f x@ELam{} | (ys,y) <- fromELams x = fmap (RLam ys) $ f y
         f (ELet _ bind x) = do
             let (x1,x2) = unzip bind
             x2 <- mapM f x2
@@ -254,17 +256,10 @@ toRedex func = do
 -- | Note: Currently approximate
 freeVarsR :: Redex -> [Var]
 freeVarsR (RLet xs x) = concatMap (freeVarsR . snd) xs ++ freeVarsR x
-freeVarsR (RApp x xs) = x:xs
+freeVarsR (RApp x y) = [x,y]
 freeVarsR (RCase x xs) = x : concatMap (freeVarsR . snd) xs
 freeVarsR (RCon x xs) = xs
-freeVarsR (RLam xs x) = freeVarsR x
+freeVarsR (RVar x) = [x]
 freeVarsR _ = []
 
-
-normaliseRedex :: Redex -> Unique Redex
-normaliseRedex x = toRedex $ Func "" [] $ fromRedex x
-
-
-fromRLam (RLam xs y) = (xs,y)
-fromRLam x = ([], x)
 
