@@ -129,5 +129,5 @@ forwarding prog = filter (not . flip Map.member fwd . funcName) $ transformBi f 
         f x = x
 
         fwd = Map.fromList $ concatMap g prog
-        g (Func name args bod) | (EFun x,y) <- fromEApps bod, map eVar args == y = [(name,x)]
+        g (Func name args bod) | (EFun x,y) <- fromEApps bod, map eVar args == y, name /= "main" = [(name,x)]
         g _ = []
