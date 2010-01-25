@@ -197,10 +197,11 @@ supercompile :: Env -> Term -> Fun -> Sem -> Result ()
 supercompile env t name x | terminate t x = f t name (stop t x)
                           | otherwise = do
         () <- return $ openLogFile name
+        () <- return $ appendLogFile $ show t
         let (x',t') = reduce env x
         res <- seen x' ; case res of
             Just y -> addSeen y x >> addResult name (forward y)
-            _ -> addSeen name x' >> f (t += x') name t'
+            _ -> addSeen name x' >> f ((t += x') += x) name t'
     where
         f t name (xs',gen) = do
             (names,acts) <- mapAndUnzipM (g t) xs'
@@ -298,7 +299,7 @@ seen sem = fmap (lookup sem) $ gets resultSeen
 ---------------------------------------------------------------------
 -- TERMINATION
 
-data Term = Term [Past]
+data Term = Term [Past] deriving Show
 
 type Past = [(String,Int)]
 
@@ -326,7 +327,7 @@ terminate (Term xs) sem | any (bad $ past sem) xs = True -- error $ show (sem, x
 
 
 stop :: Term -> Sem -> Split
-stop term (Sem free root mp) = (map snd ss, \names -> eLams free $ eLet (zip keep $ zipWith g names ss) (eVar root))
+stop term (Sem free root mp) = trace "stop" $ (map snd ss, \names -> eLams free $ eLet (zip keep $ zipWith g names ss) (eVar root))
     where
         keep = fixEq op $ Map.keys mp
         ss = map (f keep) keep
