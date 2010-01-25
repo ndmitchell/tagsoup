@@ -326,7 +326,20 @@ terminate (Term xs) sem | any (bad $ past sem) xs = True -- error $ show (sem, x
 
 
 stop :: Term -> Sem -> Split
-stop term sem = error $ "stop: " ++ show sem
+stop term (Sem free root mp) = (map snd ss, \names -> eLams free $ eLet (zip keep $ zipWith g names ss) (eVar root))
+    where
+        keep = fixEq op $ Map.keys mp
+        ss = map (f keep) keep
+        f keep w = semTop (delete w $ free ++ keep) w (Map.filterWithKey (\k _ -> k `notElem` keep || k == w) mp)
+        g name (vs,_) = eApps (eFun name) (map eVar vs)
+
+        op xs = h xs poss
+            where
+                poss = filter (\x -> (<=1) $ length $ filter (elem x . nub . childrenBi . flip Map.lookup mp) $ delete x xs) $ delete root xs
+                h xs [] = xs
+                h xs (p:oss) | all (not . terminate term . snd . f k2) k2 = h k2 oss
+                             | otherwise = h xs oss
+                    where k2 = delete p xs
 
 
 ---------------------------------------------------------------------
@@ -385,15 +398,16 @@ semTop free root mp = ([v | (v,w) <- zip free free2, w /= "_"], Sem (filter (/= 
 share :: Sem -> [Var] -> [Var]
 share (Sem free root mp) top = fixEq f (top \\ free)
     where
-        fixEq f x = if x == x2 then x2 else fixEq f x2
-            where x2 = f x
-
         f xs = filter (`Map.member` mp) $ sort $ nub $ xs ++ new
             where new = map head $ filter ((>1) . length) $ group $ sort $ concatMap follow xs
         
         follow x = case Map.lookup x mp of
             Nothing -> []
             Just r -> childrenBi r :: [String]
+
+
+fixEq f x = if x == x2 then x2 else fixEq f x2
+    where x2 = f x
 
 
 ---------------------------------------------------------------------
