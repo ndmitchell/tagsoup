@@ -14,7 +14,7 @@ showExpr = prettyPrint . outExpr
 input :: [Decl] -> [Func]
 input xs = map (inFunc names) xs2
     where names = [prettyPrint name | PatBind _ name _ _ _ <- xs2]
-          xs2 = map toPatBind xs
+          xs2 = concatMap toPatBind xs
 
 
 inFunc names (PatBind _ name Nothing (UnGuardedRhs bod) (BDecls [])) =
@@ -23,8 +23,9 @@ inFunc names (PatBind _ name Nothing (UnGuardedRhs bod) (BDecls [])) =
         _ -> Func (prettyPrint name) [] (inExpr names bod)
 inFunc names x = error $ show ("inFunc",x)
 
-toPatBind (FunBind [Match sl name ps _ (UnGuardedRhs bod) whr]) = PatBind sl (PVar name) Nothing (UnGuardedRhs $ Lambda sl ps bod) whr
-toPatBind x = x
+toPatBind (FunBind [Match sl name ps _ (UnGuardedRhs bod) whr]) = [PatBind sl (PVar name) Nothing (UnGuardedRhs $ Lambda sl ps bod) whr]
+toPatBind TypeSig{} = []
+toPatBind x = [x]
 
 
 inExpr names (Paren x) = inExpr names x
