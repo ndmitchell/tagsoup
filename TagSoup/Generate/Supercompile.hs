@@ -370,7 +370,7 @@ split (Sem free root mp) = (a, eLams free . b)
 
         splitApp v gen xs = (map snd ss, \names -> eLet ((v, eApps gen (map eVar xs)) :  zip (delete v keep) (zipWith g names ss)) (eVar root))
             where
-                keep = share (Sem free root mp) $ root:xs
+                keep = share (Sem free root mp) $ root:v:xs
                 ss = map f $ delete v keep
                 f w = semTop (delete w $ free ++ keep) w (Map.filterWithKey (\k _ -> k `notElem` keep || k == w) mp)
                 g name (vs,_) = eApps (eFun name) (map eVar vs)
@@ -430,5 +430,64 @@ step e (Sem free root mp) = f [] root
             _ -> Nothing
 
 
+step e sem@(Sem free root mp) = f $ flatten sem
+    where
+        f ((v, Just (_, RFun name)):rest) = g v [] rest
+            where
+                (args,bod) = unique $ toRedex $ e name
+
+                g v seen _ | length seen == length args = Just $ sem free root $ Map.insert v (name,bod2) mp
+                    where bod2 = RLet (zip args $ map RVar seen) bod
+                g _ seen ((v, Just (_, RApp _ w)):rest) = g fun v (w:seen) 
+
+        g (args,bod) v seen _ | length seen == length args = Just $ sem free root $ Map.insert v (v,bod2) mp
+        
+        RLet replace sem val
+        g fun _ seen ((v, Just (_, RApp _ w)):rest) = g fun v (w:seen) rest
+        g _ _ _ _ = Nothing
+
+            where
+                (args,bod) = unique $ toRedex $ e x
+                (rep,app) = g v [] rest
+
+                g v seen _ | length seen == length args = (v, seen)
+                g v seen (v, Just 
+
+    
+    
+        f app v = case fmap snd $ Map.lookup v mp of
+            Nothing -> Nothing
+            Just (RCase on _) -> f [] on
+            Just (RApp x y) -> f ((v,y):app) x
+            Just (RFun x) | length args == 0 -> Just $ sem free root $ Map.insert v (x,bod) mp
+                          | length args <= length app -> Just $ sem free root $ Map.insert (fst $ last_ "step" app2) (x,new) mp
+                where new = RLet (zip args $ map (RVar . snd) app2) bod
+                      app2 = take (length args) app
+                      (args,bod) = unique $ toRedex $ e x
+            _ -> Nothing
+
+
+
+
 last_ msg [] = error $ "last with " ++ msg
 last_ msg x = last x
+
+
+
+-- the first element may be a nothing, all the others must be a Just
+flatten :: Sem -> [(Var, Maybe (String,Redex))]
+flatten (Sem free root mp) = reverse $ f root
+    where
+        f v = case Map.lookup v mp of
+            Nothing -> [(v, Nothing)]
+            Just (s,x) -> (v, Just (s,x)) : case force x of
+                Nothing -> []
+                Just v -> f v
+
+
+-- if you force this redex, which var will you force next
+force :: Redex -> Maybe Var
+force (RVar v) = Just v
+force (RApp v _) = Just v
+force (RCase v _) = Just v
+force _ = Nothing
