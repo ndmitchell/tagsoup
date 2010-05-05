@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    Numeric/hex entities in attributes were misparsed
     #149, add escapeHTML function
 0.8
     Parser now based on HTML5 specification
