@@ -119,6 +119,10 @@ parseTests = do
     parseTags "<a href=http://www.google.com>" === [TagOpen "a" [("href","http://www.google.com")]]
     parseTags "<foo bar=\"bar&#54;baz\">" === [TagOpen "foo" [("bar","bar6baz")]]
     parseTags "<foo bar=\"bar&amp;baz\">" === [TagOpen "foo" [("bar","bar&baz")]]
+    parseTags "hey &how are you" === [TagText "hey &how are you"]
+    parseTags "hey &how; are you" === [TagText "hey &how; are you"]
+    parseTags "hey &amp are you" === [TagText "hey & are you"]
+    parseTags "hey &amp; are you" === [TagText "hey & are you"]
 
     -- real cases reported by users
     parseTags "<a href=\"series.php?view=single&ID=72710\">" === [TagOpen "a" [("href","series.php?view=single&ID=72710")]]

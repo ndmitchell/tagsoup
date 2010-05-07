@@ -288,8 +288,8 @@ charRefNum2 resume o hex S{..} = pos $ case hd of
 
 charRefNum3 resume hex S{..} = pos $ case hd of
     _ | hexChar hex hd -> hd & charRefNum3 resume hex tl
-    ';' -> EntityEnd & resume tl
-    _ -> errWant ";" & EntityEnd & resume s
+    ';' -> EntityEnd True & resume tl
+    _ -> EntityEnd False & errWant ";" & resume s
 
 charRefAlpha resume att S{..} = pos $ case hd of
     _ | isAlpha hd -> Entity & hd & charRefAlpha2 resume att tl
@@ -297,9 +297,9 @@ charRefAlpha resume att S{..} = pos $ case hd of
 
 charRefAlpha2 resume att S{..} = pos $ case hd of
     _ | alphaChar hd -> hd & charRefAlpha2 resume att tl
-    ';' -> EntityEnd & resume tl
-    _ | att -> EntityEndAtt & resume s
-    _ -> errWant ";" & EntityEnd & resume s
+    ';' -> EntityEnd True & resume tl
+    _ | att -> EntityEnd False & resume s
+    _ -> EntityEnd False & errWant ";" & resume s
 
 
 alphaChar x = isAlphaNum x || x `elem` ":-_"
