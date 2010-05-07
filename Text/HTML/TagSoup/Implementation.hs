@@ -24,7 +24,7 @@ data Out
     | TagEndClose     -- />
     | Comment         -- <!--
     | CommentEnd      -- -->
-    | Entity          -- &
+    | EntityName      -- &
     | EntityNum       -- &#
     | EntityHex       -- &#x
     | EntityEnd Bool  -- Attributed followed by ; for True, missing ; for False
@@ -97,9 +97,9 @@ output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ go 
                   (z,b) = atts y
         go x | isComment x = pos x $ TagComment a : go (skip isCommentEnd y)
             where (y,a) = charsStr $ next x
-        go x | isEntity x = poss x ((if optTagWarning then id else filter (not . isTagWarning)) $ optEntityData (a, getEntityEnd y)) ++ go (skip isEntityEnd y) 
+        go x | isEntityName x = poss x ((if optTagWarning then id else filter (not . isTagWarning)) $ optEntityData (a, getEntityEnd y)) ++ go (skip isEntityEnd y) 
             where (y,a) = charsStr $ next x
-        go x | isEntityChr x = pos x $ TagText (fromChar $ entityChr x a) : go (skip isEntityEnd y)
+        go x | isEntityNumHex x = pos x $ TagText (fromChar $ entityChr x a) : go (skip isEntityEnd y)
             where (y,a) = chars $ next x
         go x | Just a <- fromWarn x = if optTagWarning then pos x $ TagWarning (fromString a) : go (next x) else go (next x)
         go x | isEof x = []
@@ -121,12 +121,12 @@ output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ go 
         charss :: Bool -> ((Position,[Tag str]),[Out]) -> ( ((Position,[Tag str]),[Out]) , String)
         charss t x | Just a <- fromChr x = (y, a:b)
             where (y,b) = charss t (next x)
-        charss t x | t, isEntity x = second (toString n ++) $ charss t $ addWarns m z
+        charss t x | t, isEntityName x = second (toString n ++) $ charss t $ addWarns m z
             where (y,a) = charsStr $ next x
                   b = getEntityEnd y
                   z = skip isEntityEnd y
                   (n,m) = optEntityAttrib (a,b)
-        charss t x | t, isEntityChr x = second (entityChr x a:) $ charss t z
+        charss t x | t, isEntityNumHex x = second (entityChr x a:) $ charss t z
             where (y,a) = chars $ next x
                   z = skip isEntityEnd y
         charss t ((_,w),Pos p:xs) = charss t ((p,w),xs)
@@ -156,8 +156,8 @@ isTagEnd (_,TagEnd{}:_) = True; isTagEnd _ = False
 isTagEndClose (_,TagEndClose{}:_) = True; isTagEndClose _ = False
 isComment (_,Comment{}:_) = True; isComment _ = False
 isCommentEnd (_,CommentEnd{}:_) = True; isCommentEnd _ = False
-isEntity (_,Entity{}:_) = True; isEntity _ = False
-isEntityChr (_,EntityNum{}:_) = True; isEntityChr (_,EntityHex{}:_) = True; isEntityChr _ = False
+isEntityName (_,EntityName{}:_) = True; isEntityName _ = False
+isEntityNumHex (_,EntityNum{}:_) = True; isEntityNumHex (_,EntityHex{}:_) = True; isEntityNumHex _ = False
 isEntityNum (_,EntityNum{}:_) = True; isEntityNum _ = False
 isEntityHex (_,EntityHex{}:_) = True; isEntityHex _ = False
 isEntityEnd (_,EntityEnd{}:_) = True; isEntityEnd _ = False

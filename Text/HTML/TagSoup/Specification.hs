@@ -292,7 +292,7 @@ charRefNum3 resume hex S{..} = pos $ case hd of
     _ -> EntityEnd False & errWant ";" & resume s
 
 charRefAlpha resume att S{..} = pos $ case hd of
-    _ | isAlpha hd -> Entity & hd & charRefAlpha2 resume att tl
+    _ | isAlpha hd -> EntityName & hd & charRefAlpha2 resume att tl
     _ -> errSeen "&" & '&' & resume s
 
 charRefAlpha2 resume att S{..} = pos $ case hd of
