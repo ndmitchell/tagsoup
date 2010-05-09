@@ -7,8 +7,6 @@ import Control.DeepSeq
 import Control.Monad
 import Data.List
 import Data.Maybe
-import Data.Char
-import System.IO
 import System.IO.Unsafe(unsafeInterleaveIO)
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as LBS

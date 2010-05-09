@@ -6,8 +6,6 @@ import Network.HTTP
 
 import Data.Char
 import Data.List
-import Data.Maybe
-import System.IO
 
 
 openItem :: String -> IO String

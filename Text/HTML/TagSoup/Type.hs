@@ -19,7 +19,6 @@ module Text.HTML.TagSoup.Type(
     ) where
 
 
-import Data.Char
 import Data.List
 import Data.Maybe
 import Text.StringLike

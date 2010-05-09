@@ -6,7 +6,6 @@ module Text.HTML.TagSoup.Parser(
 
 import Text.HTML.TagSoup.Type
 import Text.HTML.TagSoup.Options
-import Text.StringLike
 import qualified Text.HTML.TagSoup.Generated as Gen
 
 

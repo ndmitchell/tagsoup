@@ -6,8 +6,6 @@
 --   TagSoup to work with String (list of Char), ByteString.Char8 and ByteString.Lazy.Char8.
 module Text.StringLike where
 
-import Data.List
-import Data.Maybe
 import Data.Typeable
 
 import qualified Data.ByteString.Char8 as BS
