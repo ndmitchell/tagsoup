@@ -21,7 +21,7 @@ extra-source-files:
     tagsoup.htm
 
 flag testprog
-    default: True
+    default: False
     description: Build the test program
 
 library
@@ -49,9 +49,9 @@ executable tagsoup
     ghc-options: -O2
     if flag(testprog)
         buildable: True
+        build-depends: QuickCheck == 2.1.*, time, deepseq == 1.1.0.0, HTTP
     else
         buildable: False
-    build-depends: QuickCheck == 2.1.*, time, deepseq == 1.1.0.0, HTTP
 
     main-is: Main.hs
     other-modules:
