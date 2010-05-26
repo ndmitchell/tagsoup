@@ -1,3 +1,7 @@
+-- | Combinators to match tags. Some people prefer to use @(~==)@ from
+--   "Text.HTML.TagSoup", others prefer these more structured combinators.
+--   Which you use is personal preference.
+
 module Text.HTML.TagSoup.Match where
 
 import Text.HTML.TagSoup.Type (Tag(..), Attribute)

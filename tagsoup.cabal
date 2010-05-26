@@ -32,13 +32,13 @@ library
         Text.HTML.Download
         Text.HTML.TagSoup
         Text.HTML.TagSoup.Entity
+        Text.HTML.TagSoup.Match
         Text.HTML.TagSoup.Tree
         Text.StringLike
     other-modules:
         Text.HTML.TagSoup.Generated
         Text.HTML.TagSoup.Implementation
         Text.HTML.TagSoup.Manual
-        Text.HTML.TagSoup.Match
         Text.HTML.TagSoup.Options
         Text.HTML.TagSoup.Parser
         Text.HTML.TagSoup.Render
