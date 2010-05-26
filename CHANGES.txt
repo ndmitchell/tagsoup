@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+0.9
     #294, let optEntityData see if there was a ';' (CHANGES API)
     Numeric/hex entities in attributes were misparsed
     #149, add escapeHTML function
