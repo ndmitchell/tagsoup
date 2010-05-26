@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    Improve the cabal file, make the test program off by default
     Expose Text.HTML.TagSoup.Match again (was hidden accidentally)
 0.9
     #294, let optEntityData see if there was a ';' (CHANGES API)
