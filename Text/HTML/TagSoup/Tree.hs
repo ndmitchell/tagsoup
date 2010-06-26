@@ -61,6 +61,19 @@ flattenTree xs = concatMap f xs
         f (TagLeaf x) = [x]
 
 
+-- | This operation is based on the Uniplate @universe@ function. Given a
+--   list of trees, it returns those trees, and all the children trees at
+--   any level. For example:
+--
+-- > universeTree
+-- >    [TagBranch "a" [("href","url")] [TagBranch "b" [] [TagLeaf (TagText "text")]]]
+-- > == [TagBranch "a" [("href","url")] [TagBranch "b" [] [TagLeaf (TagText "text")]]]
+-- >    ,TagBranch "b" [] [TagLeaf (TagText "text")]]
+--
+--   This operation is particularly useful for queries. To collect all @\"a\"@
+--   tags in a tree, simply do:
+--
+-- > [x | x@(TagTree "a" _ _) <- universeTree tree]
 universeTree :: [TagTree str] -> [TagTree str]
 universeTree = concatMap f
     where
@@ -68,6 +81,14 @@ universeTree = concatMap f
         f x = [x]
 
 
+-- | This operation is based on the Uniplate @transform@ function. Given a
+--   list of trees, it applies the function to every tree in a bottom-up
+--   manner. This operation is useful for manipulating a tree - for example
+--   to make all tag names upper case:
+--
+-- > upperCase = transformTree f
+-- >   where f (TagBranch name atts inner) = [TagBranch (map toUpper name) atts inner]
+-- >         f x = x
 transformTree :: (TagTree str -> [TagTree str]) -> [TagTree str] -> [TagTree str]
 transformTree act = concatMap f
     where
