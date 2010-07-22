@@ -26,10 +26,10 @@ data RenderOptions str = RenderOptions
     }
 
 
--- | Replace the four characters @&\"\<\>@ with their HTML entities.
+-- | Replace the four characters @&\"\<\>@ with their HTML entities (the list from 'xmlEntities').
 escapeHTML :: StringLike str => str -> str
 escapeHTML = fromString . concatMap esc1 . toString
-    where esc = IntMap.fromList [(b, "&"++a++";") | (a,b) <- htmlEntities]
+    where esc = IntMap.fromList [(b, "&"++a++";") | (a,b) <- xmlEntities]
           esc1 x = IntMap.findWithDefault [x] (ord x) esc
 
 
