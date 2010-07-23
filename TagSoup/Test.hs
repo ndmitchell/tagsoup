@@ -138,6 +138,8 @@ parseTests = do
     parseTags "<test><![CDATA[Anything goes, <em>even hidden markup</em> &amp; entities]]> but this is outside</test>" ===
         [TagOpen "test" [],TagText "Anything goes, <em>even hidden markup</em> &amp; entities but this is outside",TagClose "test"]
 
+    parseTags "<a \r\n href=\"url\">" === [TagOpen "a" [("href","url")]]
+
 
 optionsTests :: Test ()
 optionsTests = check $ \(HTML x) -> all (f x) $ replicateM 3 [False,True]

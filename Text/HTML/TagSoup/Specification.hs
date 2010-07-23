@@ -5,9 +5,6 @@ module Text.HTML.TagSoup.Specification(parse) where
 import Text.HTML.TagSoup.Implementation
 import Data.Char
 
-
-white x = x `elem` "\t\n\f "
-
 -- We make some generalisations:
 -- <!name is a valid tag start closed by >
 -- <?name is a valid tag start closed by ?>
@@ -17,6 +14,11 @@ white x = x `elem` "\t\n\f "
 -- We also don't do lowercase conversion
 -- Entities are handled without a list of known entity names
 -- We don't have RCData, CData or Escape modes (only effects dat and tagOpen)
+
+
+-- 2.4.1 Common parser idioms
+white x = x `elem` " \t\n\f\r"
+
 
 -- 9.2.4 Tokenization
 

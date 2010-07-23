@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    #325, \r should be treated as whitespace
 0.10.1
     #322, don't change ' to &apos; in render (do what the docs say)
 0.10
