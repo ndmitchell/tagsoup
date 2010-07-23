@@ -1,7 +1,7 @@
 Changelog for TagSoup
 
 0.10.1
-    #332, don't change ' to &apos; in render (do what the docs say)
+    #322, don't change ' to &apos; in render (do what the docs say)
 0.10
     Improve the cabal file, make the test program off by default
     Expose Text.HTML.TagSoup.Match again (was hidden accidentally)
