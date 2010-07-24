@@ -1,0 +1,67 @@
+This document sets out a plan for the next iteration of TagSoup.
+
+Change 1 will be the elimination of TagPos, and instead moving
+to Tag (Position String). The big advantage will be that every string
+(including attrib values) has a position, and it's easy to find.
+
+Change 2 will be a massive increase in speed, aiming to be the
+fastest HTML parser in any language.
+
+---------------------------------------------------------------------
+-- PARSER
+
+The parser will be specified as:
+
+data Position a = Position !Int !Int a {-# UNPACK #-}
+-- ^ check that is equivalent to Position Int# Int# a
+
+data Flag = TagOpen | AttVal | AttName | EntHex ...
+          | Warn String
+
+lexer :: String -> [Either (Position Flag) Char]
+-- ^ Spec.hs plus a very minimal definition
+
+strings :: [Either (Position Flag) Char] -> [(Flag, Position String)]
+-- ^ Around 7 lines or so, only difficult bit is move Warn as it doesn't capture
+
+tags :: Options a -> [(Flag,a)] -> [Tag a]
+-- ^ Longish and handwritten. Make sure to buffer Warn when inside a tag
+
+
+---------------------------------------------------------------------
+-- GRAMMAR
+
+The grammar for flags will be specified:
+
+type Grammar = [(Flag,String)] -> Maybe [(Flag,String)]
+(<+>), (<.>) :: Grammar -> Grammar -> Grammar
+star :: Grammar -> Grammar
+
+
+grammar = star $
+    TagOpen <.> star (AttVal <.> ents <+> AttName) <.> (TagShut <+> TagShutEnd) <+>
+    TagClose <+>
+    Comment <+>
+    Text <.> ents
+
+ents = star $ entStart <.> entEnd
+entStart = EntName <+> EntHex <+> EntNum
+entEnd = EntEndNone <+> EntEndSemi
+
+Can check the flags against the grammar (but not usually done at runtime)
+
+Some flags must always be empty (TagShut/TagShutEnd/EntEndNone/EntNoneSemi) -
+can also check this with the grammar.
+
+
+---------------------------------------------------------------------
+-- OPTIMISATIONS
+
+* UNPACK on Position
+* Change Flag to Int# when no Warn elements
+* Eliminate all Position/Warn when not used
+* Deforest all stages
+* Pull the opt flags upwards
+* lexer/strings should not copy on BS/LBS (the big one!)
+
+For BS/LBS generate [(Flag,a)] in one step
