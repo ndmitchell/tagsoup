@@ -20,14 +20,14 @@ import Data.Char
 white x = x `elem` " \t\n\f\r"
 
 
--- 9.2.4 Tokenization
+-- 8.2.4 Tokenization
 
 type Parser = S -> [Out]
 
 parse :: String -> [Out]
 parse = dat . state 
 
--- 9.2.4.1 Data state
+-- 8.2.4.1 Data state
 dat :: Parser
 dat S{..} = pos $ case hd of
     '&' -> charReference tl
@@ -36,11 +36,11 @@ dat S{..} = pos $ case hd of
     _ -> hd & dat tl
 
 
--- 9.2.4.2 Character reference data state
+-- 8.2.4.2 Character reference data state
 charReference s = charRef dat False Nothing s
 
 
--- 9.2.4.3 Tag open state
+-- 8.2.4.3 Tag open state
 tagOpen S{..} = case hd of
     '!' -> markupDeclOpen tl
     '/' -> closeTagOpen tl
@@ -67,7 +67,7 @@ neilTagEnd xml S{..}
     | otherwise = pos $ TagEnd & dat s
 
 
--- 9.2.4.4 Close tag open state
+-- 8.2.4.4 Close tag open state
 -- Deviation: We ignore the if CDATA/RCDATA bits and tag matching
 -- Deviation: On </> we output </> to the text
 -- Deviation: </!name> is a closing tag, not a bogus comment
@@ -78,7 +78,7 @@ closeTagOpen S{..} = case hd of
     _ -> errWant "tag name" & bogusComment s
 
 
--- 9.2.4.5 Tag name state
+-- 8.2.4.5 Tag name state
 tagName xml S{..} = pos $ case hd of
     _ | white hd -> beforeAttName xml tl
     '/' -> selfClosingStartTag xml tl
@@ -89,7 +89,7 @@ tagName xml S{..} = pos $ case hd of
     _ -> hd & tagName xml tl
 
 
--- 9.2.4.6 Before attribute name state
+-- 8.2.4.6 Before attribute name state
 beforeAttName xml S{..} = pos $ case hd of
     _ | white hd -> beforeAttName xml tl
     '/' -> selfClosingStartTag xml tl
@@ -101,7 +101,7 @@ beforeAttName xml S{..} = pos $ case hd of
     _ -> AttName & hd & attName xml tl
 
 
--- 9.2.4.7 Attribute name state
+-- 8.2.4.7 Attribute name state
 attName xml S{..} = pos $ case hd of
     _ | white hd -> afterAttName xml tl
     '/' -> selfClosingStartTag xml tl
@@ -114,7 +114,7 @@ attName xml S{..} = pos $ case hd of
     where def = hd & attName xml tl
 
 
--- 9.2.4.8 After attribute name state
+-- 8.2.4.8 After attribute name state
 afterAttName xml S{..} = pos $ case hd of
     _ | white hd -> afterAttName xml tl
     '/' -> selfClosingStartTag xml tl
@@ -127,7 +127,7 @@ afterAttName xml S{..} = pos $ case hd of
     _ -> def
     where def = AttName & hd & attName xml tl
 
--- 9.2.4.9 Before attribute value state
+-- 8.2.4.9 Before attribute value state
 beforeAttValue xml S{..} = pos $ case hd of
     _ | white hd -> beforeAttValue xml tl
     '\"' -> AttVal & attValueDQuoted xml tl
@@ -141,7 +141,7 @@ beforeAttValue xml S{..} = pos $ case hd of
     where def = AttVal & hd & attValueUnquoted xml tl
 
 
--- 9.2.4.10 Attribute value (double-quoted) state
+-- 8.2.4.10 Attribute value (double-quoted) state
 attValueDQuoted xml S{..} = pos $ case hd of
     '\"' -> afterAttValueQuoted xml tl
     '&' -> charRefAttValue (attValueDQuoted xml) (Just '\"') tl
@@ -149,7 +149,7 @@ attValueDQuoted xml S{..} = pos $ case hd of
     _ -> hd & attValueDQuoted xml tl
 
 
--- 9.2.4.11 Attribute value (single-quoted) state
+-- 8.2.4.11 Attribute value (single-quoted) state
 attValueSQuoted xml S{..} = pos $ case hd of
     '\'' -> afterAttValueQuoted xml tl
     '&' -> charRefAttValue (attValueSQuoted xml) (Just '\'') tl
@@ -157,7 +157,7 @@ attValueSQuoted xml S{..} = pos $ case hd of
     _ -> hd & attValueSQuoted xml tl
 
 
--- 9.2.4.12 Attribute value (unquoted) state
+-- 8.2.4.12 Attribute value (unquoted) state
 attValueUnquoted xml S{..} = pos $ case hd of
     _ | white hd -> beforeAttName xml tl
     '&' -> charRefAttValue (attValueUnquoted xml) Nothing tl
@@ -169,12 +169,12 @@ attValueUnquoted xml S{..} = pos $ case hd of
     where def = hd & attValueUnquoted xml tl
 
 
--- 9.2.4.13 Character reference in attribute value state
+-- 8.2.4.13 Character reference in attribute value state
 charRefAttValue :: Parser -> Maybe Char -> Parser
 charRefAttValue resume c s = charRef resume True c s
 
 
--- 9.2.4.14 After attribute value (quoted) state
+-- 8.2.4.14 After attribute value (quoted) state
 afterAttValueQuoted xml S{..} = pos $ case hd of
     _ | white hd -> beforeAttName xml tl
     '/' -> selfClosingStartTag xml tl
@@ -184,7 +184,7 @@ afterAttValueQuoted xml S{..} = pos $ case hd of
     _ -> errSeen [hd] & beforeAttName xml s
 
 
--- 9.2.4.15 Self-closing start tag state
+-- 8.2.4.15 Self-closing start tag state
 selfClosingStartTag xml S{..} = pos $ case hd of
     _ | xml -> errSeen "/" & beforeAttName xml s
     '>' -> TagEndClose & dat tl
@@ -192,7 +192,7 @@ selfClosingStartTag xml S{..} = pos $ case hd of
     _ -> errSeen "/" & beforeAttName xml s
 
 
--- 9.2.4.16 Bogus comment state
+-- 8.2.4.16 Bogus comment state
 bogusComment S{..} = Comment & bogusComment1 s
 bogusComment1 S{..} = pos $ case hd of
     '>' -> CommentEnd & dat tl
@@ -200,7 +200,7 @@ bogusComment1 S{..} = pos $ case hd of
     _ -> hd & bogusComment1 tl
 
 
--- 9.2.4.17 Markup declaration open state
+-- 8.2.4.17 Markup declaration open state
 markupDeclOpen S{..} = pos $ case hd of
     _ | Just s <- next "--" -> Comment & commentStart s
     _ | isAlpha hd -> Tag & '!' & hd & tagName False tl -- NEIL
@@ -208,7 +208,7 @@ markupDeclOpen S{..} = pos $ case hd of
     _ -> errWant "tag name" & bogusComment s
 
 
--- 9.2.4.18 Comment start state
+-- 8.2.4.18 Comment start state
 commentStart S{..} = pos $ case hd of
     '-' -> commentStartDash tl
     '>' -> errSeen "<!-->" & CommentEnd & dat tl
@@ -216,7 +216,7 @@ commentStart S{..} = pos $ case hd of
     _ -> hd & comment tl
 
 
--- 9.2.4.19 Comment start dash state
+-- 8.2.4.19 Comment start dash state
 commentStartDash S{..} = pos $ case hd of
     '-' -> commentEnd tl
     '>' -> errSeen "<!--->" & CommentEnd & dat tl
@@ -224,21 +224,21 @@ commentStartDash S{..} = pos $ case hd of
     _ -> '-' & hd & comment tl
 
 
--- 9.2.4.20 Comment state
+-- 8.2.4.20 Comment state
 comment S{..} = pos $ case hd of
     '-' -> commentEndDash tl
     _ | eof -> errWant "-->" & CommentEnd & dat s
     _ -> hd & comment tl
 
 
--- 9.2.4.21 Comment end dash state
+-- 8.2.4.21 Comment end dash state
 commentEndDash S{..} = pos $ case hd of
     '-' -> commentEnd tl
     _ | eof -> errWant "-->" & CommentEnd & dat s
     _ -> '-' & hd & comment tl
 
 
--- 9.2.4.22 Comment end state
+-- 8.2.4.22 Comment end state
 commentEnd S{..} = pos $ case hd of
     '>' -> CommentEnd & dat tl
     '-' -> errWant "-->" & '-' & commentEnd tl
@@ -248,7 +248,7 @@ commentEnd S{..} = pos $ case hd of
     _ -> errSeen "--" & '-' & '-' & hd & comment tl
 
 
--- 9.2.4.23 Comment end bang state
+-- 8.2.4.23 Comment end bang state
 commentEndBang S{..} = pos $ case hd of
     '>' -> CommentEnd & dat tl
     '-' -> '-' & '-' & '!' & commentEndDash tl
@@ -256,7 +256,7 @@ commentEndBang S{..} = pos $ case hd of
     _ -> '-' & '-' & '!' & hd & comment tl
 
 
--- 9.2.4.24 Comment end space state
+-- 8.2.4.24 Comment end space state
 commentEndSpace S{..} = pos $ case hd of
     '>' -> CommentEnd & dat tl
     '-' -> commentEndDash tl
@@ -265,14 +265,14 @@ commentEndSpace S{..} = pos $ case hd of
     _ -> hd & comment tl
 
 
--- 9.2.4.38 CDATA section state
+-- 8.2.4.38 CDATA section state
 cdataSection S{..} = pos $ case hd of
     _ | Just s <- next "]]>" -> dat s
     _ | eof -> dat s
     _ | otherwise -> hd & cdataSection tl
 
 
--- 9.2.4.39 Tokenizing character references
+-- 8.2.4.39 Tokenizing character references
 -- Change from spec: this is reponsible for writing '&' if nothing is to be written
 charRef :: Parser -> Bool -> Maybe Char -> S -> [Out]
 charRef resume att end S{..} = pos $ case hd of
