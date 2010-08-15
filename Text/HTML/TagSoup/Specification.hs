@@ -16,6 +16,12 @@ import Data.Char
 -- We don't have RCData, CData or Escape modes (only effects dat and tagOpen)
 
 
+data TypeTag = TypeNormal -- <foo
+             | TypeXml    -- <?foo
+             | TypeDecl   -- <!foo
+               deriving Eq
+
+
 -- 2.4.1 Common parser idioms
 white x = x `elem` " \t\n\f\r"
 
@@ -44,7 +50,7 @@ charReference s = charRef dat False Nothing s
 tagOpen S{..} = case hd of
     '!' -> markupDeclOpen tl
     '/' -> closeTagOpen tl
-    _ | isAlpha hd -> Tag & hd & tagName False tl
+    _ | isAlpha hd -> Tag & hd & tagName TypeNormal tl
     '>' -> errSeen "<>" & '<' & '>' & dat tl
     '?' -> neilXmlTagOpen tl -- NEIL
     _ -> errSeen  "<" & '<' & dat s
@@ -52,18 +58,18 @@ tagOpen S{..} = case hd of
 
 -- seen "<?", emitted []
 neilXmlTagOpen S{..} = pos $ case hd of
-    _ | isAlpha hd -> Tag & '?' & hd & tagName True tl
+    _ | isAlpha hd -> Tag & '?' & hd & tagName TypeXml tl
     _ -> errSeen "<?" & '<' & '?' & dat s
 
 -- seen "?", expecting ">"
 neilXmlTagClose S{..} = pos $ case hd of
     '>' -> TagEnd & dat tl
-    _ -> errSeen "?" & beforeAttName True s
+    _ -> errSeen "?" & beforeAttName TypeXml s
 
 
 -- just seen ">" at the end, am given tl
-neilTagEnd xml S{..}
-    | xml = pos $ errWant "?>" & TagEnd & dat s
+neilTagEnd typ S{..}
+    | typ == TypeXml = pos $ errWant "?>" & TagEnd & dat s
     | otherwise = pos $ TagEnd & dat s
 
 
@@ -72,101 +78,101 @@ neilTagEnd xml S{..}
 -- Deviation: On </> we output </> to the text
 -- Deviation: </!name> is a closing tag, not a bogus comment
 closeTagOpen S{..} = case hd of
-    _ | isAlpha hd || hd `elem` "?!" -> TagShut & hd & tagName False tl
+    _ | isAlpha hd || hd `elem` "?!" -> TagShut & hd & tagName TypeNormal tl
     '>' -> errSeen "</>" & '<' & '/' & '>' & dat tl
     _ | eof -> '<' & '/' & dat s
     _ -> errWant "tag name" & bogusComment s
 
 
 -- 8.2.4.5 Tag name state
-tagName xml S{..} = pos $ case hd of
-    _ | white hd -> beforeAttName xml tl
-    '/' -> selfClosingStartTag xml tl
-    '>' -> neilTagEnd xml tl
-    '?' | xml -> neilXmlTagClose tl
-    _ | isAlpha hd -> hd & tagName xml tl
-    _ | eof -> errWant (if xml then "?>" else ">") & dat s
-    _ -> hd & tagName xml tl
+tagName typ S{..} = pos $ case hd of
+    _ | white hd -> beforeAttName typ tl
+    '/' -> selfClosingStartTag typ tl
+    '>' -> neilTagEnd typ tl
+    '?' | typ == TypeXml -> neilXmlTagClose tl
+    _ | isAlpha hd -> hd & tagName typ tl
+    _ | eof -> errWant (if typ == TypeXml then "?>" else ">") & dat s
+    _ -> hd & tagName typ tl
 
 
 -- 8.2.4.6 Before attribute name state
-beforeAttName xml S{..} = pos $ case hd of
-    _ | white hd -> beforeAttName xml tl
-    '/' -> selfClosingStartTag xml tl
-    '>' -> neilTagEnd xml tl
-    '?' | xml -> neilXmlTagClose tl
-    _ | hd `elem` "\'\"" -> beforeAttValue xml s -- NEIL
-    _ | hd `elem` "\"'<=" -> errSeen [hd] & AttName & hd & attName xml tl
-    _ | eof -> errWant (if xml then "?>" else ">") & dat s
-    _ -> AttName & hd & attName xml tl
+beforeAttName typ S{..} = pos $ case hd of
+    _ | white hd -> beforeAttName typ tl
+    '/' -> selfClosingStartTag typ tl
+    '>' -> neilTagEnd typ tl
+    '?' | typ == TypeXml -> neilXmlTagClose tl
+    _ | hd `elem` "\'\"" -> beforeAttValue typ s -- NEIL
+    _ | hd `elem` "\"'<=" -> errSeen [hd] & AttName & hd & attName typ tl
+    _ | eof -> errWant (if typ == TypeXml then "?>" else ">") & dat s
+    _ -> AttName & hd & attName typ tl
 
 
 -- 8.2.4.7 Attribute name state
-attName xml S{..} = pos $ case hd of
-    _ | white hd -> afterAttName xml tl
-    '/' -> selfClosingStartTag xml tl
-    '=' -> beforeAttValue xml tl
-    '>' -> neilTagEnd xml tl
-    '?' | xml -> neilXmlTagClose tl
+attName typ S{..} = pos $ case hd of
+    _ | white hd -> afterAttName typ tl
+    '/' -> selfClosingStartTag typ tl
+    '=' -> beforeAttValue typ tl
+    '>' -> neilTagEnd typ tl
+    '?' | typ == TypeXml -> neilXmlTagClose tl
     _ | hd `elem` "\"'<" -> errSeen [hd] & def
-    _ | eof -> errWant (if xml then "?>" else ">") & dat s
+    _ | eof -> errWant (if typ == TypeXml then "?>" else ">") & dat s
     _ -> def
-    where def = hd & attName xml tl
+    where def = hd & attName typ tl
 
 
 -- 8.2.4.8 After attribute name state
-afterAttName xml S{..} = pos $ case hd of
-    _ | white hd -> afterAttName xml tl
-    '/' -> selfClosingStartTag xml tl
-    '=' -> beforeAttValue xml tl
-    '>' -> neilTagEnd xml tl
-    '?' | xml -> neilXmlTagClose tl
-    _ | hd `elem` "\"'" -> AttVal & beforeAttValue xml s -- NEIL
+afterAttName typ S{..} = pos $ case hd of
+    _ | white hd -> afterAttName typ tl
+    '/' -> selfClosingStartTag typ tl
+    '=' -> beforeAttValue typ tl
+    '>' -> neilTagEnd typ tl
+    '?' | typ == TypeXml -> neilXmlTagClose tl
+    _ | hd `elem` "\"'" -> AttVal & beforeAttValue typ s -- NEIL
     _ | hd `elem` "\"'<" -> errSeen [hd] & def
-    _ | eof -> errWant (if xml then "?>" else ">") & dat s
+    _ | eof -> errWant (if typ == TypeXml then "?>" else ">") & dat s
     _ -> def
-    where def = AttName & hd & attName xml tl
+    where def = AttName & hd & attName typ tl
 
 -- 8.2.4.9 Before attribute value state
-beforeAttValue xml S{..} = pos $ case hd of
-    _ | white hd -> beforeAttValue xml tl
-    '\"' -> AttVal & attValueDQuoted xml tl
-    '&' -> AttVal & attValueUnquoted xml s
-    '\'' -> AttVal & attValueSQuoted xml tl
-    '>' -> errSeen "=" & neilTagEnd xml tl
-    '?' | xml -> neilXmlTagClose tl
+beforeAttValue typ S{..} = pos $ case hd of
+    _ | white hd -> beforeAttValue typ tl
+    '\"' -> AttVal & attValueDQuoted typ tl
+    '&' -> AttVal & attValueUnquoted typ s
+    '\'' -> AttVal & attValueSQuoted typ tl
+    '>' -> errSeen "=" & neilTagEnd typ tl
+    '?' | typ == TypeXml -> neilXmlTagClose tl
     _ | hd `elem` "<=" -> errSeen [hd] & def
-    _ | eof -> errWant (if xml then "?>" else ">") & dat s
+    _ | eof -> errWant (if typ == TypeXml then "?>" else ">") & dat s
     _ -> def
-    where def = AttVal & hd & attValueUnquoted xml tl
+    where def = AttVal & hd & attValueUnquoted typ tl
 
 
 -- 8.2.4.10 Attribute value (double-quoted) state
-attValueDQuoted xml S{..} = pos $ case hd of
-    '\"' -> afterAttValueQuoted xml tl
-    '&' -> charRefAttValue (attValueDQuoted xml) (Just '\"') tl
+attValueDQuoted typ S{..} = pos $ case hd of
+    '\"' -> afterAttValueQuoted typ tl
+    '&' -> charRefAttValue (attValueDQuoted typ) (Just '\"') tl
     _ | eof -> errWant "\"" & dat s
-    _ -> hd & attValueDQuoted xml tl
+    _ -> hd & attValueDQuoted typ tl
 
 
 -- 8.2.4.11 Attribute value (single-quoted) state
-attValueSQuoted xml S{..} = pos $ case hd of
-    '\'' -> afterAttValueQuoted xml tl
-    '&' -> charRefAttValue (attValueSQuoted xml) (Just '\'') tl
+attValueSQuoted typ S{..} = pos $ case hd of
+    '\'' -> afterAttValueQuoted typ tl
+    '&' -> charRefAttValue (attValueSQuoted typ) (Just '\'') tl
     _ | eof -> errWant "\'" & dat s
-    _ -> hd & attValueSQuoted xml tl
+    _ -> hd & attValueSQuoted typ tl
 
 
 -- 8.2.4.12 Attribute value (unquoted) state
-attValueUnquoted xml S{..} = pos $ case hd of
-    _ | white hd -> beforeAttName xml tl
-    '&' -> charRefAttValue (attValueUnquoted xml) Nothing tl
-    '>' -> neilTagEnd xml tl
-    '?' | xml -> neilXmlTagClose tl
+attValueUnquoted typ S{..} = pos $ case hd of
+    _ | white hd -> beforeAttName typ tl
+    '&' -> charRefAttValue (attValueUnquoted typ) Nothing tl
+    '>' -> neilTagEnd typ tl
+    '?' | typ == TypeXml -> neilXmlTagClose tl
     _ | hd `elem` "\"'<=" -> errSeen [hd] & def
-    _ | eof -> errWant (if xml then "?>" else ">") & dat s
+    _ | eof -> errWant (if typ == TypeXml then "?>" else ">") & dat s
     _ -> def
-    where def = hd & attValueUnquoted xml tl
+    where def = hd & attValueUnquoted typ tl
 
 
 -- 8.2.4.13 Character reference in attribute value state
@@ -175,21 +181,21 @@ charRefAttValue resume c s = charRef resume True c s
 
 
 -- 8.2.4.14 After attribute value (quoted) state
-afterAttValueQuoted xml S{..} = pos $ case hd of
-    _ | white hd -> beforeAttName xml tl
-    '/' -> selfClosingStartTag xml tl
-    '>' -> neilTagEnd xml tl
-    '?' | xml -> neilXmlTagClose tl
+afterAttValueQuoted typ S{..} = pos $ case hd of
+    _ | white hd -> beforeAttName typ tl
+    '/' -> selfClosingStartTag typ tl
+    '>' -> neilTagEnd typ tl
+    '?' | typ == TypeXml -> neilXmlTagClose tl
     _ | eof -> dat s
-    _ -> errSeen [hd] & beforeAttName xml s
+    _ -> errSeen [hd] & beforeAttName typ s
 
 
 -- 8.2.4.15 Self-closing start tag state
-selfClosingStartTag xml S{..} = pos $ case hd of
-    _ | xml -> errSeen "/" & beforeAttName xml s
+selfClosingStartTag typ S{..} = pos $ case hd of
+    _ | typ == TypeXml -> errSeen "/" & beforeAttName typ s
     '>' -> TagEndClose & dat tl
     _ | eof -> errWant ">" & dat s
-    _ -> errSeen "/" & beforeAttName xml s
+    _ -> errSeen "/" & beforeAttName typ s
 
 
 -- 8.2.4.16 Bogus comment state
@@ -203,7 +209,7 @@ bogusComment1 S{..} = pos $ case hd of
 -- 8.2.4.17 Markup declaration open state
 markupDeclOpen S{..} = pos $ case hd of
     _ | Just s <- next "--" -> Comment & commentStart s
-    _ | isAlpha hd -> Tag & '!' & hd & tagName False tl -- NEIL
+    _ | isAlpha hd -> Tag & '!' & hd & tagName TypeDecl tl -- NEIL
     _ | Just s <- next "[CDATA[" -> cdataSection s
     _ -> errWant "tag name" & bogusComment s
 
