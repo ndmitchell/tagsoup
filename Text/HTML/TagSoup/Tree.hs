@@ -17,7 +17,7 @@ import Control.Arrow
 
 data TagTree str = TagBranch str [Attribute str] [TagTree str]
                  | TagLeaf (Tag str)
-                   deriving Show
+                   deriving (Eq,Ord,Show)
 
 instance Functor TagTree where
     fmap f (TagBranch x y z) = TagBranch (f x) (map (f***f) y) (map (fmap f) z)
