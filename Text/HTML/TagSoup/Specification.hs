@@ -10,7 +10,7 @@ import Data.Char
 -- <?name is a valid tag start closed by ?>
 -- </!name> is a valid closing tag
 -- </?name> is a valid closing tag
--- <a "foo"> is a valid tag attibute, i.e missing an attribute name
+-- <a "foo"> is a valid tag attibute in ! and ?, i.e missing an attribute name
 -- We also don't do lowercase conversion
 -- Entities are handled without a list of known entity names
 -- We don't have RCData, CData or Escape modes (only effects dat and tagOpen)
@@ -101,7 +101,7 @@ beforeAttName typ S{..} = pos $ case hd of
     '/' -> selfClosingStartTag typ tl
     '>' -> neilTagEnd typ tl
     '?' | typ == TypeXml -> neilXmlTagClose tl
-    _ | hd `elem` "\'\"" -> beforeAttValue typ s -- NEIL
+    _ | typ /= TypeNormal && hd `elem` "\'\"" -> beforeAttValue typ s -- NEIL
     _ | hd `elem` "\"'<=" -> errSeen [hd] & AttName & hd & attName typ tl
     _ | eof -> errWant (if typ == TypeXml then "?>" else ">") & dat s
     _ -> AttName & hd & attName typ tl
@@ -127,7 +127,7 @@ afterAttName typ S{..} = pos $ case hd of
     '=' -> beforeAttValue typ tl
     '>' -> neilTagEnd typ tl
     '?' | typ == TypeXml -> neilXmlTagClose tl
-    _ | hd `elem` "\"'" -> AttVal & beforeAttValue typ s -- NEIL
+    _ | typ /= TypeNormal && hd `elem` "\"'" -> AttVal & beforeAttValue typ s -- NEIL
     _ | hd `elem` "\"'<" -> errSeen [hd] & def
     _ | eof -> errWant (if typ == TypeXml then "?>" else ">") & dat s
     _ -> def

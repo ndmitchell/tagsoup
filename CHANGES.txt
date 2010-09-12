@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    #326, <a "foo"> is no longer treated as an attribute
     Add Eq/Ord instances to Tree
     Don't mark Text.HTML.TagSoup.Tree as preliminary
     #325, \r should be treated as whitespace

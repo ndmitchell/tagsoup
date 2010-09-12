@@ -103,11 +103,12 @@ matchCombinators = do
 parseTests :: Test ()
 parseTests = do
     parseTags "<!DOCTYPE TEST>" === [TagOpen "!DOCTYPE" [("TEST","")]]
-    parseTags "<test \"foo bar\">" === [TagOpen "test" [("","foo bar")]]
-    parseTags "<test baz \"foo\">" === [TagOpen "test" [("baz",""),("","foo")]]
-    parseTags "<test \'foo bar\'>" === [TagOpen "test" [("","foo bar")]]
+    parseTags "<test \"foo bar\">" === [TagOpen "test" [("\"foo",""),("bar\"","")]]
+    parseTags "<test baz \"foo\">" === [TagOpen "test" [("baz",""),("\"foo\"","")]]
+    parseTags "<test 'foo bar'>" === [TagOpen "test" [("'foo",""),("bar'","")]]
+    parseTags "<test bar=''' />" === [TagOpen "test" [("bar",""),("'","")], TagClose "test"]
     parseTags "<test2 a b>" === [TagOpen "test2" [("a",""),("b","")]]
-    parseTags "<test2 ''>" === [TagOpen "test2" [("","")]]
+    parseTags "<test2 ''>" === [TagOpen "test2" [("''","")]]
     parseTags "</test foo>" === [TagClose "test"]
     parseTags "<test/>" === [TagOpen "test" [], TagClose "test"]
     parseTags "<test1 a = b>" === [TagOpen "test1" [("a","b")]]
@@ -139,6 +140,9 @@ parseTests = do
         [TagOpen "test" [],TagText "Anything goes, <em>even hidden markup</em> &amp; entities but this is outside",TagClose "test"]
 
     parseTags "<a \r\n href=\"url\">" === [TagOpen "a" [("href","url")]]
+
+    parseTags "<a href='random.php'><img src='strips/130307.jpg' alt='nukular bish'' title='' /></a>" === 
+        [TagOpen "a" [("href","random.php")],TagOpen "img" [("src","strips/130307.jpg"),("alt","nukular bish"),("'",""),("title","")],TagClose "img",TagClose "a"]
 
 
 optionsTests :: Test ()
