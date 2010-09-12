@@ -1,7 +1,7 @@
 Changelog for TagSoup
 
     Add Eq/Ord instances to Tree
-    Don't make Text.HTML.TagSoup.Tree as preliminary
+    Don't mark Text.HTML.TagSoup.Tree as preliminary
     #325, \r should be treated as whitespace
 0.10.1
     #322, don't change ' to &apos; in render (do what the docs say)
