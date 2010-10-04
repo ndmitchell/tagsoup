@@ -144,6 +144,9 @@ parseTests = do
     parseTags "<a href='random.php'><img src='strips/130307.jpg' alt='nukular bish'' title='' /></a>" === 
         [TagOpen "a" [("href","random.php")],TagOpen "img" [("src","strips/130307.jpg"),("alt","nukular bish"),("'",""),("title","")],TagClose "img",TagClose "a"]
 
+    parseTags "<p>some text</p\n<img alt='&lt; &yyy; &gt;' src=\"abc.gif\">" ===
+        [TagOpen "p" [],TagText "some text",TagClose "p"]
+
 
 optionsTests :: Test ()
 optionsTests = check $ \(HTML x) -> all (f x) $ replicateM 3 [False,True]
