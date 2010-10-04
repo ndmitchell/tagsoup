@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    Support --flags=-download to eliminate the network dependency
 0.11
     #326, <a "foo"> is no longer treated as an attribute
     Add Eq/Ord instances to Tree

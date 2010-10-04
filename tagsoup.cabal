@@ -24,12 +24,19 @@ flag testprog
     default: False
     description: Build the test program
 
+flag download
+    default: True
+    description: Build with Download module
+
 library
     ghc-options: -O2
-    build-depends: base == 4.*, network, mtl, containers, bytestring
+    build-depends: base == 4.*, mtl, containers, bytestring
+
+    if flag(download)
+        build-depends: network
+        exposed-modules: Text.HTML.Download
 
     exposed-modules:
-        Text.HTML.Download
         Text.HTML.TagSoup
         Text.HTML.TagSoup.Entity
         Text.HTML.TagSoup.Match
