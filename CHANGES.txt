@@ -1,5 +1,7 @@
 Changelog for TagSoup
 
+    Make the -download flag off by default
+    Eliminate HTTP dependency
     Eliminate mtl dependency
 0.11.1
     Support --flags=-download to eliminate the network dependency
