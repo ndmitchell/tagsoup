@@ -29,7 +29,6 @@ flag download
     description: Build with Download module
 
 library
-    ghc-options: -O2
     build-depends: base == 4.*, containers, bytestring
 
     if flag(download)
@@ -53,7 +52,6 @@ library
         Text.HTML.TagSoup.Type
 
 executable tagsoup
-    ghc-options: -O2
     if flag(testprog)
         buildable: True
         build-depends: QuickCheck == 2.1.*, time, deepseq == 1.1.*, directory, process
