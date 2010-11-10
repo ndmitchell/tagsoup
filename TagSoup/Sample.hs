@@ -2,15 +2,29 @@
 module TagSoup.Sample where
 
 import Text.HTML.TagSoup
-import Network.HTTP
 
+import Control.Exception
+import Control.Monad
 import Data.Char
 import Data.List
+import System.Cmd
+import System.Directory
+import System.Exit
+import System.IO
 
 
 openItem :: String -> IO String
-openItem x | "http://" `isPrefixOf` x = getResponseBody =<< simpleHTTP (getRequest x)
-           | otherwise = readFile x
+openItem url | not $ "http://" `isPrefixOf` url = readFile url
+openItem url = bracket
+    (openTempFile "." "tagsoup.tmp")
+    (\(file,hndl) -> removeFile file)
+    $ \(file,hndl) -> do
+        hClose hndl
+        putStrLn $ "Downloading: " ++ url
+        res <- system $ "wget " ++ url ++ " -O " ++ file
+        when (res /= ExitSuccess) $ error $ "Failed to download using wget: " ++ url
+        src <- readFile file
+        length src `seq` return src
 
 
 grab :: String -> IO ()

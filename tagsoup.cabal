@@ -56,7 +56,7 @@ executable tagsoup
     ghc-options: -O2
     if flag(testprog)
         buildable: True
-        build-depends: QuickCheck == 2.1.*, time, deepseq == 1.1.*, HTTP
+        build-depends: QuickCheck == 2.1.*, time, deepseq == 1.1.*, directory, process
     else
         buildable: False
 
