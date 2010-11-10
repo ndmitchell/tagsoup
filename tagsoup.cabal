@@ -25,7 +25,7 @@ flag testprog
     description: Build the test program
 
 flag download
-    default: True
+    default: False
     description: Build with Download module
 
 library
