@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    Eliminate mtl dependency
 0.11.1
     Support --flags=-download to eliminate the network dependency
 0.11
