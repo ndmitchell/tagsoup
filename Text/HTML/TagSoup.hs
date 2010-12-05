@@ -34,7 +34,7 @@ module Text.HTML.TagSoup(
     sections, partitions,
     
     -- * Combinators
-    TagRep, (~==),(~/=)
+    TagRep(..), (~==),(~/=)
     ) where
 
 import Text.HTML.TagSoup.Type

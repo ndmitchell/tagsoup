@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    Export toTagRep
     Make the -download flag off by default
     Eliminate HTTP dependency
     Eliminate mtl dependency
