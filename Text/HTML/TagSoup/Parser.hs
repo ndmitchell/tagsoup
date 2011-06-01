@@ -1,7 +1,7 @@
 
 module Text.HTML.TagSoup.Parser(
     parseTags, parseTagsOptions,
-    ParseOptions(..), parseOptions, parseOptionsFast
+    ParseOptions(..), parseOptions, parseOptionsFast, parseOptionsEntities
     ) where
 
 import Text.HTML.TagSoup.Type

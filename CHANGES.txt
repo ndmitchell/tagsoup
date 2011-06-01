@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    Add parseOptionsEntities and improve documentation
 0.12
     Upgrade to QuickCheck 2.4.*
     Export toTagRep
