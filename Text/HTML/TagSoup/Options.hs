@@ -43,6 +43,8 @@ data ParseOptions str = ParseOptions
 
 -- | A 'ParseOptions' structure using a custom function to lookup attributes. Any attribute
 --   that is not found will be left intact, and a 'TagWarning' given (if 'optTagWarning' is set).
+--
+--   If you do not want to resolve any entities, simpliy pass @const Nothing@ for the lookup function.
 parseOptionsEntities :: StringLike str => (str -> Maybe str) -> ParseOptions str
 parseOptionsEntities lookupEntity = ParseOptions False False entityData entityAttrib True
     where
