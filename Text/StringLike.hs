@@ -3,13 +3,16 @@
 -- | /WARNING/: This module is /not/ intended for use outside the TagSoup library.
 --
 --   This module provides an abstraction for String's as used inside TagSoup. It allows
---   TagSoup to work with String (list of Char), ByteString.Char8 and ByteString.Lazy.Char8.
+--   TagSoup to work with String (list of Char), ByteString.Char8, ByteString.Lazy.Char8,
+--   Data.Text and Data.Text.Lazy.
 module Text.StringLike where
 
 import Data.Typeable
 
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as LBS
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
 
 
 -- | A class to generalise TagSoup parsing over many types of string-like types.
@@ -75,3 +78,25 @@ instance StringLike LBS.ByteString where
     strNull = LBS.null
     cons = LBS.cons
     append = LBS.append
+
+instance StringLike T.Text where
+    uncons = T.uncons
+    toString = T.unpack
+    fromString = T.pack
+    fromChar = T.singleton
+    strConcat = T.concat
+    empty = T.empty
+    strNull = T.null
+    cons = T.cons
+    append = T.append
+
+instance StringLike LT.Text where
+    uncons = LT.uncons
+    toString = LT.unpack
+    fromString = LT.pack
+    fromChar = LT.singleton
+    strConcat = LT.concat
+    empty = LT.empty
+    strNull = LT.null
+    cons = LT.cons
+    append = LT.append

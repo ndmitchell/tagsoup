@@ -29,7 +29,7 @@ flag download
     description: Build with Download module
 
 library
-    build-depends: base == 4.*, containers, bytestring
+    build-depends: base == 4.*, containers, bytestring, text
 
     if flag(download)
         build-depends: network
