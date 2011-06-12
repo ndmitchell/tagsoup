@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+0.12.2
     Add StringLike instances for Text
 0.12.1
     Add parseOptionsEntities and improve documentation
