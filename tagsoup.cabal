@@ -20,6 +20,10 @@ description:
 extra-source-files:
     tagsoup.htm
 
+source-repository head
+    type:     darcs
+    location: http://community.haskell.org/~ndm/darcs/tagsoup/
+
 flag testprog
     default: False
     description: Build the test program
