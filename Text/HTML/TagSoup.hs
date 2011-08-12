@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, PatternGuards #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, PatternGuards #-}
 
 {-|
     This module is for working with HTML/XML. It deals with both well-formed XML and

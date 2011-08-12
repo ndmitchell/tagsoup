@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 
 -- | /WARNING/: This module is /not/ intended for use outside the TagSoup library.
 --
