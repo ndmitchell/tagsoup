@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    GHC 7.2 compatibility
 0.12.2
     Add StringLike instances for Text
 0.12.1
