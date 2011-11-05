@@ -91,6 +91,9 @@ instance TagRep String where
                 g (name,val) | strNull name = val  `elem` map snd ys
                              | strNull val  = name `elem` map fst ys
                 g nameval = nameval `elem` ys
+        f (TagComment x) (TagComment y) = strNull x || x == y
+        f (TagWarning x) (TagWarning y) = strNull x || x == y
+        f (TagPosition x1 x2) (TagPosition y1 y2) = x1 == y1 && x2 == y2
         f _ _ = False
 
 -- | Negation of '~=='

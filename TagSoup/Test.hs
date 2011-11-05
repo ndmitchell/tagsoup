@@ -218,6 +218,8 @@ combiTests = do
     (TagOpen "test" [] ~== "<test>") === True
     (TagOpen "test" [] ~== "<soup>") === False
     (TagOpen "test" [] ~/= "<soup>") === True
+    (TagComment "foo" ~== "<!--foo-->") === True
+    (TagComment "bar" ~== "<!--bar-->") === True
 
 
 warnTests :: Test ()

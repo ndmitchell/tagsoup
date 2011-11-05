@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    #487, fix the behaviour of ~== for TagComment and others
 0.12.3
     GHC 7.2 compatibility
 0.12.2
