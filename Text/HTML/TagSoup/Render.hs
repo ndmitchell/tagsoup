@@ -23,6 +23,7 @@ import Text.StringLike
 data RenderOptions str = RenderOptions
     {optEscape :: str -> str        -- ^ Escape a piece of text (default = escape the four characters @&\"\<\>@)
     ,optMinimize :: str -> Bool     -- ^ Minimise \<b\>\<\/b\> -> \<b/\> (default = minimise only @\<br\>@ tags)
+    ,optRawTag :: str -> Bool      -- ^ Should a tag be output with no escaping (default = true only for @script@)
     }
 
 
@@ -35,7 +36,7 @@ escapeHTML = fromString . concatMap esc1 . toString
 
 -- | The default render options value, described in 'RenderOptions'.
 renderOptions :: StringLike str => RenderOptions str
-renderOptions = RenderOptions escapeHTML (\x -> toString x == "br")
+renderOptions = RenderOptions escapeHTML (\x -> toString x == "br") (\x -> toString x == "script")
 
 
 -- | Show a list of tags, as they might have been parsed, using the default settings given in
@@ -58,7 +59,11 @@ renderTagsOptions opts = strConcat . tags
     
         tags (TagOpen name atts:TagClose name2:xs)
             | name == name2 && optMinimize opts name = open name atts (s " /") ++ tags xs
-        tags (TagOpen name atts:xs) | Just ('?',_) <- uncons name = open name atts (s " ?") ++ tags xs
+        tags (TagOpen name atts:xs)
+            | Just ('?',_) <- uncons name = open name atts (s " ?") ++ tags xs
+            | optRawTag opts name =
+                let (a,b) = break (== TagClose name) (TagOpen name atts:xs)
+                in concatMap (\x -> case x of TagText s -> [s]; _ -> tag x) a ++ tags b
         tags (x:xs) = tag x ++ tags xs
         tags [] = []
 
