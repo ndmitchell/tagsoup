@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+0.12.5
     Add optRawTag to Render, to ensure script's don't get escaped
 0.12.4
     #487, fix the behaviour of ~== for TagComment and others
