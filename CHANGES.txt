@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+0.12.6
     #515, don't crash on malformed characters (use ? instead)
 0.12.5
     Add optRawTag to Render, to ensure script's don't get escaped
