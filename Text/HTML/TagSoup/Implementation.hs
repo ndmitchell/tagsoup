@@ -7,6 +7,7 @@ import Text.HTML.TagSoup.Options
 import Text.StringLike as Str
 import Numeric
 import Data.Char
+import Data.Ix
 import Control.Exception(assert)
 import Control.Arrow
 
@@ -141,8 +142,10 @@ output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ go 
         poss x = concatMap (\w -> pos x [w]) 
 
 
-entityChr x s | isEntityNum x = chr $ read s
-              | isEntityHex x = chr $ fst $ head $ readHex s
+entityChr x s | isEntityNum x = chr_ $ read s
+              | isEntityHex x = chr_ $ fst $ head $ readHex s
+    where chr_ x | inRange (toInteger $ ord minBound, toInteger $ ord maxBound) x = chr $ fromInteger x
+                 | otherwise = '?'
 
 
 isEof (_,[]) = True; isEof _ = False
