@@ -58,7 +58,10 @@ library
 executable tagsoup
     if flag(testprog)
         buildable: True
-        build-depends: QuickCheck == 2.4.*, time, deepseq == 1.1.*, directory, process
+        build-depends:
+            QuickCheck >= 2.4 && < 2.6,
+            deepseq >= 1.1 && < 1.4,
+            time, directory, process
     else
         buildable: False
 

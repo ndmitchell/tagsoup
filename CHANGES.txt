@@ -1,5 +1,7 @@
 Changelog for TagSoup
 
+    Allow deepseq-1.3
+    Allow QuickCheck-2.5
     Support bytestring-0.10 (NFData instances added)
 0.12.6
     #515, don't crash on malformed characters (use ? instead)
