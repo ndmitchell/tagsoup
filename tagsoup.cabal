@@ -62,6 +62,8 @@ executable tagsoup
     else
         buildable: False
 
+    extensions: CPP
+
     main-is: Main.hs
     other-modules:
         TagSoup.Benchmark

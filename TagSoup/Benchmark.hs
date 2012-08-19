@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 
 module TagSoup.Benchmark where
 
@@ -156,11 +157,22 @@ instance NFData a => NFData (Tag a) where
     rnf (TagWarning x) = rnf x
     rnf (TagPosition x y) = () -- both are already ! bound
 
+
+#ifndef BYTESTRING_HAS_NFDATA
+# ifdef MIN_VERSION_bytestring
+#  define BYTESTRING_HAS_NFDATA (MIN_VERSION_bytestring(0,10,0))
+# else
+#  define BYTESTRING_HAS_NFDATA (__GLASGOW_HASKELL__ >= 706)
+# endif
+#endif
+
+#if !BYTESTRING_HAS_NFDATA
 instance NFData LBS.ByteString where
     rnf x = LBS.length x `seq` ()
 
 instance NFData BS.ByteString where
     rnf x = BS.length x `seq` ()
+#endif
 
 
 ---------------------------------------------------------------------

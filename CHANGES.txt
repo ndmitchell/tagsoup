@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    Support bytestring-0.10 (NFData instances added)
 0.12.6
     #515, don't crash on malformed characters (use ? instead)
 0.12.5
