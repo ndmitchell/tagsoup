@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+0.12.7
     Allow deepseq-1.3
     Allow QuickCheck-2.5
     Support bytestring-0.10 (NFData instances added)
