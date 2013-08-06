@@ -62,9 +62,8 @@ lookupNamedEntity x = lookup x htmlEntities
 -- > escapeXML "hello world" == "hello world"
 -- > escapeXML "hello & world" == "hello &amp; world"
 escapeXML :: String -> String
-escapeXML = concatMap esc1
-    where esc = IntMap.fromList [(ord b, "&"++a++";") | (a,[b]) <- xmlEntities]
-          esc1 x = IntMap.findWithDefault [x] (ord x) esc
+escapeXML = concatMap $ \x -> IntMap.findWithDefault [x] (ord x) mp
+    where mp = IntMap.fromList [(ord b, "&"++a++";") | (a,[b]) <- xmlEntities]
 
 
 -- | A table mapping XML entity names to code points. All strings are a single character long.
