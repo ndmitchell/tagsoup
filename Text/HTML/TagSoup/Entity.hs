@@ -13,7 +13,7 @@ import Numeric
 
 -- | Lookup an entity, using 'lookupNumericEntity' if it starts with
 --   @#@ and 'lookupNamedEntity' otherwise
-lookupEntity :: String -> Maybe Char
+lookupEntity :: String -> Maybe String
 lookupEntity ('#':xs) = lookupNumericEntity xs
 lookupEntity xs = lookupNamedEntity xs
 
@@ -26,14 +26,14 @@ lookupEntity xs = lookupNamedEntity xs
 -- > lookupNumericEntity "Haskell" == Nothing
 -- > lookupNumericEntity "" == Nothing
 -- > lookupNumericEntity "89439085908539082" == Nothing
-lookupNumericEntity :: String -> Maybe Char
+lookupNumericEntity :: String -> Maybe String
 lookupNumericEntity = f
         -- entity = '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
     where
         f ('x':xs) = g [('0','9'),('a','f'),('A','F')] readHex xs
         f xs = g [('0','9')] reads xs
 
-        g :: [(Char,Char)] -> ReadS Integer -> String -> Maybe Char
+        g :: [(Char,Char)] -> ReadS Integer -> String -> Maybe String
         g valid reader xs = do
             let test b = if b then Just () else Nothing
             test $ isValid valid xs
@@ -41,7 +41,7 @@ lookupNumericEntity = f
             case reader xs of
                 [(a,"")] -> do
                     test $ inRange (toInteger $ ord minBound, toInteger $ ord maxBound) a
-                    return $ chr $ fromInteger a
+                    return [chr $ fromInteger a]
                 _ -> Nothing
 
         isValid :: [(Char,Char)] -> String -> Bool
@@ -52,8 +52,8 @@ lookupNumericEntity = f
 --
 -- > lookupNamedEntity "amp" == Just '&'
 -- > lookupNamedEntity "haskell" == Nothing
-lookupNamedEntity :: String -> Maybe Char
-lookupNamedEntity x = fmap chr $ lookup x htmlEntities
+lookupNamedEntity :: String -> Maybe String
+lookupNamedEntity x = lookup x htmlEntities
 
 
 -- | Escape a character before writing it out to XML.
@@ -61,15 +61,15 @@ lookupNamedEntity x = fmap chr $ lookup x htmlEntities
 -- > escapeXMLChar 'a' == Nothing
 -- > escapeXMLChar '&' == Just "amp"
 escapeXMLChar :: Char -> Maybe String
-escapeXMLChar x = case [a | (a,b) <- xmlEntities, b == ord x] of
+escapeXMLChar x = case [a | (a,b) <- xmlEntities, b == [x]] of
                        (y:_) -> Just y
                        _ -> Nothing
 
 
--- | A table mapping XML entity names to code points.
+-- | A table mapping XML entity names to code points. All strings are a single character long.
 --   Does /not/ include @apos@ as Internet Explorer does not know about it.
-xmlEntities :: [(String, Int)]
-xmlEntities = let a*b = (a,ord b) in
+xmlEntities :: [(String, String)]
+xmlEntities = let a*b = (a,[b]) in
     ["quot" * '"'
     ,"amp"  * '&'
     -- ,"apos" * '\''    -- Internet Explorer does not know that
@@ -77,9 +77,9 @@ xmlEntities = let a*b = (a,ord b) in
     ,"gt"   * '>'
     ]
 
--- | A table mapping HTML entity names to code points
-htmlEntities :: [(String, Int)]
-htmlEntities = let (*) = (,) in
+-- | A table mapping HTML entity names to code points.
+htmlEntities :: [(String, String)]
+htmlEntities = let a*b = (a,[chr b]) in
     xmlEntities ++
     ["apos"    * ord '\''  -- quirky IE!!!
 

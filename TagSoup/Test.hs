@@ -198,14 +198,14 @@ renderTests = do
     
 entityTests :: Test ()
 entityTests = do
-    lookupNumericEntity "65" === Just 'A'
-    lookupNumericEntity "x41" === Just 'A'
-    lookupNumericEntity "x4E" === Just 'N'
-    lookupNumericEntity "x4e" === Just 'N'
+    lookupNumericEntity "65" === Just "A"
+    lookupNumericEntity "x41" === Just "A"
+    lookupNumericEntity "x4E" === Just "N"
+    lookupNumericEntity "x4e" === Just "N"
     lookupNumericEntity "Haskell" === Nothing
     lookupNumericEntity "" === Nothing
     lookupNumericEntity "89439085908539082" === Nothing
-    lookupNamedEntity "amp" === Just '&'
+    lookupNamedEntity "amp" === Just "&"
     lookupNamedEntity "haskell" === Nothing
     escapeXMLChar 'a' === Nothing
     escapeXMLChar '&' === Just "amp"

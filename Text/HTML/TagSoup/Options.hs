@@ -60,7 +60,7 @@ parseOptionsEntities lookupEntity = ParseOptions False False entityData entityAt
 -- | The default parse options value, described in 'ParseOptions'. Equivalent to
 --   @'parseOptionsEntities' 'lookupEntity'@.
 parseOptions :: StringLike str => ParseOptions str
-parseOptions = parseOptionsEntities $ fmap fromChar . lookupEntity . toString
+parseOptions = parseOptionsEntities $ fmap fromString . lookupEntity . toString
 
 
 -- | A 'ParseOptions' structure optimised for speed, following the fast options.
