@@ -9,8 +9,6 @@ module Text.HTML.TagSoup.Render
     RenderOptions(..), renderOptions
     ) where
 
-import Data.Char
-import qualified Data.IntMap as IntMap
 import Text.HTML.TagSoup.Entity
 import Text.HTML.TagSoup.Type
 import Text.StringLike
@@ -27,11 +25,9 @@ data RenderOptions str = RenderOptions
     }
 
 
--- | Replace the four characters @&\"\<\>@ with their HTML entities (the list from 'xmlEntities').
+-- | Replace the four characters @&\"\<\>@ with their HTML entities ('escapeXML' lifted to 'StringLike').
 escapeHTML :: StringLike str => str -> str
-escapeHTML = fromString . concatMap esc1 . toString
-    where esc = IntMap.fromList [(ord b, "&"++a++";") | (a,[b]) <- xmlEntities]
-          esc1 x = IntMap.findWithDefault [x] (ord x) esc
+escapeHTML = fromString . escapeXML . toString
 
 
 -- | The default render options value, described in 'RenderOptions'.
