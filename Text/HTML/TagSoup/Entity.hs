@@ -2,11 +2,12 @@
 --   the characters they represent.
 module Text.HTML.TagSoup.Entity(
     lookupEntity, lookupNamedEntity, lookupNumericEntity,
-    escapeXMLChar,
+    escapeXML,
     xmlEntities, htmlEntities
     ) where
 
 import Data.Char
+import qualified Data.IntMap as IntMap
 import Data.Ix
 import Numeric
 
@@ -56,14 +57,14 @@ lookupNamedEntity :: String -> Maybe String
 lookupNamedEntity x = lookup x htmlEntities
 
 
--- | Escape a character before writing it out to XML.
+-- | Escape an XML string.
 --
--- > escapeXMLChar 'a' == Nothing
--- > escapeXMLChar '&' == Just "amp"
-escapeXMLChar :: Char -> Maybe String
-escapeXMLChar x = case [a | (a,b) <- xmlEntities, b == [x]] of
-                       (y:_) -> Just y
-                       _ -> Nothing
+-- > escapeXML "hello world" == "hello world"
+-- > escapeXML "hello & world" == "hello &amp; world"
+escapeXML :: String -> String
+escapeXML = concatMap esc1
+    where esc = IntMap.fromList [(ord b, "&"++a++";") | (a,[b]) <- xmlEntities]
+          esc1 x = IntMap.findWithDefault [x] (ord x) esc
 
 
 -- | A table mapping XML entity names to code points. All strings are a single character long.

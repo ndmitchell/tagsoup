@@ -207,8 +207,8 @@ entityTests = do
     lookupNumericEntity "89439085908539082" === Nothing
     lookupNamedEntity "amp" === Just "&"
     lookupNamedEntity "haskell" === Nothing
-    escapeXMLChar 'a' === Nothing
-    escapeXMLChar '&' === Just "amp"
+    escapeXML "hello world" === "hello world"
+    escapeXML "hello & world" === "hello &amp; world"
 
 
 combiTests :: Test ()
