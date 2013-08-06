@@ -19,12 +19,13 @@ lookupEntity :: String -> Maybe String
 lookupEntity ('#':xs) = lookupNumericEntity xs
 lookupEntity xs = lookupNamedEntity xs
 
+
 -- | Lookup a numeric entity, the leading @\'#\'@ must have already been removed.
 --
--- > lookupNumericEntity "65" == Just 'A'
--- > lookupNumericEntity "x41" == Just 'A'
--- > lookupNumericEntity "x4E" === Just 'N'
--- > lookupNumericEntity "x4e" === Just 'N'
+-- > lookupNumericEntity "65" == Just "A"
+-- > lookupNumericEntity "x41" == Just "A"
+-- > lookupNumericEntity "x4E" === Just "N"
+-- > lookupNumericEntity "x4e" === Just "N"
 -- > lookupNumericEntity "Haskell" == Nothing
 -- > lookupNumericEntity "" == Nothing
 -- > lookupNumericEntity "89439085908539082" == Nothing
@@ -52,7 +53,7 @@ lookupNumericEntity = f
 
 -- | Lookup a named entity, using 'htmlEntities'
 --
--- > lookupNamedEntity "amp" == Just '&'
+-- > lookupNamedEntity "amp" == Just "&"
 -- > lookupNamedEntity "haskell" == Nothing
 lookupNamedEntity :: String -> Maybe String
 lookupNamedEntity = \x -> Map.lookup x mp
@@ -68,7 +69,7 @@ escapeXML = concatMap $ \x -> IntMap.findWithDefault [x] (ord x) mp
     where mp = IntMap.fromList [(ord b, "&"++a++";") | (a,[b]) <- xmlEntities]
 
 
--- | A table mapping XML entity names to code points. All strings are a single character long.
+-- | A table mapping XML entity names to resolved strings. All strings are a single character long.
 --   Does /not/ include @apos@ as Internet Explorer does not know about it.
 xmlEntities :: [(String, String)]
 xmlEntities = let a*b = (a,[b]) in
