@@ -126,6 +126,7 @@ parseTests = do
     parseTags "hey &amp; are you" === [TagText "hey & are you"]
 
     -- real cases reported by users
+    parseTags "&nwarr;x&ngeqq;" === [TagText ['\x2196','x','\x2267','\x0338']]
     parseTags "test &#10933649; test" === [TagText "test ? test"]
 
     parseTags "<a href=\"series.php?view=single&ID=72710\">" === [TagOpen "a" [("href","series.php?view=single&ID=72710")]]
