@@ -9,6 +9,7 @@ module Text.HTML.TagSoup.Entity(
 import Data.Char
 import qualified Data.IntMap as IntMap
 import Data.Ix
+import qualified Data.Map as Map
 import Numeric
 
 
@@ -54,7 +55,8 @@ lookupNumericEntity = f
 -- > lookupNamedEntity "amp" == Just '&'
 -- > lookupNamedEntity "haskell" == Nothing
 lookupNamedEntity :: String -> Maybe String
-lookupNamedEntity x = lookup x htmlEntities
+lookupNamedEntity = \x -> Map.lookup x mp
+    where mp = Map.fromList htmlEntities
 
 
 -- | Escape an XML string.
