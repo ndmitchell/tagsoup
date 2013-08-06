@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    Optimise lookupNamedEntity
     Replace escapeXMLChar with escapeXML
     Change all Entity functions to return String, not Int or Char
 0.12.7
