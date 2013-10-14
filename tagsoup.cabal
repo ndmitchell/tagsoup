@@ -21,8 +21,8 @@ extra-source-files:
     tagsoup.htm
 
 source-repository head
-    type:     darcs
-    location: http://community.haskell.org/~ndm/darcs/tagsoup/
+    type:     git
+    location: https://github.com/ndmitchell/tagsoup.git
 
 flag testprog
     default: False
