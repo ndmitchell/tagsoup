@@ -1,3 +1,0 @@
-This directory has Parser.hs automatically generated from the code in /parser
-
-Do not modify the contents directly
