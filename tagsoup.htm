@@ -88,7 +88,7 @@ p.rule {
 
 <h3>Version History</h3>
 
-<p>A changelog is kept at <a href="http://community.haskell.org/~ndm/darcs/tagsoup/CHANGES.txt">http://community.haskell.org/~ndm/darcs/tagsoup/CHANGES.txt</a>.</p>
+<p>A changelog is kept at <a href="https://github.com/ndmitchell/tagsoup/blob/master/CHANGES.txt">https://github.com/ndmitchell/tagsoup/blob/master/CHANGES.txt</a>.</p>
 
 <h2>Potential Bugs</h2>
 
@@ -96,7 +96,7 @@ p.rule {
     There are two things that may go wrong with these examples:
 </p>
 <ul>
-<li><i>The Websites being scraped may change.</i> There is nothing I can do about this, but if you suspect this is the case let me know, and I'll update the examples and tutorials. I have already done so once or twice, its only a few minutes work.    </li>
+<li><i>The Websites being scraped may change.</i> There is nothing I can do about this, but if you suspect this is the case let me know, and I'll update the examples and tutorials. I have already done so several times, its only a few minutes work.</li>
     <li><i>The <tt>openURL</tt> method may not work.</i> This happens quite regularly, and depending on your server, proxies and direction of the wind, they may not work. The solution is to use <tt>wget</tt> to download the page locally, then use <tt>readFile</tt> instead. Hopefully a decent Haskell HTTP library will emerge, and that can be used instead.
     </li>
 </ul>
@@ -111,20 +111,20 @@ p.rule {
 <h3>Finding the Page</h3>
 
 <p>
-    We first need to find where the information is displayed, and in what format. Taking a look at the <a href="http://www.haskell.org/haskellwiki/Haskell">front web page</a>, when not logged in, you may notice that there is no hit count. However, looking at the source shows us:
+    We first need to find where the information is displayed, and in what format. Taking a look at the <a href="http://www.haskell.org/haskellwiki/Haskell">front web page</a>, when not logged in, we see:
 </p>
 <pre>
-&lt;div class="printfooter"&gt;
-&lt;p&gt;Retrieved from "&lt;a href="http://www.haskell.org/haskellwiki/Haskell"&gt;
-http://www.haskell.org/haskellwiki/Haskell&lt;/a&gt;"&lt;/p&gt;
-
-&lt;p&gt;This page has been accessed 615,165 times.
-This page was last modified 15:44, 15 March 2007.
-Recent content is available under &lt;a href="/haskellwiki/HaskellWiki:Copyrights"
-title="HaskellWiki:Copyrights"&gt;a simple permissive license&lt;/a&gt;.&lt;/p&gt;
+&lt;ul id="f-list"&gt;
+    &lt;li id="lastmod"&gt; This page was last modified on 9 September 2013, at 22:38.&lt;/li&gt;
+    &lt;li id="viewcount"&gt;This page has been accessed 6,985,922 times.&lt;/li&gt;
+    &lt;li id="copyright"&gt;Recent content is available under &lt;a href="/haskellwiki/HaskellWiki:Copyrights" title="HaskellWiki:Copyrights"&gt;a simple permissive license&lt;/a&gt;.&lt;/li&gt;
+    &lt;li id="privacy"&gt;&lt;a href="/haskellwiki/HaskellWiki:Privacy_policy" title="HaskellWiki:Privacy policy"&gt;Privacy policy&lt;/a&gt;&lt;/li&gt;
+    &lt;li id="about"&gt;&lt;a href="/haskellwiki/HaskellWiki:About" title="HaskellWiki:About"&gt;About HaskellWiki&lt;/a&gt;&lt;/li&gt;
+    &lt;li id="disclaimer"&gt;&lt;a href="/haskellwiki/HaskellWiki:General_disclaimer" title="HaskellWiki:General disclaimer"&gt;Disclaimers&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
 </pre>
 <p>
-    So we see that the hit count is available, but not shown. This leads us to rule 1:
+    So we see the hit count is available. This leads us to rule 1:
 </p>
 <p class="rule">
     <b>Rule 1:</b><br/>
@@ -143,7 +143,7 @@ import Network.HTTP
 
 openURL x = getResponseBody =<< simpleHTTP (getRequest x)
 
-main = do src <- openURL "http://haskell.org/haskellwiki/Haskell"
+main = do src <- openURL "http://www.haskell.org/haskellwiki/Haskell"
           writeFile "temp.htm" src
 </pre>
 <p>
@@ -155,7 +155,7 @@ main = do src <- openURL "http://haskell.org/haskellwiki/Haskell"
     Tagsoup installs both as a library and a program. The program contains all the examples mentioned on this page, along with a few other useful functions. In order to download a URL to a file:
 </p>
 <pre>
-$ tagsoup grab http://haskell.org/haskellwiki/Haskell > temp.htm
+$ tagsoup grab http://www.haskell.org/haskellwiki/Haskell > temp.htm
 </pre>
 
 
@@ -172,35 +172,26 @@ $ tagsoup grab http://haskell.org/haskellwiki/Haskell > temp.htm
     If the user changes their website, they will do so in unpredictable ways. They may move the page, they may put the information somewhere else, they may remove the information entirely. If you want something robust talk to the site owner, or buy the data from someone. If you try and think about design changes, you will complicate your design, and it still won't work. It is better to write an extraction method quickly, and happily rewrite it when things change.
 </p>
 <p>
-    So now, lets consider the fragment from above. It is useful to find a tag which is unique just above your snippet - something with a nice "id" property, or a "class" - something which is unlikely to occur multiple times. In the above example, "printfooter" as the class seems perfect. We decide that to find the snippet, we will start at a "div" tag, with a "class" attribute with the value "printfooter".
+    So now, lets consider the fragment from above. It is useful to find a tag which is unique just above your snippet - something with a nice "id" property, or a "class" - something which is unlikely to occur multiple times. In the above example, "viewcount" as the id seems perfect.
 </p>
 <pre>
 haskellHitCount = do
-    tags <- fmap parseTags $ openURL "http://haskell.org/haskellwiki/Haskell"
-    let count = fromFooter $ head $ sections (~== "&lt;div class=printfooter&gt;") tags
-    putStrLn $ "haskell.org has been hit " ++ show count ++ " times"
+    src &lt;- openURL "http://haskell.org/haskellwiki/Haskell"
+    let count = fromFooter $ parseTags src
+    putStrLn $ "haskell.org has been hit " ++ count ++ " times"
+    where fromFooter = filter isDigit . innerText . take 2 . dropWhile (~/= "&lt;li id=viewcount&gt;")
 </pre>
 <p>
-    Now we start writing the code! The first thing to do is open the required URL, then we parse the code into a list of <tt>Tag</tt>s. We then apply the <tt>sections</tt> function, which returns all the lists whose first element matches the query. We use the <tt>(~==)</tt> operator to construct the query - in this case asking for the "div" we mentioned earlier. This <tt>(~==)</tt> operator is very different from standard equality, it allows additional attributes to be present but does not match them. We write <tt>"&lt;div class=printfooter&gt;"</tt> as syntactic sugar for <tt>TagOpen "div" [("class","printfooter")]</tt>. If we just wanted any open tag with the given class we could have written <tt>(~== TagOpen "" [("class","printfooter")])</tt> and this would have matched. Any empty strings in the second element of the match are considered as wildcards.
+    Now we start writing the code! The first thing to do is open the required URL, then we parse the code into a list of <tt>Tag</tt>s with <tt>parseTags</tt>. The <tt>fromFooter</tt> function does the interesting thing, and can be read left to right:
 </p>
+<ul>
+	<li>First we throw away everything (<tt>dropWhile</tt>) until we get to an <tt>li</tt> tag containing <tt>id=viewcount</tt>. The <tt>(~==)</tt> operator is different from standard equality, allowing additional attributes to be present. We write <tt>"&lt;li id=viewcount&gt;"</tt> as syntactic sugar for <tt>TagOpen "li" [("id","viewcount")]</tt>. If we just wanted any open tag with the given id we could have written <tt>(~== TagOpen "" [("id","viewcount")])</tt> and this would have matched. Any empty strings in the second element of the match are considered as wildcards.</li>
+	<li>Next we take two elements, the <tt>&lt;li&gt;</tt> tag and the text node immediately following.</li>
+	<li>We call the <tt>innerText</tt> function to get all the text values from inside, which will just be the text node following the <tt>viewcount</tt>.</li>
+	<li>We keep only the numbers, getting rid of the surrounding text and the commas.</li>
+</ul>
 <p>
-    Once we have a list of all matching prefixes, we take the <tt>head</tt> - assuming that only one will match. Then we apply <tt>fromFooter</tt> which needs to perform the traversal from the "printfooter" attribute onwards to the actual hit count data.
-</p>
-
-<h3>Extracting the Information</h3>
-
-<p>
-    Now we have a stream starting at the right place, we generally mangle the code using standard list operators:
-</p>
-<pre>
-fromFooter x = read (filter isDigit num) :: Int
-    where num = ss !! (i - 1)
-          Just i = findIndex (== "times.") ss
-          ss = words s
-          TagText s = sections (~== "&lt;p&gt;") x !! 1 !! 1
-</pre>
-<p>
-    This code finds <tt>s</tt>, the text inside the appropriate paragraph by knowing that its the second (<tt>!! 1</tt>) paragraph, and within that paragraph, its the second tag - the actual text. We then split up the text using <tt>words</tt>, find the message that comes after hit count, and read all the digits we can find - filtering out the comma. I'm pretty sure this could be done better using regular expressions, and I invite a reader to submit improved code. This code may seem slightly messy, and indeed it is - often that is the nature of extracting information from a tag soup.
+	This code may seem slightly messy, and indeed it is - often that is the nature of extracting information from a tag soup.
 </p>
 <p class="rule">
     <b>Rule 3:</b><br/>

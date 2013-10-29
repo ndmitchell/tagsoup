@@ -47,24 +47,13 @@ intersperseNotBroken sep (x:xs) = x : is xs
 
 
 {-
-<div class="printfooter">
-<p>Retrieved from "<a href="http://haskell.org/haskellwiki/Haskell">http://haskell.org/haskellwiki/Haskell</a>"</p>
-
-<p>This page has been accessed 507,753 times. This page was last modified 08:05, 24 January 2007. Recent content is available under <a href="/haskellwiki/HaskellWiki:Copyrights" title="HaskellWiki:Copyrights">a simple permissive license</a>.</p>
-</div>
+<li id="viewcount">This page has been accessed 6,985,922 times.</li>
 -}
-haskellHitCount :: IO ()
 haskellHitCount = do
-        tags <- fmap parseTags $ openItem "http://haskell.org/haskellwiki/Haskell"
-        let count = fromFooter $ head $ sections (~== "<div class=printfooter>") tags
-        putStrLn $ "haskell.org has been hit " ++ show count ++ " times"
-    where
-        fromFooter x = read (filter isDigit num) :: Int
-            where
-                num = ss !! (i - 1)
-                Just i = findIndex (== "times.") ss
-                ss = words s
-                TagText s = sections (~== "<p>") x !! 1 !! 1
+    src <- openItem "http://haskell.org/haskellwiki/Haskell"
+    let count = fromFooter $ parseTags src
+    putStrLn $ "haskell.org has been hit " ++ count ++ " times"
+    where fromFooter = filter isDigit . innerText . take 2 . dropWhile (~/= "<li id=viewcount>")
 
 
 googleTechNews :: IO ()
