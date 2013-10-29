@@ -220,8 +220,8 @@ fromFooter x = read (filter isDigit num) :: Int
     First we spot that the page helpfully has named anchors, there is a current work anchor, and after that is one for Haskell. We can extract all the information between them with a simple <tt>take</tt>/<tt>drop</tt> pair:
 </p>
 <pre>
-takeWhile (~/= "&lt;A name=haskell&gt;") $
-drop 5 $ dropWhile (~/= "&lt;A name=current&gt;") tags
+takeWhile (~/= "&lt;a name=haskell&gt;") $
+drop 5 $ dropWhile (~/= "&lt;a name=current&gt;") tags
 </pre>
 <p>
     This code drops until you get to the "current" section, then takes until you get to the "haskell" section, ensuring we only look at the important bit of the page. Next we want to find all hyperlinks within this section:
@@ -246,8 +246,8 @@ spjPapers :: IO ()
 spjPapers = do
         tags <- fmap parseTags $ openURL "http://research.microsoft.com/en-us/people/simonpj/"
         let links = map f $ sections (~== "&lt;A&gt;") $
-                    takeWhile (~/= "&lt;A name=haskell&gt;") $
-                    drop 5 $ dropWhile (~/= "&lt;A name=current&gt;") tags
+                    takeWhile (~/= "&lt;a name=haskell&gt;") $
+                    drop 5 $ dropWhile (~/= "&lt;a name=current&gt;") tags
         putStr $ unlines links
     where
         f :: [Tag] -> String
