@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+0.13.1
     #562, treat <script> specially as per HTML5
 0.13
     #616, extend to all HTML5 entities
