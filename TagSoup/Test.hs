@@ -150,6 +150,11 @@ parseTests = do
     parseTags "<p>some text</p\n<img alt='&lt; &yyy; &gt;' src=\"abc.gif\">" ===
         [TagOpen "p" [],TagText "some text",TagClose "p"]
 
+    parseTags "<script> if (x<bomb) </script>" === [TagOpen "script" [], TagText " if (x<bomb) ", TagClose "script"]
+    parseTags "<script> if (x<bomb) " === [TagOpen "script" [], TagText " if (x<bomb) "]
+    parseTags "<SCRIPT language=foo> if (x<bomb) </SCRIPT>" === [TagOpen "SCRIPT" [("language","foo")], TagText " if (x<bomb) ", TagClose "SCRIPT"]
+    parseTags "<script /><test>" === [TagOpen "script" [], TagClose "script", TagOpen "test" []]
+
 
 optionsTests :: Test ()
 optionsTests = check $ \(HTML x) -> all (f x) $ replicateM 3 [False,True]

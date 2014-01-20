@@ -19,6 +19,7 @@ import Data.Char
 data TypeTag = TypeNormal -- <foo
              | TypeXml    -- <?foo
              | TypeDecl   -- <!foo
+             | TypeScript -- <script
                deriving Eq
 
 
@@ -50,10 +51,15 @@ charReference s = charRef dat False Nothing s
 tagOpen S{..} = case hd of
     '!' -> markupDeclOpen tl
     '/' -> closeTagOpen tl
-    _ | isAlpha hd -> Tag & hd & tagName TypeNormal tl
+    _ | isAlpha hd -> Tag & hd & tagName (if isScript s then TypeScript else TypeNormal) tl
     '>' -> errSeen "<>" & '<' & '>' & dat tl
     '?' -> neilXmlTagOpen tl -- NEIL
     _ -> errSeen  "<" & '<' & dat s
+
+isScript = f "script"
+    where
+        f (c:cs) S{..} = toLower hd == c && f cs tl
+        f [] S{..} = white hd || hd == '/' || hd == '>' || hd == '?' || eof
 
 
 -- seen "<?", emitted []
@@ -70,7 +76,17 @@ neilXmlTagClose S{..} = pos $ case hd of
 -- just seen ">" at the end, am given tl
 neilTagEnd typ S{..}
     | typ == TypeXml = pos $ errWant "?>" & TagEnd & dat s
+    | typ == TypeScript = pos $ TagEnd & neilScriptBody s
     | otherwise = pos $ TagEnd & dat s
+
+-- Inside a <script> tag, only break on </script
+neilScriptBody o@S{..}
+    | hd == '<', S{..} <- tl
+    , hd == '/', S{..} <- tl
+    , isScript s
+    = dat o
+    | eof = []
+    | otherwise =  pos $ hd & neilScriptBody tl
 
 
 -- 8.2.4.4 Close tag open state
