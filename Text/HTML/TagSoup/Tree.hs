@@ -70,7 +70,7 @@ flattenTree xs = concatMap f xs
 --   This operation is particularly useful for queries. To collect all @\"a\"@
 --   tags in a tree, simply do:
 --
--- > [x | x@(TagTree "a" _ _) <- universeTree tree]
+-- > [x | x@(TagBranch "a" _ _) <- universeTree tree]
 universeTree :: [TagTree str] -> [TagTree str]
 universeTree = concatMap f
     where
