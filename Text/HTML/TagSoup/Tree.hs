@@ -85,7 +85,7 @@ universeTree = concatMap f
 --
 -- > upperCase = transformTree f
 -- >   where f (TagBranch name atts inner) = [TagBranch (map toUpper name) atts inner]
--- >         f x = x
+-- >         f x = [x]
 transformTree :: (TagTree str -> [TagTree str]) -> [TagTree str] -> [TagTree str]
 transformTree act = concatMap f
     where
