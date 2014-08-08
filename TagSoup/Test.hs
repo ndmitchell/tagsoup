@@ -8,7 +8,8 @@ import Text.HTML.TagSoup.Match
 
 import Control.Monad
 import Data.List
-import Test.QuickCheck
+import Test.QuickCheck(Arbitrary(..), Testable(..), quickCheckWithResult, stdArgs,
+                       Args(..), listOf, elements, Result(..))
 
 -- * The Test Monad
 

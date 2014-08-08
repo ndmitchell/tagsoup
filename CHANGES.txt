@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    Allow QuickCheck-2.6
 0.13.1
     #562, treat <script> specially as per HTML5
 0.13
