@@ -1,6 +1,6 @@
 cabal-version:  >= 1.6
 name:           tagsoup
-version:        0.13.1
+version:        0.13.2
 copyright:      Neil Mitchell 2006-2014
 author:         Neil Mitchell <ndmitchell@gmail.com>
 maintainer:     Neil Mitchell <ndmitchell@gmail.com>
