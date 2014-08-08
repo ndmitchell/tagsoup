@@ -21,7 +21,7 @@ description:
     Users should start from the "Text.HTML.TagSoup" module.
 extra-source-files:
     CHANGES.txt
-    tagsoup.htm
+    README.md
 
 source-repository head
     type:     git
