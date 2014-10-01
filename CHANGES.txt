@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+0.13.3
     Work on GHC 7.9
 0.13.2
     Remove all package upper bounds
