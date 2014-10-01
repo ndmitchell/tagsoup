@@ -18,7 +18,7 @@ module Text.HTML.Download(openURL, openItem) where
 import System.IO
 import System.IO.Unsafe
 import Network
-import Data.List
+import Data.List (isPrefixOf)
 
 {-# DEPRECATED openItem, openURL "Use package HTTP, module Network.HTTP, getResponseBody =<< simpleHTTP (getRequest url)" #-}
 
