@@ -6,11 +6,11 @@ module Text.HTML.TagSoup.Entity(
     xmlEntities, htmlEntities
     ) where
 
-import Data.Char
+import Data.Char (chr, ord)
 import qualified Data.IntMap as IntMap
 import Data.Ix
 import qualified Data.Map as Map
-import Numeric
+import Numeric (readHex)
 
 
 -- | Lookup an entity, using 'lookupNumericEntity' if it starts with

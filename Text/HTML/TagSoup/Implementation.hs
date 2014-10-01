@@ -5,8 +5,8 @@ module Text.HTML.TagSoup.Implementation where
 import Text.HTML.TagSoup.Type
 import Text.HTML.TagSoup.Options
 import Text.StringLike as Str
-import Numeric
-import Data.Char
+import Numeric (readHex)
+import Data.Char (chr, ord)
 import Data.Ix
 import Control.Exception(assert)
 import Control.Arrow

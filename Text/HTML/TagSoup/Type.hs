@@ -19,8 +19,8 @@ module Text.HTML.TagSoup.Type(
     ) where
 
 
-import Data.List
-import Data.Maybe
+import Data.List (foldl')
+import Data.Maybe (fromMaybe, mapMaybe)
 import Text.StringLike
 import Data.Data(Data, Typeable)
 

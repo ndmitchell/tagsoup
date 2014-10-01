@@ -3,7 +3,7 @@
 module Text.HTML.TagSoup.Specification(parse) where
 
 import Text.HTML.TagSoup.Implementation
-import Data.Char
+import Data.Char (isAlpha, isAlphaNum, isDigit, toLower)
 
 -- We make some generalisations:
 -- <!name is a valid tag start closed by >

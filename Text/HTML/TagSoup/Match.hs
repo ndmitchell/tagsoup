@@ -5,7 +5,7 @@
 module Text.HTML.TagSoup.Match where
 
 import Text.HTML.TagSoup.Type (Tag(..), Attribute)
-import Data.List
+import Data.List (tails)
 
 
 -- | match an opening tag

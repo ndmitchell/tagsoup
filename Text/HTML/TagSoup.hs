@@ -41,7 +41,7 @@ import Text.HTML.TagSoup.Type
 import Text.HTML.TagSoup.Parser
 import Text.HTML.TagSoup.Render
 import Data.Char
-import Data.List
+import Data.List (groupBy, tails)
 import Text.StringLike
 
 
