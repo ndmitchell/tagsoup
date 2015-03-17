@@ -155,3 +155,14 @@ Several more examples are given in the Example file, including obtaining the (sh
         tags <- fmap parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
         let time = fromTagText (dropWhile (~/= "<strong id=ct>") tags !! 1)
         putStrLn time
+        
+<h2>Related Projects</h2>
+
+<ul>
+    <li><a href="http://tagsoup.info/">TagSoup for Java</a> - an independently written malformed HTML parser for Java. Including <a href="http://tagsoup.info/#other">links to other</a> HTML parsers.</li>
+    <li><a href="http://www.fh-wedel.de/~si/HXmlToolbox/">HXT: Haskell XML Toolbox</a> - a more comprehensive XML parser, giving the option of using TagSoup as a lexer.</li>
+    <li><a href="http://www.fh-wedel.de/~si/HXmlToolbox/#rel">Other Related Work</a> - as described on the HXT pages.</li>
+    <li><a href="http://therning.org/magnus/archives/367">Using TagSoup with Parsec</a> - a nice combination of Haskell libraries.</li>
+    <li><a href="http://hackage.haskell.org/packages/tagsoup-parsec">tagsoup-parsec</a> - a library for easily using TagSoup as a token type in Parsec.</li>
+    <li><a href="http://hackage.haskell.org/packages/archive/wraxml/latest/doc/html/Text-XML-WraXML-Tree-TagSoup.html">WraXML</a> - construct a lazy tree from TagSoup lexemes.</li>
+</ul>
