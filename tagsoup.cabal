@@ -1,7 +1,7 @@
 cabal-version:  >= 1.6
 name:           tagsoup
 version:        0.13.3
-copyright:      Neil Mitchell 2006-2014
+copyright:      Neil Mitchell 2006-2015
 author:         Neil Mitchell <ndmitchell@gmail.com>
 maintainer:     Neil Mitchell <ndmitchell@gmail.com>
 homepage:       http://community.haskell.org/~ndm/tagsoup/
@@ -11,7 +11,7 @@ category:       XML
 license-file:   LICENSE
 build-type:     Simple
 synopsis:       Parsing and extracting information from (possibly malformed) HTML/XML documents
-tested-with:    GHC==7.8.2, GHC==7.6.3, GHC==7.4.2, GHC==7.2.2
+tested-with:    GHC==7.10.1, GHC==7.8.4, GHC==7.6.3, GHC==7.4.2, GHC==7.2.2
 description:
     TagSoup is a library for parsing HTML/XML. It supports the HTML 5 specification,
     and can be used to parse either well-formed XML, or unstructured and malformed HTML
