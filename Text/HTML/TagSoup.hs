@@ -23,7 +23,7 @@ module Text.HTML.TagSoup(
 
     -- * Tag identification
     isTagOpen, isTagClose, isTagText, isTagWarning, isTagPosition,
-    isTagOpenName, isTagCloseName,
+    isTagOpenName, isTagCloseName, isTagComment,
 
     -- * Extraction
     fromTagText, fromAttrib,
