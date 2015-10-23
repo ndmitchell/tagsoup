@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    #24, add isTagComment function
     Update the copyright year
 0.13.3
     Work on GHC 7.9
