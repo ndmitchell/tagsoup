@@ -10,7 +10,7 @@ module Text.HTML.TagSoup.Type(
 
     -- * Tag identification
     isTagOpen, isTagClose, isTagText, isTagWarning, isTagPosition,
-    isTagOpenName, isTagCloseName,
+    isTagOpenName, isTagCloseName, isTagComment,
 
     -- * Extraction
     fromTagText, fromAttrib,
@@ -129,3 +129,7 @@ isTagOpenName _ _ = False
 isTagCloseName :: Eq str => str -> Tag str -> Bool
 isTagCloseName name (TagClose n) = n == name
 isTagCloseName _ _ = False
+
+-- | Test if a 'Tag' is a 'TagComment'
+isTagComment :: Tag str -> Bool
+isTagComment TagComment {} = True; isTagComment _ = False
