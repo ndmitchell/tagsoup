@@ -19,7 +19,7 @@ description:
     from an HTML document, making it ideal for screen-scraping.
     .
     Users should start from the "Text.HTML.TagSoup" module.
-extra-source-files:
+extra-doc-files:
     CHANGES.txt
     README.md
 
