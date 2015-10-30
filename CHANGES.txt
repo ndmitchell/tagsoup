@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    #26, rename the test program to test-tagsoup
 0.13.4
     #24, add isTagComment function
     Update the copyright year
