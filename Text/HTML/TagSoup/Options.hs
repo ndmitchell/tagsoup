@@ -51,10 +51,12 @@ parseOptionsEntities lookupEntity = ParseOptions False False entityData entityAt
         entityData x = TagText a : b
             where (a,b) = entityAttrib x
 
-        entityAttrib ~(x,b) = case lookupEntity x of
-            Just y -> (y, [])
-            Nothing -> (fromChar '&' `append` x `append` fromString [';'|b]
-                       ,[TagWarning $ fromString "Unknown entity: " `append` x])
+        entityAttrib ~(x,b) =
+            let x' = x `append` fromString [';'|b]
+            in case lookupEntity x' of
+                Just y -> (y, [])
+                Nothing -> (fromChar '&' `append` x'
+                           ,[TagWarning $ fromString "Unknown entity: " `append` x])
 
 
 -- | The default parse options value, described in 'ParseOptions'. Equivalent to
