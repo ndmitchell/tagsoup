@@ -156,8 +156,11 @@ parseTests = do
     parseTags "<SCRIPT language=foo> if (x<bomb) </SCRIPT>" === [TagOpen "SCRIPT" [("language","foo")], TagText " if (x<bomb) ", TagClose "SCRIPT"]
     parseTags "<script /><test>" === [TagOpen "script" [], TagClose "script", TagOpen "test" []]
 
+    -- some escapes require trailing semicolons, see #28 and #27.
     parseTags "one &mid; two" === [TagText "one \8739 two"]
     parseTags "one &mid two" === [TagText "one &mid two"]
+    parseTags "one &micro; two" === [TagText "one \181 two"]
+    parseTags "one &micro two" === [TagText "one \181 two"]
 
 optionsTests :: Test ()
 optionsTests = check $ \(HTML x) -> all (f x) $ replicateM 3 [False,True]
