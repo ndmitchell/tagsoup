@@ -156,6 +156,8 @@ parseTests = do
     parseTags "<SCRIPT language=foo> if (x<bomb) </SCRIPT>" === [TagOpen "SCRIPT" [("language","foo")], TagText " if (x<bomb) ", TagClose "SCRIPT"]
     parseTags "<script /><test>" === [TagOpen "script" [], TagClose "script", TagOpen "test" []]
 
+    parseTags "one &mid; two" === [TagText "one \8739 two"]
+    parseTags "one &mid two" === [TagText "one &mid two"]
 
 optionsTests :: Test ()
 optionsTests = check $ \(HTML x) -> all (f x) $ replicateM 3 [False,True]
