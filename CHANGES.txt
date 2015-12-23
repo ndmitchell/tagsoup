@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+0.13.6
     #28, some named entities require a trailing semicolon (e.g. mid)
 0.13.5
     #26, rename the test program to test-tagsoup
