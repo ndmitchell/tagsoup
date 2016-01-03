@@ -11,6 +11,7 @@ module Text.HTML.TagSoup.Tree
     flattenTree, transformTree, universeTree
     ) where
 
+import Text.HTML.TagSoup (parseTags, renderTags)
 import Text.HTML.TagSoup.Type
 import Control.Arrow
 
@@ -49,6 +50,7 @@ tagTree = g
             where (a,b) = f xs
         f [] = ([], [])
 
+parseTree = tagTree . parseTags
 
 flattenTree :: [TagTree str] -> [Tag str]
 flattenTree xs = concatMap f xs
@@ -57,6 +59,7 @@ flattenTree xs = concatMap f xs
             TagOpen name atts : flattenTree inner ++ [TagClose name]
         f (TagLeaf x) = [x]
 
+renderTree = renderTags . flattenTree
 
 -- | This operation is based on the Uniplate @universe@ function. Given a
 --   list of trees, it returns those trees, and all the children trees at
