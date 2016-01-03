@@ -1,7 +1,7 @@
 cabal-version:  >= 1.6
 name:           tagsoup
 version:        0.13.6
-copyright:      Neil Mitchell 2006-2015
+copyright:      Neil Mitchell 2006-2016
 author:         Neil Mitchell <ndmitchell@gmail.com>
 maintainer:     Neil Mitchell <ndmitchell@gmail.com>
 homepage:       http://community.haskell.org/~ndm/tagsoup/
