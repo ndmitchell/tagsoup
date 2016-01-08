@@ -84,7 +84,7 @@ So now, lets consider the fragment from above. It is useful to find a tag which 
         putStrLn $ "haskell.org has been hit " ++ count ++ " times"
         where fromFooter = filter isDigit . innerText . take 2 . dropWhile (~/= "<li id=viewcount>")
 
-Now we start writing the code! The first thing to do is open the required URL, then we parse the code into a list of `Tag`s with `parseTags`. The `fromFooter` function does the interesting thing, and can be read left to right:
+Now we start writing the code! The first thing to do is open the required URL, then we parse the code into a list of `Tag`s with `parseTags`. The `fromFooter` function does the interesting thing, and can be read right to left:
 
 * First we throw away everything (`dropWhile`) until we get to an `li` tag containing `id=viewcount`. The `(~==)` operator is different from standard equality, allowing additional attributes to be present. We write `"<li id=viewcount>"` as syntactic sugar for `TagOpen "li" [("id","viewcount")]`. If we just wanted any open tag with the given id we could have written `(~== TagOpen "" [("id","viewcount")])` and this would have matched. Any empty strings in the second element of the match are considered as wildcards.
 * Next we take two elements, the `<li>` tag and the text node immediately following.
