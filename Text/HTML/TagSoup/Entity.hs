@@ -33,7 +33,7 @@ lookupNumericEntity :: String -> Maybe String
 lookupNumericEntity = f
         -- entity = '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
     where
-        f ('x':xs) = g [('0','9'),('a','f'),('A','F')] readHex xs
+        f (x:xs) | x `elem` "xX" = g [('0','9'),('a','f'),('A','F')] readHex xs
         f xs = g [('0','9')] reads xs
 
         g :: [(Char,Char)] -> ReadS Integer -> String -> Maybe String
