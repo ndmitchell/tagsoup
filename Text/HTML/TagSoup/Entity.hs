@@ -26,6 +26,7 @@ lookupEntity xs = lookupNamedEntity xs
 -- > lookupNumericEntity "x41" == Just "A"
 -- > lookupNumericEntity "x4E" === Just "N"
 -- > lookupNumericEntity "x4e" === Just "N"
+-- > lookupNumericEntity "X4e" === Just "N"
 -- > lookupNumericEntity "Haskell" == Nothing
 -- > lookupNumericEntity "" == Nothing
 -- > lookupNumericEntity "89439085908539082" == Nothing

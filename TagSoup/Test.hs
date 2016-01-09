@@ -116,6 +116,7 @@ parseTests = do
     parseTags "hello &amp; world" === [TagText "hello & world"]
     parseTags "hello &#64; world" === [TagText "hello @ world"]
     parseTags "hello &#x40; world" === [TagText "hello @ world"]
+    parseTags "hello &#X40; world" === [TagText "hello @ world"]
     parseTags "hello &haskell; world" === [TagText "hello &haskell; world"]
     parseTags "hello \n\t world" === [TagText "hello \n\t world"]
     parseTags "<a href=http://www.google.com>" === [TagOpen "a" [("href","http://www.google.com")]]
@@ -214,6 +215,7 @@ entityTests = do
     lookupNumericEntity "x41" === Just "A"
     lookupNumericEntity "x4E" === Just "N"
     lookupNumericEntity "x4e" === Just "N"
+    lookupNumericEntity "X4e" === Just "N"
     lookupNumericEntity "Haskell" === Nothing
     lookupNumericEntity "" === Nothing
     lookupNumericEntity "89439085908539082" === Nothing
