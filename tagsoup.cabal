@@ -4,7 +4,7 @@ version:        0.13.6
 copyright:      Neil Mitchell 2006-2016
 author:         Neil Mitchell <ndmitchell@gmail.com>
 maintainer:     Neil Mitchell <ndmitchell@gmail.com>
-homepage:       http://community.haskell.org/~ndm/tagsoup/
+homepage:       https://github.com/ndmitchell/tagsoup#readme
 bug-reports:    https://github.com/ndmitchell/tagsoup/issues
 license:        BSD3
 category:       XML
