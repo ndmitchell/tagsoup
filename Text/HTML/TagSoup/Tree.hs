@@ -7,8 +7,8 @@
 
 module Text.HTML.TagSoup.Tree
     (
-    TagTree(..), tagTree,
-    flattenTree, transformTree, universeTree
+    TagTree(..), tagTree, parseTree,
+    flattenTree, renderTree, transformTree, universeTree
     ) where
 
 import Text.HTML.TagSoup (parseTags, renderTags)
@@ -50,6 +50,7 @@ tagTree = g
             where (a,b) = f xs
         f [] = ([], [])
 
+parseTree :: StringLike str => str -> [TagTree str]
 parseTree = tagTree . parseTags
 
 flattenTree :: [TagTree str] -> [Tag str]
@@ -59,6 +60,7 @@ flattenTree xs = concatMap f xs
             TagOpen name atts : flattenTree inner ++ [TagClose name]
         f (TagLeaf x) = [x]
 
+renderTree :: StringLike str => [TagTree str] -> str
 renderTree = renderTags . flattenTree
 
 -- | This operation is based on the Uniplate @universe@ function. Given a
