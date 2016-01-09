@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+0.13.7
     #32, make sure upper case &#X works in lookupEntity
 0.13.6
     #28, some named entities require a trailing semicolon (e.g. mid)
