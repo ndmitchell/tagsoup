@@ -54,7 +54,7 @@ parseTree :: StringLike str => str -> [TagTree str]
 parseTree = tagTree . parseTags
 
 parseTreeOptions :: StringLike str => ParseOptions str -> str -> [TagTree str]
-parseTreeOptions = ((.).(.)) tagTree parseTagsOptions
+parseTreeOptions opts str = tagTree $ parseTagsOptions opts str
 
 flattenTree :: [TagTree str] -> [Tag str]
 flattenTree xs = concatMap f xs
@@ -67,7 +67,7 @@ renderTree :: StringLike str => [TagTree str] -> str
 renderTree = renderTags . flattenTree
 
 renderTreeOptions :: StringLike str => RenderOptions str -> [TagTree str] -> str
-renderTreeOptions = (flip . ((.) .)) renderTagsOptions flattenTree
+renderTreeOptions opts trees = renderTagsOptions opts $ flattenTree trees
 
 -- | This operation is based on the Uniplate @universe@ function. Given a
 --   list of trees, it returns those trees, and all the children trees at
