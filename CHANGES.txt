@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    #30, add parse/render functions directly to the Tree module
 0.13.7
     #32, make sure upper case &#X works in lookupEntity
 0.13.6
