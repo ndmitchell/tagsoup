@@ -7,11 +7,11 @@
 
 module Text.HTML.TagSoup.Tree
     (
-    TagTree(..), tagTree, parseTree, parseTreeOptions,
-    flattenTree, renderTree, renderTreeOptions, transformTree, universeTree
+    TagTree(..), tagTree, parseTree, parseTreeOptions, ParseOptions(..),
+    flattenTree, renderTree, renderTreeOptions, RenderOptions(..), transformTree, universeTree
     ) where
 
-import Text.HTML.TagSoup (parseTags, parseTagsOptions, renderTags, renderTagsOptions, ParseOptions(), RenderOptions())
+import Text.HTML.TagSoup (parseTags, parseTagsOptions, renderTags, renderTagsOptions, ParseOptions(..), RenderOptions(..))
 import Text.HTML.TagSoup.Type
 import Control.Arrow
 
