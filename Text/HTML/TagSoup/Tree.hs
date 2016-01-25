@@ -57,11 +57,11 @@ parseTreeOptions :: StringLike str => ParseOptions str -> str -> [TagTree str]
 parseTreeOptions opts str = tagTree $ parseTagsOptions opts str
 
 flattenTree :: [TagTree str] -> [Tag str]
-flattenTree xs = concatMap f xs
+flattenTree xs = flattenTreeOnto xs []
     where
-        f (TagBranch name atts inner) =
-            TagOpen name atts : flattenTree inner ++ [TagClose name]
-        f (TagLeaf x) = [x]
+        flattenTreeOnto [] tags = tags
+        flattenTreeOnto ((TagBranch name atts inner):trs) tags = (TagOpen name atts):(flattenTreeOnto inner $ (TagClose name):flattenTreeOnto trs tags)
+        flattenTreeOnto ((TagLeaf x):trs) tags = x:(flattenTreeOnto trs tags)
 
 renderTree :: StringLike str => [TagTree str] -> str
 renderTree = renderTags . flattenTree
