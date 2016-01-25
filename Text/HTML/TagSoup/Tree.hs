@@ -14,6 +14,7 @@ module Text.HTML.TagSoup.Tree
 import Text.HTML.TagSoup (parseTags, parseTagsOptions, renderTags, renderTagsOptions, ParseOptions(..), RenderOptions(..))
 import Text.HTML.TagSoup.Type
 import Control.Arrow
+import GHC.Exts (build)
 
 
 data TagTree str = TagBranch str [Attribute str] [TagTree str]
@@ -57,11 +58,14 @@ parseTreeOptions :: StringLike str => ParseOptions str -> str -> [TagTree str]
 parseTreeOptions opts str = tagTree $ parseTagsOptions opts str
 
 flattenTree :: [TagTree str] -> [Tag str]
-flattenTree xs = flattenTreeOnto xs []
+flattenTree xs = build $ flattenTreeFB xs
+
+flattenTreeFB :: [TagTree str] -> (Tag str -> lst -> lst) -> lst -> lst
+flattenTreeFB xs cons nil = flattenTreeOnto xs nil
     where
         flattenTreeOnto [] tags = tags
-        flattenTreeOnto ((TagBranch name atts inner):trs) tags = (TagOpen name atts):(flattenTreeOnto inner $ (TagClose name):flattenTreeOnto trs tags)
-        flattenTreeOnto ((TagLeaf x):trs) tags = x:(flattenTreeOnto trs tags)
+        flattenTreeOnto ((TagBranch name atts inner):trs) tags = (TagOpen name atts) `cons` (flattenTreeOnto inner $ (TagClose name) `cons` flattenTreeOnto trs tags)
+        flattenTreeOnto ((TagLeaf x):trs) tags = x `cons` (flattenTreeOnto trs tags)
 
 renderTree :: StringLike str => [TagTree str] -> str
 renderTree = renderTags . flattenTree
