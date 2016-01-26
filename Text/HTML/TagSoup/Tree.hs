@@ -64,8 +64,9 @@ flattenTreeFB :: [TagTree str] -> (Tag str -> lst -> lst) -> lst -> lst
 flattenTreeFB xs cons nil = flattenTreeOnto xs nil
     where
         flattenTreeOnto [] tags = tags
-        flattenTreeOnto ((TagBranch name atts inner):trs) tags = (TagOpen name atts) `cons` (flattenTreeOnto inner $ (TagClose name) `cons` flattenTreeOnto trs tags)
-        flattenTreeOnto ((TagLeaf x):trs) tags = x `cons` (flattenTreeOnto trs tags)
+        flattenTreeOnto (TagBranch name atts inner:trs) tags =
+            TagOpen name atts `cons` flattenTreeOnto inner (TagClose name `cons` flattenTreeOnto trs tags)
+        flattenTreeOnto (TagLeaf x:trs) tags = x `cons` flattenTreeOnto trs tags
 
 renderTree :: StringLike str => [TagTree str] -> str
 renderTree = renderTags . flattenTree
