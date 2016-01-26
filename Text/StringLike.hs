@@ -5,7 +5,7 @@
 --   This module provides an abstraction for String's as used inside TagSoup. It allows
 --   TagSoup to work with String (list of Char), ByteString.Char8, ByteString.Lazy.Char8,
 --   Data.Text and Data.Text.Lazy.
-module Text.StringLike (module Text.StringLike, fromString) where
+module Text.StringLike (StringLike(..), fromString, castString) where
 
 import Data.String
 import Data.Typeable
