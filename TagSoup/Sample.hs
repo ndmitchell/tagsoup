@@ -101,9 +101,9 @@ ndmPapers = do
 
 currentTime :: IO ()
 currentTime = do
-        tags <- fmap parseTags $ openItem "http://www.timeanddate.com/worldclock/city.html?n=136"
-        let res = fromTagText (dropWhile (~/= "<strong id=ct>") tags !! 1)
-        putStrLn res
+    tags <- parseTags <$> openItem "http://www.timeanddate.com/worldclock/uk/london"
+    let time = fromTagText (dropWhile (~/= "<span id=ct>") tags !! 1)
+    putStrLn time
 
 
 
