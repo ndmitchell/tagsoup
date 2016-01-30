@@ -50,7 +50,7 @@ renderTagsOptions :: StringLike str => RenderOptions str -> [Tag str] -> str
 renderTagsOptions opts = strConcat . tags
     where
         ss x = [x]
-    
+
         tags (TagOpen name atts:TagClose name2:xs)
             | name == name2 && optMinimize opts name = open name atts " /" ++ tags xs
         tags (TagOpen name atts:xs)
@@ -69,11 +69,10 @@ renderTagsOptions opts = strConcat . tags
 
         txt = optEscape opts
         open name atts shut = ["<",name] ++ concatMap att atts ++ [shut,">"]
-        att (x,y) | xnull && ynull = [" \"\""]
-                  | ynull = [" ", x]
-                  | xnull = [" \"",txt y,"\""]
-                  | otherwise = [" ",x,"=\"",txt y,"\""]
-            where (xnull, ynull) = (strNull x, strNull y)
+        att ("","") = [" \"\""]
+        att (x ,"") = [" ", x]
+        att ("", y) = [" \"",txt y,"\""]
+        att (x , y) = [" ",x,"=\"",txt y,"\""]
 
         com xs | Just ('-',xs) <- uncons xs, Just ('-',xs) <- uncons xs, Just ('>',xs) <- uncons xs = "-- >" : com xs
         com xs = case uncons xs of
