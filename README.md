@@ -4,7 +4,7 @@ TagSoup is a library for parsing HTML/XML. It supports the HTML 5 specification,
 
 The library provides a basic data type for a list of unstructured tags, a parser to convert HTML into this tag type, and useful functions and combinators for finding and extracting information. This document gives two particular examples of scraping information from the web, while a few more may be found in the [Sample](https://github.com/ndmitchell/tagsoup/blob/master/TagSoup/Sample.hs) file from the source repository. The examples we give are:
 
-* Obtaining the Hit Count from Haskell.org
+* Obtaining the last modified date of the Haskell wiki
 * Obtaining a list of Simon Peyton-Jones' latest papers
 * A brief overview of some other examples
 
