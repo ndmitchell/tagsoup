@@ -52,30 +52,30 @@ renderTagsOptions :: StringLike str => RenderOptions str -> [Tag str] -> str
 renderTagsOptions opts tags = strConcat $ foldr tagAcc (\_ _ -> []) tags Nothing Nothing
     where
         tagAcc (TagClose name) tags (Just (name',atts)) raw
-            | name == name' = open name (isJust raw) atts " /" ++ tags Nothing raw
-        tagAcc t tags (Just (name,atts)) raw = open name (isJust raw) atts "" ++ tagAcc' t tags raw
+            | name == name' = open name atts " /" ++ tags Nothing raw
+        tagAcc t tags (Just (name,atts)) raw = open name atts "" ++ tagAcc' t tags raw
         tagAcc t tags Nothing raw = tagAcc' t tags raw
 
         tagAcc' (TagOpen name atts) tags raw
             | optMinimize opts name = tags (Just (name, atts)) raw
-            | Just ('?',_) <- uncons name = open name (isJust raw) atts " ?" ++ tags Nothing raw
-            | optRawTag opts name = open name True atts "" ++ tags Nothing (Just $ fromMaybe name raw)
+            | Just ('?',_) <- uncons name = open name atts " ?" ++ tags Nothing raw
+            | optRawTag opts name = open name atts "" ++ tags Nothing (Just $ fromMaybe name raw)
         tagAcc' t@(TagClose name) tags (Just name')
             | name == name' = tag t False ++ tags Nothing Nothing
         tagAcc' t tags raw = tag t (isJust raw) ++ tags Nothing raw
 
-        tag (TagOpen name atts) isRaw = open name isRaw atts ""
+        tag (TagOpen name atts) _ = open name atts ""
         tag (TagClose name) _ = ["</", name, ">"]
         tag (TagText text) True = [text]
         tag (TagText text) False = [optEscape opts text]
         tag (TagComment text) _ = ["<!--"] ++ com text ++ ["-->"]
         tag _ _ = [""]
 
-        open name israw atts shut = ["<",name] ++ concatMap (att israw) atts ++ [shut,">"]
-        att _ ("","") = [" \"\""]
-        att _ (x ,"") = [" ", x]
-        att isRaw ("", y) = [" \"",(if isRaw then y else optEscape opts y),"\""]
-        att isRaw (x , y) = [" ",x,"=\"",(if isRaw then y else optEscape opts y),"\""]
+        open name atts shut = ["<",name] ++ concatMap att atts ++ [shut,">"]
+        att ("","") = [" \"\""]
+        att (x ,"") = [" ", x]
+        att ("", y) = [" \"",optEscape opts y,"\""]
+        att (x , y) = [" ",x,"=\"",optEscape opts y,"\""]
 
         -- com makes sure that comments close correctly by transforming "-->" into "-- >"
         com xs | Just ('-',xs) <- uncons xs, Just ('-',xs) <- uncons xs, Just ('>',xs) <- uncons xs = "-- >" : com xs
