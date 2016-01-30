@@ -1,4 +1,4 @@
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards, OverloadedStrings #-}
 {-|
     This module converts a list of 'Tag' back into a string.
 -}
@@ -29,7 +29,6 @@ data RenderOptions str = RenderOptions
 escapeHTML :: StringLike str => str -> str
 escapeHTML = fromString . escapeXML . toString
 
-
 -- | The default render options value, described in 'RenderOptions'.
 renderOptions :: StringLike str => RenderOptions str
 renderOptions = RenderOptions escapeHTML (\x -> toString x == "br") (\x -> toString x == "script")
@@ -50,34 +49,33 @@ renderTags = renderTagsOptions renderOptions
 renderTagsOptions :: StringLike str => RenderOptions str -> [Tag str] -> str
 renderTagsOptions opts = strConcat . tags
     where
-        s = fromString
-        ss x = [s x]
+        ss x = [x]
     
         tags (TagOpen name atts:TagClose name2:xs)
-            | name == name2 && optMinimize opts name = open name atts (s " /") ++ tags xs
+            | name == name2 && optMinimize opts name = open name atts " /" ++ tags xs
         tags (TagOpen name atts:xs)
-            | Just ('?',_) <- uncons name = open name atts (s " ?") ++ tags xs
+            | Just ('?',_) <- uncons name = open name atts " ?" ++ tags xs
             | optRawTag opts name =
                 let (a,b) = break (== TagClose name) (TagOpen name atts:xs)
                 in concatMap (\x -> case x of TagText s -> [s]; _ -> tag x) a ++ tags b
         tags (x:xs) = tag x ++ tags xs
         tags [] = []
 
-        tag (TagOpen name atts) = open name atts (s "")
-        tag (TagClose name) = [s "</", name, s ">"]
+        tag (TagOpen name atts) = open name atts ""
+        tag (TagClose name) = ["</", name, ">"]
         tag (TagText text) = [txt text]
         tag (TagComment text) = ss "<!--" ++ com text ++ ss "-->"
         tag _ = ss ""
 
         txt = optEscape opts
-        open name atts shut = [s "<",name] ++ concatMap att atts ++ [shut,s ">"]
-        att (x,y) | xnull && ynull = [s " \"\""]
-                  | ynull = [s " ", x]
-                  | xnull = [s " \"",txt y,s "\""]
-                  | otherwise = [s " ",x,s "=\"",txt y,s "\""]
+        open name atts shut = ["<",name] ++ concatMap att atts ++ [shut,">"]
+        att (x,y) | xnull && ynull = [" \"\""]
+                  | ynull = [" ", x]
+                  | xnull = [" \"",txt y,"\""]
+                  | otherwise = [" ",x,"=\"",txt y,"\""]
             where (xnull, ynull) = (strNull x, strNull y)
 
-        com xs | Just ('-',xs) <- uncons xs, Just ('-',xs) <- uncons xs, Just ('>',xs) <- uncons xs = s "-- >" : com xs
+        com xs | Just ('-',xs) <- uncons xs, Just ('-',xs) <- uncons xs, Just ('>',xs) <- uncons xs = "-- >" : com xs
         com xs = case uncons xs of
             Nothing -> []
             Just (x,xs) -> fromChar x : com xs
