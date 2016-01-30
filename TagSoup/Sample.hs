@@ -76,7 +76,7 @@ googleTechNews = do
 
 spjPapers :: IO ()
 spjPapers = do
-        tags <- fmap parseTags $ openItem "http://research.microsoft.com/en-us/people/simonpj/"
+        tags <- parseTags <$> openItem "http://research.microsoft.com/en-us/people/simonpj/"
         let links = map f $ sections (~== "<A>") $
                     takeWhile (~/= "<a name=haskell>") $
                     drop 5 $ dropWhile (~/= "<a name=current>") tags
@@ -91,7 +91,7 @@ spjPapers = do
 
 ndmPapers :: IO ()
 ndmPapers = do
-        tags <- fmap parseTags $ openItem "http://community.haskell.org/~ndm/downloads/"
+        tags <- parseTags <$> openItem "http://community.haskell.org/~ndm/downloads/"
         let papers = map f $ sections (~== "<li class=paper>") tags
         putStr $ unlines papers
     where

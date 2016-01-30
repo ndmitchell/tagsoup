@@ -5,7 +5,7 @@ TagSoup is a library for parsing HTML/XML. It supports the HTML 5 specification,
 The library provides a basic data type for a list of unstructured tags, a parser to convert HTML into this tag type, and useful functions and combinators for finding and extracting information. This document gives two particular examples of scraping information from the web, while a few more may be found in the [Sample](https://github.com/ndmitchell/tagsoup/blob/master/TagSoup/Sample.hs) file from the source repository. The examples we give are:
 
 * Obtaining the last modified date of the Haskell wiki
-* Obtaining a list of Simon Peyton-Jones' latest papers
+* Obtaining a list of Simon Peyton Jones' latest papers
 * A brief overview of some other examples
 
 The intial version of this library was written in Javascript and has been used for various commercial projects involving screen scraping. In the examples general hints on screen scraping are included, learnt from bitter experience. It should be noted that if you depend on data which someone else may change at any given time, you may be in for a shock!
@@ -154,34 +154,53 @@ As before we first start by writing a simple program that downloads the appropri
 
 First we spot that the page helpfully has named anchors, there is a current work anchor, and after that is one for Haskell. We can extract all the information between them with a simple `take`/`drop` pair:
 
-    takeWhile (~/= "<a name=haskell>") $
-    drop 5 $ dropWhile (~/= "<a name=current>") tags
+```haskell
+takeWhile (~/= "<a name=haskell>") $
+drop 5 $ dropWhile (~/= "<a name=current>") tags
+```
 
 This code drops until you get to the "current" section, then takes until you get to the "haskell" section, ensuring we only look at the important bit of the page. Next we want to find all hyperlinks within this section:
 
-    map f $ sections (~== "<A>") $ ...
+```haskell
+map f $ sections (~== "<A>") $ ...
+```
 
 Remember that the function to select all tags with name "A" could have been written as `(~== TagOpen "A" [])`, or alternatively `isTagOpenName "A"`. Afterwards we map each item with an `f` function. This function needs to take the tags starting just after the link, and find the text inside the link.
 
-    f = dequote . unwords . words . fromTagText . head . filter isTagText
+```haskell
+f = dequote . unwords . words . fromTagText . head . filter isTagText
+```
 
 Here the complexity of interfacing to human written markup comes through. Some of the links are in italic, some are not - the `filter` drops all those that are not, until we find a pure text node. The `unwords . words` deletes all multiple spaces, replaces tabs and newlines with spaces and trims the front and back - a neat trick when dealing with text which has spacing at the source code but not when displayed. The final thing to take account of is that some papers are given with quotes around the name, some are not - dequote will remove the quotes if they exist.
 
 For completeness, we now present the entire example:
-    
-    spjPapers :: IO ()
-    spjPapers = do
-            tags <- fmap parseTags $ openURL "http://research.microsoft.com/en-us/people/simonpj/"
-            let links = map f $ sections (~== "<A>") $
-                        takeWhile (~/= "<a name=haskell>") $
-                        drop 5 $ dropWhile (~/= "<a name=current>") tags
-            putStr $ unlines links
-        where
-            f :: [Tag] -> String
-            f = dequote . unwords . words . fromTagText . head . filter isTagText
-    
-            dequote ('\"':xs) | last xs == '\"' = init xs
-            dequote x = x
+
+```haskell
+module Main where
+
+import Network.HTTP
+import Text.HTML.TagSoup
+
+openURL :: String -> IO String
+openURL x = getResponseBody =<< simpleHTTP (getRequest x)
+
+spjPapers :: IO ()
+spjPapers = do
+        tags <- parseTags <$> openURL "http://research.microsoft.com/en-us/people/simonpj/"
+        let links = map f $ sections (~== "<A>") $
+                    takeWhile (~/= "<a name=haskell>") $
+                    drop 5 $ dropWhile (~/= "<a name=current>") tags
+        putStr $ unlines links
+    where
+        f :: [Tag String] -> String
+        f = dequote . unwords . words . fromTagText . head . filter isTagText
+
+        dequote ('\"':xs) | last xs == '\"' = init xs
+        dequote x = x
+
+main :: IO ()
+main = spjPapers
+```
 
 ## Other Examples
 
@@ -189,14 +208,27 @@ Several more examples are given in the Example file, including obtaining the (sh
 
 ### My Papers
 
-    ndmPapers :: IO ()
-    ndmPapers = do
-            tags <- fmap parseTags $ openURL "http://community.haskell.org/~ndm/downloads/"
-            let papers = map f $ sections (~== "<li class=paper>") tags
-            putStr $ unlines papers
-        where
-            f :: [Tag] -> String
-            f xs = fromTagText (xs !! 2)
+```haskell
+module Main where
+
+import Network.HTTP
+import Text.HTML.TagSoup
+
+openURL :: String -> IO String
+openURL x = getResponseBody =<< simpleHTTP (getRequest x)
+
+ndmPapers :: IO ()
+ndmPapers = do
+        tags <- parseTags <$> openURL "http://community.haskell.org/~ndm/downloads/"
+        let papers = map f $ sections (~== "<li class=paper>") tags
+        putStr $ unlines papers
+    where
+        f :: [Tag String] -> String
+        f xs = fromTagText (xs !! 2)
+
+main :: IO ()
+main = ndmPapers
+```
 
 ### UK Time
 
