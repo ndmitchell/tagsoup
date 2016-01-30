@@ -9,6 +9,8 @@ module Text.HTML.TagSoup.Render
     RenderOptions(..), renderOptions
     ) where
 
+import Data.Maybe
+
 import Text.HTML.TagSoup.Entity
 import Text.HTML.TagSoup.Type
 import Text.StringLike
@@ -31,7 +33,7 @@ escapeHTML = fromString . escapeXML . toString
 
 -- | The default render options value, described in 'RenderOptions'.
 renderOptions :: StringLike str => RenderOptions str
-renderOptions = RenderOptions escapeHTML (\x -> toString x == "br") (\x -> toString x == "script")
+renderOptions = RenderOptions escapeHTML (== "br") (== "script")
 
 
 -- | Show a list of tags, as they might have been parsed, using the default settings given in
@@ -47,33 +49,33 @@ renderTags = renderTagsOptions renderOptions
 --
 -- > renderTagsOptions renderOptions{optEscape = id} [TagText "my&"] == "my&"
 renderTagsOptions :: StringLike str => RenderOptions str -> [Tag str] -> str
-renderTagsOptions opts = strConcat . tags
+renderTagsOptions opts tags = strConcat $ foldr tagAcc (\_ _ -> []) tags Nothing Nothing
     where
-        ss x = [x]
+        tagAcc (TagClose name) tags (Just (name',atts)) raw
+            | name == name' = open name (isJust raw) atts " /" ++ tags Nothing raw
+        tagAcc t tags (Just (name,atts)) raw = open name (isJust raw) atts "" ++ tagAcc' t tags raw
+        tagAcc t tags Nothing raw = tagAcc' t tags raw
 
-        tags (TagOpen name atts:TagClose name2:xs)
-            | name == name2 && optMinimize opts name = open name atts " /" ++ tags xs
-        tags (TagOpen name atts:xs)
-            | Just ('?',_) <- uncons name = open name atts " ?" ++ tags xs
-            | optRawTag opts name =
-                let (a,b) = break (== TagClose name) (TagOpen name atts:xs)
-                in concatMap (\x -> case x of TagText s -> [s]; _ -> tag x) a ++ tags b
-        tags (x:xs) = tag x ++ tags xs
-        tags [] = []
+        tagAcc' (TagOpen name atts) tags raw
+            | optMinimize opts name = tags (Just (name, atts)) raw
+            | Just ('?',_) <- uncons name = open name (isJust raw) atts " ?" ++ tags Nothing raw
+            | optRawTag opts name = open name True atts "" ++ tags Nothing (Just $ fromMaybe name raw)
+        tagAcc' t tags raw = tag t (isJust raw) ++ tags Nothing raw
 
-        tag (TagOpen name atts) = open name atts ""
-        tag (TagClose name) = ["</", name, ">"]
-        tag (TagText text) = [txt text]
-        tag (TagComment text) = ss "<!--" ++ com text ++ ss "-->"
-        tag _ = ss ""
+        tag (TagOpen name atts) isRaw = open name isRaw atts ""
+        tag (TagClose name) _ = ["</", name, ">"]
+        tag (TagText text) True = [text]
+        tag (TagText text) False = [optEscape opts text]
+        tag (TagComment text) _ = ["<!--"] ++ com text ++ ["-->"]
+        tag _ _ = [""]
 
-        txt = optEscape opts
-        open name atts shut = ["<",name] ++ concatMap att atts ++ [shut,">"]
-        att ("","") = [" \"\""]
-        att (x ,"") = [" ", x]
-        att ("", y) = [" \"",txt y,"\""]
-        att (x , y) = [" ",x,"=\"",txt y,"\""]
+        open name israw atts shut = ["<",name] ++ concatMap (att israw) atts ++ [shut,">"]
+        att _ ("","") = [" \"\""]
+        att _ (x ,"") = [" ", x]
+        att isRaw ("", y) = [" \"",(if isRaw then y else optEscape opts y),"\""]
+        att isRaw (x , y) = [" ",x,"=\"",(if isRaw then y else optEscape opts y),"\""]
 
+        -- com makes sure that comments close correctly by transforming "-->" into "-- >"
         com xs | Just ('-',xs) <- uncons xs, Just ('-',xs) <- uncons xs, Just ('>',xs) <- uncons xs = "-- >" : com xs
         com xs = case uncons xs of
             Nothing -> []
