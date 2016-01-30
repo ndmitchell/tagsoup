@@ -60,6 +60,8 @@ renderTagsOptions opts tags = strConcat $ foldr tagAcc (\_ _ -> []) tags Nothing
             | optMinimize opts name = tags (Just (name, atts)) raw
             | Just ('?',_) <- uncons name = open name (isJust raw) atts " ?" ++ tags Nothing raw
             | optRawTag opts name = open name True atts "" ++ tags Nothing (Just $ fromMaybe name raw)
+        tagAcc' t@(TagClose name) tags (Just name')
+            | name == name' = tag t False ++ tags Nothing Nothing
         tagAcc' t tags raw = tag t (isJust raw) ++ tags Nothing raw
 
         tag (TagOpen name atts) isRaw = open name isRaw atts ""
