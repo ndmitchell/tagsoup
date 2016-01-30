@@ -47,13 +47,14 @@ intersperseNotBroken sep (x:xs) = x : is xs
 
 
 {-
-<li id="viewcount">This page has been accessed 6,985,922 times.</li>
+<li id="lastmod"> This page was last modified on 9 September 2013, at 22:38.</li>
 -}
-haskellHitCount = do
-    src <- openItem "http://haskell.org/haskellwiki/Haskell"
-    let count = fromFooter $ parseTags src
-    putStrLn $ "haskell.org has been hit " ++ count ++ " times"
-    where fromFooter = filter isDigit . innerText . take 2 . dropWhile (~/= "<li id=viewcount>")
+haskellLastModifiedDateTime :: IO ()
+haskellLastModifiedDateTime = do
+    src <- openItem "http://wiki.haskell.org/Haskell"
+    let lastModifiedDateTime = fromFooter $ parseTags src
+    putStrLn $ "wiki.haskell.org was last modified on " ++ lastModifiedDateTime
+    where fromFooter = unwords . drop 6 . words . innerText . take 2 . dropWhile (~/= "<li id=lastmod>")
 
 
 googleTechNews :: IO ()
