@@ -1,5 +1,8 @@
 Changelog for TagSoup
 
+    #36, fix the demo examples
+    #35, make IsString a superclass of StringLike
+    #33, make flattenTree O(n) instead of O(n^2)
 0.13.8
     #30, add parse/render functions directly to the Tree module
 0.13.7
