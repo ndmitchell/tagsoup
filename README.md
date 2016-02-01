@@ -232,11 +232,24 @@ main = ndmPapers
 
 ### UK Time
 
-    currentTime :: IO ()
-    currentTime = do
-        tags <- fmap parseTags $ openURL "http://www.timeanddate.com/worldclock/city.html?n=136"
-        let time = fromTagText (dropWhile (~/= "<strong id=ct>") tags !! 1)
-        putStrLn time
+```haskell
+module Main where
+
+import Network.HTTP
+import Text.HTML.TagSoup
+
+openURL :: String -> IO String
+openURL x = getResponseBody =<< simpleHTTP (getRequest x)
+
+currentTime :: IO ()
+currentTime = do
+    tags <- parseTags <$> openURL "http://www.timeanddate.com/worldclock/uk/london"
+    let time = fromTagText (dropWhile (~/= "<span id=ct>") tags !! 1)
+    putStrLn time
+
+main :: IO ()
+main = currentTime
+```
         
 <h2>Related Projects</h2>
 
