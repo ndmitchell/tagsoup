@@ -251,13 +251,11 @@ main :: IO ()
 main = currentTime
 ```
         
-<h2>Related Projects</h2>
+## Related Projects
 
-<ul>
-    <li><a href="http://tagsoup.info/">TagSoup for Java</a> - an independently written malformed HTML parser for Java. Including <a href="http://tagsoup.info/#other">links to other</a> HTML parsers.</li>
-    <li><a href="http://www.fh-wedel.de/~si/HXmlToolbox/">HXT: Haskell XML Toolbox</a> - a more comprehensive XML parser, giving the option of using TagSoup as a lexer.</li>
-    <li><a href="http://www.fh-wedel.de/~si/HXmlToolbox/#rel">Other Related Work</a> - as described on the HXT pages.</li>
-    <li><a href="http://therning.org/magnus/archives/367">Using TagSoup with Parsec</a> - a nice combination of Haskell libraries.</li>
-    <li><a href="http://hackage.haskell.org/packages/tagsoup-parsec">tagsoup-parsec</a> - a library for easily using TagSoup as a token type in Parsec.</li>
-    <li><a href="http://hackage.haskell.org/packages/archive/wraxml/latest/doc/html/Text-XML-WraXML-Tree-TagSoup.html">WraXML</a> - construct a lazy tree from TagSoup lexemes.</li>
-</ul>
+* [TagSoup for Java](http://tagsoup.info/) - an independently written malformed HTML parser for Java. Including [links to other](http://tagsoup.info/#other) HTML parsers.
+* [HXT: Haskell XML Toolbox](http://www.fh-wedel.de/~si/HXmlToolbox/) - a more comprehensive XML parser, giving the option of using TagSoup as a lexer.
+* [Other Related Work](http://www.fh-wedel.de/~si/HXmlToolbox/#rel) - as described on the HXT pages.
+* [Using TagSoup with Parsec](http://therning.org/magnus/archives/367) - a nice combination of Haskell libraries.
+* [tagsoup-parsec](http://hackage.haskell.org/packages/tagsoup-parsec) - a library for easily using TagSoup as a token type in Parsec.
+* [WraXML](http://hackage.haskell.org/packages/archive/wraxml/latest/doc/html/Text-XML-WraXML-Tree-TagSoup.html) - construct a lazy tree from TagSoup lexemes.
