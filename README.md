@@ -22,7 +22,7 @@ Thanks to Mike Dodds for persuading me to write this up as a library. Thanks to 
 
 There are two things that may go wrong with these examples:
 
-* _The Websites being scraped may change._ There is nothing I can do about this, but if you suspect this is the case let me know, and I'll update the examples and tutorials. I have already done so several times, its only a few minutes work.
+* _The Websites being scraped may change._ There is nothing I can do about this, but if you suspect this is the case let me know, and I'll update the examples and tutorials. I have already done so several times, it's only a few minutes work.
 * _The `openURL` method may not work._ This happens quite regularly, and depending on your server, proxies and direction of the wind, they may not work. The solution is to use `wget` to download the page locally, then use `readFile` instead. Hopefully a decent Haskell HTTP library will emerge, and that can be used instead.
 
 
