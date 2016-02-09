@@ -51,6 +51,7 @@ renderTags = renderTagsOptions renderOptions
 renderTagsOptions :: StringLike str => RenderOptions str -> [Tag str] -> str
 renderTagsOptions opts tags = strConcat $ foldr tagAcc (\_ _ -> []) tags Nothing Nothing
     where
+        {-# INLINE tagAcc #-}
         tagAcc (TagClose name) tags (Just (name',atts)) raw
             | name == name' = open name atts " /" ++ tags Nothing raw
         tagAcc t tags (Just (name,atts)) raw = open name atts "" ++ tagAcc' t tags raw
