@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    #50, fix a space leak
     #36, fix the demo examples
     #35, make IsString a superclass of StringLike
     #33, make flattenTree O(n) instead of O(n^2)

@@ -46,7 +46,7 @@ data S = S
 
 
 expand :: Position -> String -> S
-expand p text = res
+expand p text = p `seq` res
     where res = S{s = res
                  ,tl = expand (positionChar p (head text)) (tail text)
                  ,hd = if null text then '\0' else head text
