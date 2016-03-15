@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+0.13.9
     #50, fix a space leak
     #36, fix the demo examples
     #35, make IsString a superclass of StringLike
