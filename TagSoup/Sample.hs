@@ -5,7 +5,6 @@ import Text.HTML.TagSoup
 
 import Control.Exception
 import Control.Monad
-import Data.Char
 import Data.List
 import System.Cmd
 import System.Directory
