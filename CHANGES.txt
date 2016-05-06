@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+0.13.10
     #51, improve the Haddock documentation
     #52, fix some > 16bit HTML entities
 0.13.9
