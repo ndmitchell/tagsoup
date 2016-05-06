@@ -21,7 +21,8 @@ module Text.HTML.TagSoup(
     module Text.HTML.TagSoup.Render,
     canonicalizeTags,
 
-    -- * Tag identification
+    -- Note: the "#tag-identification#" creates an anchor that's linked to from Match.hs
+    -- * #tag-identification# Tag identification
     isTagOpen, isTagClose, isTagText, isTagWarning, isTagPosition,
     isTagOpenName, isTagCloseName, isTagComment,
 
