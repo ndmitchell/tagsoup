@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    #52, fix some > 16bit HTML entities
 0.13.9
     #50, fix a space leak
     #36, fix the demo examples
