@@ -163,22 +163,28 @@ tagCloseNameLit name = tagCloseLit name
 
 -- * Matching attributes
 
+-- | Does any attribute name/value match the predicate.
 anyAttr :: ((str,str) -> Bool) -> [Attribute str] -> Bool
 anyAttr = any
 
+-- | Does any attribute name match the predicate.
 anyAttrName :: (str -> Bool) -> [Attribute str] -> Bool
 anyAttrName p = any (p . fst)
 
+-- | Does any attribute value match the predicate.
 anyAttrValue :: (str -> Bool) -> [Attribute str] -> Bool
 anyAttrValue p = any (p . snd)
 
 
+-- | Does any attribute name/value match.
 anyAttrLit :: Eq str => (str,str) -> [Attribute str] -> Bool
 anyAttrLit attr = anyAttr (attr==)
 
+-- | Does any attribute name match.
 anyAttrNameLit :: Eq str => str -> [Attribute str] -> Bool
 anyAttrNameLit name = anyAttrName (name==)
 
+-- | Does any attribute value match.
 anyAttrValueLit :: Eq str => str -> [Attribute str] -> Bool
 anyAttrValueLit value = anyAttrValue (value==)
 
