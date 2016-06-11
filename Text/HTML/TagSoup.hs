@@ -62,6 +62,7 @@ canonicalizeTags = map f
 
 -- | Define a class to allow String's or Tag str's to be used as matches
 class TagRep a where
+    -- | Convert a value into a 'Tag'.
     toTagRep :: StringLike str => a -> Tag str
 
 instance StringLike str => TagRep (Tag str) where toTagRep = fmap castString

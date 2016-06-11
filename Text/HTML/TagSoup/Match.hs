@@ -190,6 +190,7 @@ anyAttrValueLit value = anyAttrValue (value==)
 
 
 
+-- | Get the tags under tags with a given name where the attributes match some predicate.
 getTagContent :: Eq str => str -> ([Attribute str] -> Bool) -> [Tag str] -> [Tag str]
 getTagContent name pAttrs =
    takeWhile (not . tagCloseLit name) . drop 1 .

@@ -17,8 +17,12 @@ import Control.Arrow
 import GHC.Exts (build)
 
 
-data TagTree str = TagBranch str [Attribute str] [TagTree str]
-                 | TagLeaf (Tag str)
+-- | A tree of 'Tag' values.
+data TagTree str
+    = -- | A 'TagOpen'/'TagClose' pair with the 'Tag' values in between.
+      TagBranch str [Attribute str] [TagTree str]
+    | -- | Any leaf node
+      TagLeaf (Tag str)
                    deriving (Eq,Ord,Show)
 
 instance Functor TagTree where
@@ -51,12 +55,15 @@ tagTree = g
             where (a,b) = f xs
         f [] = ([], [])
 
+-- | Build a 'TagTree' from a string.
 parseTree :: StringLike str => str -> [TagTree str]
 parseTree = tagTree . parseTags
 
+-- | Build a 'TagTree' from a string, specifying the 'ParseOptions'.
 parseTreeOptions :: StringLike str => ParseOptions str -> str -> [TagTree str]
 parseTreeOptions opts str = tagTree $ parseTagsOptions opts str
 
+-- | Flatten a 'TagTree' back to a list of 'Tag'.
 flattenTree :: [TagTree str] -> [Tag str]
 flattenTree xs = build $ flattenTreeFB xs
 
@@ -68,9 +75,11 @@ flattenTreeFB xs cons nil = flattenTreeOnto xs nil
             TagOpen name atts `cons` flattenTreeOnto inner (TagClose name `cons` flattenTreeOnto trs tags)
         flattenTreeOnto (TagLeaf x:trs) tags = x `cons` flattenTreeOnto trs tags
 
+-- | Render a 'TagTree'.
 renderTree :: StringLike str => [TagTree str] -> str
 renderTree = renderTags . flattenTree
 
+-- | Render a 'TagTree' with some 'RenderOptions'.
 renderTreeOptions :: StringLike str => RenderOptions str -> [TagTree str] -> str
 renderTreeOptions opts trees = renderTagsOptions opts $ flattenTree trees
 
