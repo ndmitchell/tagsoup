@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+0.14
     #14, eliminate Text.HTML.Download
 0.13.10
     #51, improve the Haddock documentation
