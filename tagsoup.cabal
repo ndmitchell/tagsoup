@@ -32,12 +32,13 @@ flag testprog
     description: Build the test program
 
 library
-    build-depends: base == 4.*, containers, bytestring, text
+    build-depends: base == 4.*, containers, bytestring, text, case-insensitive
 
     exposed-modules:
         Text.HTML.TagSoup
         Text.HTML.TagSoup.Entity
         Text.HTML.TagSoup.Match
+        Text.HTML.TagSoup.MatchCI
         Text.HTML.TagSoup.Tree
         Text.StringLike
     other-modules:
