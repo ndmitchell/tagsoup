@@ -257,6 +257,6 @@ main = currentTime
 * [HXT: Haskell XML Toolbox](http://www.fh-wedel.de/~si/HXmlToolbox/) - a more comprehensive XML parser, giving the option of using TagSoup as a lexer.
 * [Other Related Work](http://www.fh-wedel.de/~si/HXmlToolbox/#rel) - as described on the HXT pages.
 * [Using TagSoup with Parsec](http://therning.org/magnus/archives/367) - a nice combination of Haskell libraries.
-* [tagsoup-parsec](http://hackage.haskell.org/packages/tagsoup-parsec) - a library for easily using TagSoup as a token type in Parsec.
+* [tagsoup-parsec](http://hackage.haskell.org/package/tagsoup-parsec) - a library for easily using TagSoup as a token type in Parsec.
 * [tagsoup-megaparsec](http://hackage.haskell.org/package/tagsoup-megaparsec) - a library for easily using TagSoup as a token type in Megaparsec.
 * [WraXML](http://hackage.haskell.org/packages/archive/wraxml/latest/doc/html/Text-XML-WraXML-Tree-TagSoup.html) - construct a lazy tree from TagSoup lexemes.
