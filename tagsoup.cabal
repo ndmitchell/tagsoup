@@ -50,6 +50,7 @@ library
         Text.HTML.TagSoup.Render
         Text.HTML.TagSoup.Specification
         Text.HTML.TagSoup.Type
+        Text.HasCase
 
 executable test-tagsoup
     if flag(testprog)

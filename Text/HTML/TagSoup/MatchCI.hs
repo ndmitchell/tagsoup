@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 
 -- | Case-insensitive combinators for matching tags. See "Text.HTML.TagSoup.Match"
 --   for the original case-sensitive versions of this module.
@@ -29,39 +28,7 @@ import           Data.List ( tails )
 import           Text.HTML.TagSoup
 import           Text.HTML.TagSoup.Match hiding ( tagOpenLit , tagCloseLit , tagOpenAttrLit , tagOpenAttrNameLit , tagOpenNameLit , tagCloseNameLit , anyAttrLit , anyAttrNameLit , getTagContent )
 import           Text.StringLike
-
-import Data.Char (toLower)
-import qualified Data.List as L
-import qualified Data.ByteString.Char8 as BS
-import qualified Data.ByteString.Lazy.Char8 as LBS
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-
--- | A class that allows case-insensitive comparison.
-class HasCase a where
-    caselessEq :: a -> a -> Bool
-
-instance HasCase Char where
-    caselessEq a b
-        | a == b = True
-        | toLower a == b = True
-        | a == toLower b = True
-        | otherwise = False
-
-instance HasCase String where
-    caselessEq a b = L.all (uncurry caselessEq) $ L.zip a b
-
-instance HasCase BS.ByteString where
-    caselessEq a b = L.all (uncurry caselessEq) $ BS.zip a b
-
-instance HasCase LBS.ByteString where
-    caselessEq a b = L.all (uncurry caselessEq) $ LBS.zip a b
-
-instance HasCase T.Text where
-    caselessEq a b = L.all (uncurry caselessEq) $ T.zip a b
-
-instance HasCase LT.Text where
-    caselessEq a b = L.all (uncurry caselessEq) $ LT.zip a b
+import           Text.HasCase
 
 
 -- * Matching tags
