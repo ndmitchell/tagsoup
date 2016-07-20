@@ -38,6 +38,7 @@ library
         Text.HTML.TagSoup
         Text.HTML.TagSoup.Entity
         Text.HTML.TagSoup.Match
+        Text.HTML.TagSoup.MatchCI
         Text.HTML.TagSoup.Tree
         Text.StringLike
     other-modules:
