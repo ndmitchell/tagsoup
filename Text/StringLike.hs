@@ -5,13 +5,11 @@
 --   This module provides an abstraction for String's as used inside TagSoup. It allows
 --   TagSoup to work with String (list of Char), ByteString.Char8, ByteString.Lazy.Char8,
 --   Data.Text and Data.Text.Lazy.
-module Text.StringLike (StringLike(..), fromString, castString, HasCase(..)) where
+module Text.StringLike (StringLike(..), fromString, castString) where
 
-import Data.Char (toLower)
 import Data.String
 import Data.Typeable
 
-import qualified Data.List as L
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as LBS
 import qualified Data.Text as T
@@ -96,31 +94,4 @@ instance StringLike LT.Text where
     strNull = LT.null
     cons = LT.cons
     append = LT.append
-
-
--- | A class that allows case-insensitive comparison.
-class HasCase a where
-    caselessEq :: a -> a -> Bool
-
-instance HasCase Char where
-    caselessEq a b
-        | a == b = True
-        | toLower a == b = True
-        | a == toLower b = True
-        | otherwise = False
-
-instance HasCase String where
-    caselessEq a b = L.all (uncurry caselessEq) $ L.zip a b
-
-instance HasCase BS.ByteString where
-    caselessEq a b = L.all (uncurry caselessEq) $ BS.zip a b
-
-instance HasCase LBS.ByteString where
-    caselessEq a b = L.all (uncurry caselessEq) $ LBS.zip a b
-
-instance HasCase T.Text where
-    caselessEq a b = L.all (uncurry caselessEq) $ T.zip a b
-
-instance HasCase LT.Text where
-    caselessEq a b = L.all (uncurry caselessEq) $ LT.zip a b
 
