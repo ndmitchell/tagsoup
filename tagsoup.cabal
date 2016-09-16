@@ -56,13 +56,12 @@ executable test-tagsoup
     if flag(testprog)
         buildable: True
         build-depends:
+            base == 4.*, containers, bytestring, text,
             QuickCheck >= 2.4,
             deepseq >= 1.1,
             time, directory, process
     else
         buildable: False
-
-    extensions: CPP
 
     main-is: Main.hs
     other-modules:
