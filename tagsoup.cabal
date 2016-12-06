@@ -29,6 +29,7 @@ source-repository head
 
 flag testprog
     default: False
+    manual: True
     description: Build the test program
 
 library
