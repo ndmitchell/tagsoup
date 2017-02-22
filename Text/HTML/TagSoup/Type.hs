@@ -115,10 +115,17 @@ isTagPosition TagPosition{} = True; isTagPosition _ = False
 
 -- | Extract an attribute, crashes if not a 'TagOpen'.
 --   Returns @\"\"@ if no attribute present.
+--
+-- Warning: does not distinquish between missing attribute
+-- and present attribute with value @\"\"@.
 fromAttrib :: (Show str, Eq str, StringLike str) => str -> Tag str -> str
-fromAttrib att (TagOpen _ atts) = fromMaybe empty $ lookup att atts
-fromAttrib _ x = error ("(" ++ show x ++ ") is not a TagOpen")
+fromAttrib att tag = fromMaybe empty $ maybeAttrib att tag
 
+-- | Extract an attribute, crashes if not a 'TagOpen'.
+--   Returns @Nothing@ if no attribute present.
+maybeAttrib :: (Show str, Eq str) => str -> Tag str -> Maybe str
+maybeAttrib att (TagOpen _ atts) = lookup att atts
+maybeAttrib _ x = error ("(" ++ show x ++ ") is not a TagOpen")
 
 -- | Returns True if the 'Tag' is 'TagOpen' and matches the given name
 isTagOpenName :: Eq str => str -> Tag str -> Bool
