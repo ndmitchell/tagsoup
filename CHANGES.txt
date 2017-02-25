@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+0.14.1
     #63, add maybeAttrib
 0.14
     #14, eliminate Text.HTML.Download
