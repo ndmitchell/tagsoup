@@ -6,7 +6,7 @@ import Text.HTML.TagSoup
 import Control.Exception
 import Control.Monad
 import Data.List
-import System.Cmd
+import System.Process
 import System.Directory
 import System.Exit
 import System.IO
