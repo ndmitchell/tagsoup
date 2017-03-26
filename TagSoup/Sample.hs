@@ -10,6 +10,8 @@ import System.Process
 import System.Directory
 import System.Exit
 import System.IO
+import Data.Functor
+import Prelude
 
 
 openItem :: String -> IO String
