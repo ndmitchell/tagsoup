@@ -232,8 +232,14 @@ combiTests = do
     (TagText "test" ~== TagText "soup") === False
     (TagText "test" ~== "test") === True
     (TagOpen "test" [] ~== "<test>") === True
+    (TagOpen "test" [("a", "ann"), ("b", "bob"), ("c", "true")] ~== "<test c a=ann>") === True
+    (TagOpen "test" [("a", "ann"), ("b", "123"), ("c", "true")] ~== "<test A=ann>") === True
+    (TagOpen "test" [("a", "ann"), ("b", "bob"), ("c", "true")] ~== "<test a=Ann>") === False
+    (TagOpen "test" [("a", "123"), ("b", "ann"), ("c", "true")] ~== "<test b=bob z>") === False
+    (TagOpen "test" [("a", "123"), ("name", "ann")] ~== "<test name=paul>") === False
     (TagOpen "test" [] ~== "<soup>") === False
     (TagOpen "test" [] ~/= "<soup>") === True
+    (TagClose "Test" ~== "</test>") === True
     (TagComment "foo" ~== "<!--foo-->") === True
     (TagComment "bar" ~== "<!--bar-->") === True
 
