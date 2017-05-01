@@ -23,7 +23,7 @@
 - ignore: {name: "Avoid lambda"}
 - ignore: {name: "Use elemIndices"}
 - ignore: {name: "Use foldr"}
-- ignore: {name: "Parse error: ;"}
+- ignore: {name: "Parse error"}
 - ignore: {name: "Use foldl"}
 - ignore: {name: "Use fmap"}
 - ignore: {name: "Use if"}
@@ -40,7 +40,6 @@
 - ignore: {name: "Use when"}
 - ignore: {name: "Redundant $"}
 - ignore: {name: "Reduce duplication"}
-- ignore: {name: "Parse error: empty"}
 - ignore: {name: "Use fromMaybe"}
 - ignore: {name: "Fix pragma markup"}
 - ignore: {name: "Use span"}
