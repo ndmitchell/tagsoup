@@ -1,0 +1,90 @@
+# Ignore all weeder errors for now, should be investigated later
+
+- package:
+  - name: tagsoup
+  - section:
+    - name: library
+    - message:
+      - name: Weeds exported
+      - module:
+        - name: Text.HTML.TagSoup.Implementation
+        - identifier:
+          - Char
+          - Pos
+          - Warn
+          - ampChar
+          - ampOut
+          - entityChr
+          - expand
+          - fromChr
+          - fromWarn
+          - getEntityEnd
+          - isAttName
+          - isAttVal
+          - isChar
+          - isComment
+          - isCommentEnd
+          - isEntityEnd
+          - isEntityHex
+          - isEntityName
+          - isEntityNum
+          - isEntityNumHex
+          - isEof
+          - isTag
+          - isTagEnd
+          - isTagEndClose
+          - isTagShut
+          - isWarn
+          - tagTextMerge
+      - module:
+        - name: Text.HTML.TagSoup.Options
+        - identifier: fmapParseOptions
+      - module:
+        - name: Text.HTML.TagSoup.Type
+        - identifier: positionString
+  - section:
+    - name: test:test-tagsoup
+    - message:
+      - name: Missing other-modules entry
+      - module:
+        - Text.HTML.TagSoup
+        - Text.HTML.TagSoup.Entity
+        - Text.HTML.TagSoup.Match
+        - Text.HTML.TagSoup.Options
+        - Text.HTML.TagSoup.Parser
+        - Text.HTML.TagSoup.Render
+        - Text.HTML.TagSoup.Type
+    - message:
+      - name: Weeds exported
+      - module:
+        - name: TagSoup.Benchmark
+        - identifier:
+          - aimTime
+          - benchStatic
+          - benchVariable
+          - benchWith
+          - conf
+          - confNs
+          - cons
+          - delay2
+          - disp
+          - getTime
+          - grid
+          - mean
+          - minTime
+          - nsample
+          - range
+          - sample
+          - showUnit
+          - size
+          - stddev
+          - timer
+      - module:
+        - name: TagSoup.Sample
+        - identifier:
+          - Package
+          - Section
+          - hackage
+          - intersperseNotBroken
+          - openItem
+
