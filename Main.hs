@@ -47,7 +47,11 @@ main :: IO ()
 main = do
     args <- getArgs
     case (args, lookup (map toLower $ head args) $ map (\(a,_,c) -> (a,c)) actions) of
-        ([],_) -> helpMsg
+        ([],_) -> do
+            putStrLn "No arguments specifying, defaulting to test"
+            helpMsg
+            putStrLn $ replicate 70 '-'
+            test
         (x:_,Nothing) -> putStrLn ("Error: unknown command " ++ x) >> helpMsg
         ([_],Just (Left a)) -> a
         (x:xs,Just (Left a)) -> do
