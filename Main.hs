@@ -14,7 +14,7 @@ helpMsg = putStr $ unlines $
     ,""
     ,"  tagsoup arguments"
     ,""
-    ,"<url> may either be a local file, or a http:// page"
+    ,"<url> may either be a local file, or a http[s]:// page"
     ,""
     ] ++ map f res
     where
