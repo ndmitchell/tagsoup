@@ -94,3 +94,4 @@ instance StringLike LT.Text where
     strNull = LT.null
     cons = LT.cons
     append = LT.append
+

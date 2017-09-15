@@ -35,6 +35,7 @@ library
         Text.HTML.TagSoup
         Text.HTML.TagSoup.Entity
         Text.HTML.TagSoup.Match
+        Text.HTML.TagSoup.MatchCI
         Text.HTML.TagSoup.Tree
         Text.StringLike
     other-modules:
@@ -46,6 +47,7 @@ library
         Text.HTML.TagSoup.Render
         Text.HTML.TagSoup.Specification
         Text.HTML.TagSoup.Type
+        Text.HasCase
 
 test-suite test-tagsoup
     type: exitcode-stdio-1.0

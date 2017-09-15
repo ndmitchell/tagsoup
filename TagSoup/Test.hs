@@ -5,6 +5,7 @@ module TagSoup.Test(test) where
 import Text.HTML.TagSoup
 import Text.HTML.TagSoup.Entity
 import Text.HTML.TagSoup.Match
+import qualified Text.HTML.TagSoup.MatchCI as CI
 
 import Control.Monad
 import Data.List
@@ -50,6 +51,7 @@ test = runTest $ do
     entityTests
     lazyTags == lazyTags `seq` pass
     matchCombinators
+    matchCombinatorsCI
 
 
 {- |
@@ -99,6 +101,17 @@ matchCombinators = do
     tagOpenLit "table" (anyAttrLit ("id", "name")) (TagOpen "table" [("id", "name")]) === True
     tagOpenLit "table" (anyAttrNameLit "id") (TagOpen "table" [("id", "name")]) === True
     tagOpenLit "table" (anyAttrLit ("id", "name")) (TagOpen "table" [("id", "other name")]) === False
+
+
+matchCombinatorsCI :: Test ()
+matchCombinatorsCI = do
+    CI.tagText (const True) (TagText "test") === True
+    CI.tagText ("test"==) (TagText "test") === True
+    CI.tagText ("soup"/=) (TagText "test") === True
+    CI.tagOpenNameLit "table" (TagOpen "TABLE" [("id", "name")]) === True
+    CI.tagOpenLit "table" (CI.anyAttrLit ("id", "name")) (TagOpen "TABLE" [("ID", "name")]) === True
+    CI.tagOpenLit "table" (CI.anyAttrNameLit "id") (TagOpen "TABLE" [("ID", "name")]) === True
+    CI.tagOpenLit "table" (CI.anyAttrLit ("id", "name")) (TagOpen "TABLE" [("ID", "NAME")]) === False
 
 
 parseTests :: Test ()
