@@ -15,7 +15,9 @@ import Prelude
 
 
 openItem :: String -> IO String
-openItem url | not $ "http://" `isPrefixOf` url = readFile url
+openItem url
+  | not $ "http://" `isPrefixOf` url || "https://" `isPrefixOf` url =
+    readFile url
 openItem url = bracket
     (openTempFile "." "tagsoup.tmp")
     (\(file,hndl) -> removeFile file)
