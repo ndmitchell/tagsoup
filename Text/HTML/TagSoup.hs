@@ -83,16 +83,22 @@ instance TagRep String where
 -- > (TagText "test" ~== TagText "soup") == False
 --
 -- For 'TagOpen' missing attributes on the right are allowed.
+--
+-- Element names of open and close tags and attribute names in open
+-- tags are case insensitive, according to
+-- <http://www.w3.org/TR/html5/syntax.html HTML 5 specification>.
 (~==) :: (StringLike str, TagRep t) => Tag str -> t -> Bool
 (~==) a b = f a (toTagRep b)
     where
         f (TagText y) (TagText x) = strNull x || x == y
-        f (TagClose y) (TagClose x) = strNull x || x == y
-        f (TagOpen y ys) (TagOpen x xs) = (strNull x || x == y) && all g xs
+        f (TagClose y) (TagClose x) = strNull x || lowercase x == lowercase y
+        f (TagOpen y ys) (TagOpen x xs) = (strNull x || lowercase x == lowercase y) && all g xs'
             where
+                xs' = toLowerKeys xs
+                ys' = toLowerKeys ys
                 g (name,val) | strNull name = val  `elem` map snd ys
-                             | strNull val  = name `elem` map fst ys
-                g nameval = nameval `elem` ys
+                             | strNull val  = name `elem` map fst ys'
+                g nameval = nameval `elem` ys'
         f (TagComment x) (TagComment y) = strNull x || x == y
         f (TagWarning x) (TagWarning y) = strNull x || x == y
         f (TagPosition x1 x2) (TagPosition y1 y2) = x1 == y1 && x2 == y2
@@ -115,3 +121,19 @@ partitions :: (a -> Bool) -> [a] -> [[a]]
 partitions p =
    let notp = not . p
    in  groupBy (const notp) . dropWhile notp
+
+
+-- | Convert to lowercase.
+lowercase :: StringLike s => s -> s
+lowercase =
+   fromString . map toLower . toString
+
+-- | Convert the keys of an association list to lowercase.
+toLowerKeys :: StringLike a => [(a, b)] -> [(a, b)]
+toLowerKeys =
+   map (mapFst lowercase)
+
+-- | Map a function to the first component of a pair.
+mapFst :: (a -> b) -> (a, c) -> (b, c)
+mapFst f (a, b) =
+   (f a, b)
