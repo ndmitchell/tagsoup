@@ -1,4 +1,5 @@
-:set -fno-warn-overlapping-patterns -w -fwarn-unused-binds -fwarn-unused-imports
+:set -fno-warn-overlapping-patterns -w -fwarn-unused-binds -fwarn-unused-imports -fwarn-orphans
+:set -isrc;test
 :load Main
 :module +Text.HTML.TagSoup
 
@@ -10,4 +11,3 @@ let cmdUngenerate _ = System.Directory.copyFile "TagSoup/Generate/Generated.hs" 
 
 let cmdGenerate _ = return ":!runhaskell  -iTagSoup/Generate TagSoup/Generate/Main.hs"
 :def gen cmdGenerate
-

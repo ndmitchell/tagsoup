@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-} -- test file, so OK
 
 module TagSoup.Benchmark where
 
