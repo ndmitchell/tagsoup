@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    #66, make sure positions are correct for lone & characters
 0.14.1
     #63, add maybeAttrib
 0.14

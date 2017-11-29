@@ -47,6 +47,7 @@ test = runTest $ do
     optionsTests
     renderTests
     combiTests
+    positionTests
     entityTests
     lazyTags == lazyTags `seq` pass
     matchCombinators
@@ -236,6 +237,12 @@ combiTests = do
     (TagOpen "test" [] ~/= "<soup>") === True
     (TagComment "foo" ~== "<!--foo-->") === True
     (TagComment "bar" ~== "<!--bar-->") === True
+
+
+positionTests :: Test ()
+positionTests = do
+    let p = parseTagsOptions parseOptions{optTagPosition=True,optTagWarning=False}
+    p "<a>&</a>" === [TagPosition 1 1,TagOpen "a" [],TagPosition 1 4,TagText "&",TagPosition 1 5,TagClose "a"]
 
 
 warnTests :: Test ()

@@ -297,10 +297,10 @@ cdataSection S{..} = pos $ case hd of
 -- 8.2.4.39 Tokenizing character references
 -- Change from spec: this is reponsible for writing '&' if nothing is to be written
 charRef :: Parser -> Bool -> Maybe Char -> S -> [Out]
-charRef resume att end S{..} = pos $ case hd of
+charRef resume att end S{..} = case hd of
     _ | eof || hd `elem` "\t\n\f <&" || maybe False (== hd) end -> '&' & resume s
-    '#' -> charRefNum resume s tl
-    _ -> charRefAlpha resume att s
+    '#' -> pos $ charRefNum resume s tl
+    _ -> pos $ charRefAlpha resume att s
 
 charRefNum resume o S{..} = pos $ case hd of
     _ | hd `elem` "xX" -> charRefNum2 resume o True tl
