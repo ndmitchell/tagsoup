@@ -37,6 +37,7 @@ data ParseOptions str = ParseOptions
     ,optEntityData :: (str,Bool) -> [Tag str] -- ^ How to lookup an entity (Bool = has ending @';'@)
     ,optEntityAttrib :: (str,Bool) -> (str,[Tag str]) -- ^ How to lookup an entity in an attribute (Bool = has ending @';'@?)
     ,optTagTextMerge :: Bool -- ^ Require no adjacent 'TagText' values (default=True,fast=False)
+    ,optTagStrictXML :: Bool -- ^ Require the document to be well formed XML
     }
     deriving Typeable
 
@@ -46,7 +47,7 @@ data ParseOptions str = ParseOptions
 --
 --   If you do not want to resolve any entities, simpliy pass @const Nothing@ for the lookup function.
 parseOptionsEntities :: StringLike str => (str -> Maybe str) -> ParseOptions str
-parseOptionsEntities lookupEntity = ParseOptions False False entityData entityAttrib True
+parseOptionsEntities lookupEntity = ParseOptions False False entityData entityAttrib True False
     where
         entityData x = TagText a : b
             where (a,b) = entityAttrib x
@@ -72,7 +73,7 @@ parseOptionsFast = parseOptions{optTagTextMerge=False}
 
 -- | Change the underlying string type of a 'ParseOptions' value.
 fmapParseOptions :: (StringLike from, StringLike to) => ParseOptions from -> ParseOptions to
-fmapParseOptions (ParseOptions a b c d e) = ParseOptions a b c2 d2 e
+fmapParseOptions (ParseOptions a b c d e f) = ParseOptions a b c2 d2 e f
     where
         c2 ~(x,y) = map (fmap castString) $ c (castString x, y)
         d2 ~(x,y) = (castString r, map (fmap castString) s)
