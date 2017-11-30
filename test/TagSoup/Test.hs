@@ -243,6 +243,11 @@ positionTests :: Test ()
 positionTests = do
     let p = parseTagsOptions parseOptions{optTagPosition=True,optTagWarning=False}
     p "<a>&</a>" === [TagPosition 1 1,TagOpen "a" [],TagPosition 1 4,TagText "&",TagPosition 1 5,TagClose "a"]
+    p "<a>&#z" === [TagPosition 1 1,TagOpen "a" [],TagPosition 1 4,TagText "&#z"]
+    p "<a>&xz" === [TagPosition 1 1,TagOpen "a" [],TagPosition 1 4,TagText "&xz"]
+    p "<a>&" === [TagPosition 1 1,TagOpen "a" [],TagPosition 1 4,TagText "&"]
+    p "<a>&1" === [TagPosition 1 1,TagOpen "a" [],TagPosition 1 4,TagText "&1"]
+    p "<a>&amp;" === [TagPosition 1 1,TagOpen "a" [],TagPosition 1 4,TagText "&"]
 
 
 warnTests :: Test ()
