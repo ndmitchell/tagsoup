@@ -299,27 +299,27 @@ cdataSection S{..} = pos $ case hd of
 charRef :: Parser -> Bool -> Maybe Char -> S -> [Out]
 charRef resume att end S{..} = case hd of
     _ | eof || hd `elem` "\t\n\f <&" || maybe False (== hd) end -> '&' & resume s
-    '#' -> pos $ charRefNum resume s tl
-    _ -> pos $ charRefAlpha resume att s
+    '#' -> charRefNum resume s tl
+    _ -> charRefAlpha resume att s
 
-charRefNum resume o S{..} = pos $ case hd of
+charRefNum resume o S{..} = case hd of
     _ | hd `elem` "xX" -> charRefNum2 resume o True tl
     _ -> charRefNum2 resume o False s
 
-charRefNum2 resume o hex S{..} = pos $ case hd of
+charRefNum2 resume o hex S{..} = case hd of
     _ | hexChar hex hd -> (if hex then EntityHex else EntityNum) & hd & charRefNum3 resume hex tl
     _ -> errSeen "&" & '&' & resume o
 
-charRefNum3 resume hex S{..} = pos $ case hd of
+charRefNum3 resume hex S{..} = case hd of
     _ | hexChar hex hd -> hd & charRefNum3 resume hex tl
     ';' -> EntityEnd True & resume tl
     _ -> EntityEnd False & errWant ";" & resume s
 
-charRefAlpha resume att S{..} = pos $ case hd of
+charRefAlpha resume att S{..} = case hd of
     _ | isAlpha hd -> EntityName & hd & charRefAlpha2 resume att tl
     _ -> errSeen "&" & '&' & resume s
 
-charRefAlpha2 resume att S{..} = pos $ case hd of
+charRefAlpha2 resume att S{..} = case hd of
     _ | alphaChar hd -> hd & charRefAlpha2 resume att tl
     ';' -> EntityEnd True & resume tl
     _ | att -> EntityEnd False & resume s

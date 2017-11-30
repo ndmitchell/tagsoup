@@ -249,4 +249,4 @@ warnTests :: Test ()
 warnTests = do
     let p = parseTagsOptions parseOptions{optTagPosition=True,optTagWarning=True}
         wt x = [(msg,c) | TagWarning msg:TagPosition _ c:_ <- tails $ p x]
-    wt "neil &foo bar" === [("Unknown entity: foo",10)]
+    wt "neil &foo bar" === [("Unknown entity: foo",6)]
