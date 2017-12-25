@@ -52,7 +52,7 @@ test-suite test-tagsoup
     type: exitcode-stdio-1.0
     default-language: Haskell2010
     build-depends:
-        base == 4.*, containers, bytestring, text,
+        base == 4.*, bytestring,
         QuickCheck >= 2.4,
         deepseq >= 1.1,
         tagsoup,
