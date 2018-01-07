@@ -250,7 +250,17 @@ currentTime = do
 main :: IO ()
 main = currentTime
 ```
-        
+
+## Other Examples
+In [Sample.hs](https://github.com/ndmitchell/tagsoup/blob/master/TagSoup/Sample.hs)
+the following additional examples are listed: 
+
+- Google Tech News 
+- Package list form Hackage
+- Print names of story contributors on sequence.complete.org
+- Parse rows of a table
+
+
 ## Related Projects
 
 * [TagSoup for Java](http://tagsoup.info/) - an independently written malformed HTML parser for Java. Including [links to other](http://tagsoup.info/#other) HTML parsers.
