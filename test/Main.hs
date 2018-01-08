@@ -25,7 +25,7 @@ helpMsg = putStr $ unlines $
         g (nam,msg,Right _) = (nam ++ " <url>",msg)
 
         f (lhs,rhs) = "  " ++ lhs ++ replicate (4 + width - length lhs) ' ' ++ rhs
-            
+
 
 actions :: [(String, String, Either (IO ()) (String -> IO ()))]
 actions = [("test","Run the test suite",Left test)
