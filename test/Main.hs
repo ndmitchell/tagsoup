@@ -40,6 +40,7 @@ actions = [("test","Run the test suite",Left test)
           ,("time","Current time",Left currentTime)
           ,("google","Google Tech News",Left googleTechNews)
           ,("sequence","Creators on sequence.complete.org",Left rssCreators)
+          ,("table","Parse a table",Left $ print parseTable)
           ,("help","This help message",Left helpMsg)
           ]
 
