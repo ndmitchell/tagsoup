@@ -156,3 +156,52 @@ validate x = putStr . unlines . g . f . parseTagsOptions opts =<< openItem x
         g xs = xs ++ [if n == 0 then "Success, no warnings"
                       else "Failed, " ++ show n ++ " warning" ++ ['s'|n>1]]
             where n = length xs
+
+-- | Example from https://www.w3schools.com/html/html_tables.asp
+tableExample =
+  "<table> \n\
+    \  <tr> \n\
+    \    <th>Company</th> \n\
+    \    <th>Contact</th> \n\
+    \    <th>Country</th> \n\
+    \  </tr> \n\
+    \  <tr> \n\
+    \    <td>Alfreds Futterkiste</td> \n\
+    \    <td>Maria Anders</td> \n\
+    \    <td>Germany</td> \n\
+    \  </tr> \n\
+    \  <tr> \n\
+    \    <td>Centro comercial Moctezuma</td> \n\
+    \    <td>Francisco Chang</td> \n\
+    \    <td>Mexico</td> \n\
+    \  </tr> \n\
+    \  <tr> \n\
+    \    <td>Ernst Handel</td> \n\
+    \    <td>Roland Mendel</td> \n\
+    \    <td>Austria</td> \n\
+    \  </tr> \n\
+    \  <tr> \n\
+    \    <td>Island Trading</td> \n\
+    \    <td>Helen Bennett</td> \n\
+    \    <td>UK</td> \n\
+    \  </tr> \n\
+    \  <tr> \n\
+    \    <td>Laughing Bacchus Winecellars</td> \n\
+    \    <td>Yoshi Tannamuri</td> \n\
+    \    <td>Canada</td> \n\
+    \  </tr> \n\
+    \  <tr> \n\
+    \    <td>Magazzini Alimentari Riuniti</td> \n\
+    \    <td>Giovanni Rovelli</td> \n\
+    \    <td>Italy</td> \n\
+    \  </tr> \n\
+    \  </table>"
+
+-- | Parse a table
+parseTable:: [[[String]]]
+parseTable = do
+    let tags = parseTags tableExample
+        parseRow :: [Tag String] -> [String]
+        parseRow = map (innerText . takeWhile (~/="</td>")) . sections (~== "<td>")
+        dd = map (parseRow . takeWhile (~/= "</tr>")) . sections (~== "<tr>")  $ tags
+    return dd
