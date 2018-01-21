@@ -147,7 +147,7 @@ parseTests = do
 
     parseTags "<a \r\n href=\"url\">" === [TagOpen "a" [("href","url")]]
 
-    parseTags "<a href='random.php'><img src='strips/130307.jpg' alt='nukular bish'' title='' /></a>" === 
+    parseTags "<a href='random.php'><img src='strips/130307.jpg' alt='nukular bish'' title='' /></a>" ===
         [TagOpen "a" [("href","random.php")],TagOpen "img" [("src","strips/130307.jpg"),("alt","nukular bish"),("'",""),("title","")],TagClose "img",TagClose "a"]
 
     parseTags "<p>some text</p\n<img alt='&lt; &yyy; &gt;' src=\"abc.gif\">" ===
@@ -209,7 +209,7 @@ renderTests = do
     escapeHTML "this is a &\" <test> '" === "this is a &amp;&quot; &lt;test&gt; '"
     check $ \(HTML x) -> let y = rp x in rp y == (y :: String)
 
-    
+
 entityTests :: Test ()
 entityTests = do
     lookupNumericEntity "65" === Just "A"
@@ -248,6 +248,9 @@ positionTests = do
     p "<a>&" === [TagPosition 1 1,TagOpen "a" [],TagPosition 1 4,TagText "&"]
     p "<a>&1" === [TagPosition 1 1,TagOpen "a" [],TagPosition 1 4,TagText "&1"]
     p "<a>&amp;" === [TagPosition 1 1,TagOpen "a" [],TagPosition 1 4,TagText "&"]
+    p "<div><!--foo-->bar</div>" === [TagPosition 1 1,TagOpen "div" [],TagPosition 1 6,TagComment "foo",TagPosition 1 16,TagText "bar",TagPosition 1 19,TagClose "div"]
+    p "<![CDATA[x]]>" === [TagPosition 1 10,TagText "x"]
+    p "<!html>" === [TagPosition 1 1,TagOpen "!html" []]
 
 
 warnTests :: Test ()
