@@ -1,86 +1,86 @@
 Changelog for TagSoup
 
-0.14.2
+0.14.2, released 2017-11-30
     #66, make sure positions are correct for lone & characters
-0.14.1
+0.14.1, released 2017-02-25
     #63, add maybeAttrib
-0.14
+0.14, released 2016-06-11
     #14, eliminate Text.HTML.Download
-0.13.10
+0.13.10, released 2016-05-06
     #51, improve the Haddock documentation
     #52, fix some > 16bit HTML entities
-0.13.9
+0.13.9, released 2016-03-15
     #50, fix a space leak
     #36, fix the demo examples
     #35, make IsString a superclass of StringLike
     #33, make flattenTree O(n) instead of O(n^2)
-0.13.8
+0.13.8, released 2016-01-10
     #30, add parse/render functions directly to the Tree module
-0.13.7
+0.13.7, released 2016-01-09
     #32, make sure upper case &#X works in lookupEntity
-0.13.6
+0.13.6, released 2015-12-23
     #28, some named entities require a trailing semicolon (e.g. mid)
-0.13.5
+0.13.5, released 2015-10-30
     #26, rename the test program to test-tagsoup
-0.13.4
+0.13.4, released 2015-10-26
     #24, add isTagComment function
     Update the copyright year
-0.13.3
+0.13.3, released 2014-10-01
     Work on GHC 7.9
-0.13.2
+0.13.2, released 2014-08-08
     Remove all package upper bounds
     Allow QuickCheck-2.6
-0.13.1
+0.13.1, released 2014-01-20
     #562, treat <script> specially as per HTML5
-0.13
+0.13, released 2013-08-06
     #616, extend to all HTML5 entities
     Optimise lookupNamedEntity
     Replace escapeXMLChar with escapeXML
     Change all Entity functions to return String, not Int or Char
-0.12.7
+0.12.7, released 2012-08-19
     Allow deepseq-1.3
     Allow QuickCheck-2.5
     Support bytestring-0.10 (NFData instances added)
-0.12.6
+0.12.6, released 2011-12-11
     #515, don't crash on malformed characters (use ? instead)
-0.12.5
+0.12.5, released 2011-11-17
     Add optRawTag to Render, to ensure script's don't get escaped
-0.12.4
+0.12.4, released 2011-11-05
     #487, fix the behaviour of ~== for TagComment and others
-0.12.3
+0.12.3, released 2011-08-12
     GHC 7.2 compatibility
-0.12.2
+0.12.2, released 2011-06-12
     Add StringLike instances for Text
-0.12.1
+0.12.1, released 2011-06-01
     Add parseOptionsEntities and improve documentation
-0.12
+0.12, released 2010-12-12
     Upgrade to QuickCheck 2.4.*
     Export toTagRep
     Make the -download flag off by default
     Eliminate HTTP dependency
     Eliminate mtl dependency
-0.11.1
+0.11.1, released 2010-10-04
     Support --flags=-download to eliminate the network dependency
-0.11
+0.11, released 2010-09-12
     #326, <a "foo"> is no longer treated as an attribute
     Add Eq/Ord instances to Tree
     Don't mark Text.HTML.TagSoup.Tree as preliminary
     #325, \r should be treated as whitespace
-0.10.1
+0.10.1, released 2010-07-22
     #322, don't change ' to &apos; in render (do what the docs say)
-0.10
+0.10, released 2010-05-26
     Improve the cabal file, make the test program off by default
     Expose Text.HTML.TagSoup.Match again (was hidden accidentally)
-0.9
+0.9, released 2010-05-09
     #294, let optEntityData see if there was a ';' (CHANGES API)
     Numeric/hex entities in attributes were misparsed
     #149, add escapeHTML function
-0.8
+0.8, released 2010-01-07
     Parser now based on HTML5 specification
     Tag is now parameterised by the string type
-0.6
+0.6, released 2008-04-23
     Addition of Text.HTML.TagSoup.Tree and Text.HTML.TagSoup.Render
     Text.HTML.TagSoup.Parser.Options renamed to ParseOptions
     Text.HTML.TagSoup.Parser.options renamed to parseOptions
-0.4
+0.4, released 2008-01-14
     Changelog started
