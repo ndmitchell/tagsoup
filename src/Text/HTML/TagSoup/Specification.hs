@@ -63,9 +63,9 @@ isScript = f "script"
 
 
 -- seen "<?", emitted []
-neilXmlTagOpen S{..} = pos $ case hd of
+neilXmlTagOpen S{..} = case hd of
     _ | isAlpha hd -> Tag & '?' & hd & tagName TypeXml tl
-    _ -> errSeen "<?" & '<' & '?' & dat s
+    _ -> pos $ errSeen "<?" & '<' & '?' & dat s
 
 -- seen "?", expecting ">"
 neilXmlTagClose S{..} = pos $ case hd of

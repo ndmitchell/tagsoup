@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    #71, fix up source positions on bogus comments
 0.14.3, released 2018-01-21
     #70, fix up source positions on comments
 0.14.2, released 2017-11-30
