@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    Fix up source positions on bogus <? markers
 0.14.4, released 2018-02-26
     #71, fix up source positions on bogus comments
 0.14.3, released 2018-01-21

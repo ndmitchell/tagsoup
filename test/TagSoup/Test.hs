@@ -250,6 +250,7 @@ positionTests = do
     p "<a>&amp;" === [TagPosition 1 1,TagOpen "a" [],TagPosition 1 4,TagText "&"]
     p "<div><!--foo-->bar</div>" === [TagPosition 1 1,TagOpen "div" [],TagPosition 1 6,TagComment "foo",TagPosition 1 16,TagText "bar",TagPosition 1 19,TagClose "div"]
     p "<div><?foo</div>" === [TagPosition 1 1,TagOpen "div" [],TagPosition 1 6,TagOpen "?foo<" [("div","")]]
+    p "<div><?</div>" === [TagPosition 1 1,TagOpen "div" [],TagPosition 1 6,TagText "<?",TagPosition 1 8,TagClose "div"]
     p "<![CDATA[x]]>" === [TagPosition 1 10,TagText "x"]
     p "<!html>" === [TagPosition 1 1,TagOpen "!html" []]
 
