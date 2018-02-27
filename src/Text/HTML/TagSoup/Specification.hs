@@ -227,7 +227,7 @@ markupDeclOpen S{..} = case hd of
     _ | Just s <- next "--" -> Comment & commentStart s
     _ | isAlpha hd -> Tag & '!' & hd & tagName TypeDecl tl -- NEIL
     _ | Just s <- next "[CDATA[" -> cdataSection s
-    _ -> pos $ errWant "tag name" & bogusComment s
+    _ -> errWant "tag name" & bogusComment s
 
 
 -- 8.2.4.18 Comment start state
