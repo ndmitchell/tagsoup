@@ -10,7 +10,7 @@ The library provides a basic data type for a list of unstructured tags, a parser
 
 The intial version of this library was written in Javascript and has been used for various commercial projects involving screen scraping. In the examples general hints on screen scraping are included, learnt from bitter experience. It should be noted that if you depend on data which someone else may change at any given time, you may be in for a shock!
 
-This library was written without knowledge of the Java version of [TagSoup](http://home.ccil.org/~cowan/XML/tagsoup/). They have made a very different design decision: to ensure default attributes are present and to properly nest parsed tags. We do not do this - tags are merely a list devoid of nesting information.
+This library was written without knowledge of the Java version of [TagSoup](https://github.com/jukka/tagsoup). They have made a very different design decision: to ensure default attributes are present and to properly nest parsed tags. We do not do this - tags are merely a list devoid of nesting information.
 
 
 #### Acknowledgements
@@ -263,10 +263,10 @@ the following additional examples are listed:
 
 ## Related Projects
 
-* [TagSoup for Java](http://tagsoup.info/) - an independently written malformed HTML parser for Java. Including [links to other](http://tagsoup.info/#other) HTML parsers.
+* [TagSoup for Java](https://github.com/jukka/tagsoup) - an independently written malformed HTML parser for Java.
 * [HXT: Haskell XML Toolbox](http://www.fh-wedel.de/~si/HXmlToolbox/) - a more comprehensive XML parser, giving the option of using TagSoup as a lexer.
 * [Other Related Work](http://www.fh-wedel.de/~si/HXmlToolbox/#rel) - as described on the HXT pages.
 * [Using TagSoup with Parsec](http://therning.org/magnus/posts/2008-08-08-367-tagsoup-meet-parsec.html) - a nice combination of Haskell libraries.
-* [tagsoup-parsec](http://hackage.haskell.org/package/tagsoup-parsec) - a library for easily using TagSoup as a token type in Parsec.
-* [tagsoup-megaparsec](http://hackage.haskell.org/package/tagsoup-megaparsec) - a library for easily using TagSoup as a token type in Megaparsec.
-* [WraXML](http://hackage.haskell.org/packages/archive/wraxml/latest/doc/html/Text-XML-WraXML-Tree-TagSoup.html) - construct a lazy tree from TagSoup lexemes.
+* [tagsoup-parsec](https://hackage.haskell.org/package/tagsoup-parsec) - a library for easily using TagSoup as a token type in Parsec.
+* [tagsoup-megaparsec](https://hackage.haskell.org/package/tagsoup-megaparsec) - a library for easily using TagSoup as a token type in Megaparsec.
+* [WraXML](https://hackage.haskell.org/packages/archive/wraxml/latest/doc/html/Text-XML-WraXML-Tree-TagSoup.html) - construct a lazy tree from TagSoup lexemes.
