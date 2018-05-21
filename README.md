@@ -1,4 +1,4 @@
-# TagSoup [![Hackage version](https://img.shields.io/hackage/v/tagsoup.svg?label=Hackage)](https://hackage.haskell.org/package/tagsoup) [![Stackage version](https://www.stackage.org/package/tagsoup/badge/lts?label=Stackage)](https://www.stackage.org/package/tagsoup) [![Linux Build Status](https://img.shields.io/travis/ndmitchell/tagsoup.svg?label=Linux%20build)](https://travis-ci.org/ndmitchell/tagsoup) [![Windows Build Status](https://img.shields.io/appveyor/ci/ndmitchell/tagsoup.svg?label=Windows%20build)](https://ci.appveyor.com/project/ndmitchell/tagsoup)
+# TagSoup [![Hackage version](https://img.shields.io/hackage/v/tagsoup.svg?label=Hackage)](https://hackage.haskell.org/package/tagsoup) [![Stackage version](https://www.stackage.org/package/tagsoup/badge/nightly?label=Stackage)](https://www.stackage.org/package/tagsoup) [![Linux Build Status](https://img.shields.io/travis/ndmitchell/tagsoup/master.svg?label=Linux%20build)](https://travis-ci.org/ndmitchell/tagsoup) [![Windows Build Status](https://img.shields.io/appveyor/ci/ndmitchell/tagsoup/master.svg?label=Windows%20build)](https://ci.appveyor.com/project/ndmitchell/tagsoup)
 
 TagSoup is a library for parsing HTML/XML. It supports the HTML 5 specification, and can be used to parse either well-formed XML, or unstructured and malformed HTML from the web. The library also provides useful functions to extract information from an HTML document, making it ideal for screen-scraping.
 
@@ -253,9 +253,9 @@ main = currentTime
 
 ## Other Examples
 In [Sample.hs](https://github.com/ndmitchell/tagsoup/blob/master/test/TagSoup/Sample.hs)
-the following additional examples are listed: 
+the following additional examples are listed:
 
-- Google Tech News 
+- Google Tech News
 - Package list form Hackage
 - Print names of story contributors on sequence.complete.org
 - Parse rows of a table
