@@ -7,44 +7,44 @@
 
 
 # Warnings currently triggered by your code
-- ignore: {name: "Use module export list"}
-- ignore: {name: "Use print"}
+- ignore: {name: "Use newtype instead of data"}
+- ignore: {name: "Redundant return"}
+- ignore: {name: "Use fmap"}
+- ignore: {name: "Redundant do"}
+- ignore: {name: "Use when"}
+- ignore: {name: "Redundant $"}
+- ignore: {name: "Reduce duplication"}
+- ignore: {name: "Parse error"}
+- ignore: {name: "Use tuple-section"}
+- ignore: {name: "Use fromMaybe"}
+- ignore: {name: "Fix pragma markup"}
+- ignore: {name: "Use sortOn"}
+- ignore: {name: "Eta reduce"}
+- ignore: {name: "Use span"}
+- ignore: {name: "Use catMaybes"}
+- ignore: {name: "Use intercalate"}
+- ignore: {name: "Avoid lambda"}
+- ignore: {name: "Use second"}
+- ignore: {name: "Redundant guard"}
+- ignore: {name: "Use Just"}
+- ignore: {name: "Redundant bracket"}
 - ignore: {name: "Redundant lambda"}
 - ignore: {name: "Avoid reverse"}
-- ignore: {name: "Redundant bracket"}
 - ignore: {name: "Use <$>"}
 - ignore: {name: "Use String"}
 - ignore: {name: "Unused LANGUAGE pragma"}
 - ignore: {name: "Use zipWithM_"}
 - ignore: {name: "Use void"}
-- ignore: {name: "Eta reduce"}
 - ignore: {name: "Use let"}
 - ignore: {name: "Use mapM"}
-- ignore: {name: "Avoid lambda"}
 - ignore: {name: "Use elemIndices"}
 - ignore: {name: "Use foldr"}
-- ignore: {name: "Parse error"}
 - ignore: {name: "Use foldl"}
-- ignore: {name: "Use fmap"}
 - ignore: {name: "Use if"}
 - ignore: {name: "Redundant map"}
 - ignore: {name: "Use map once"}
 - ignore: {name: "Use camelCase"}
 - ignore: {name: "Use list literal"}
-- ignore: {name: "Use second"}
-- ignore: {name: "Redundant guard"}
-- ignore: {name: "Use Just"}
-- ignore: {name: "Use newtype instead of data"}
-- ignore: {name: "Redundant return"}
-- ignore: {name: "Redundant do"}
-- ignore: {name: "Use when"}
-- ignore: {name: "Redundant $"}
-- ignore: {name: "Reduce duplication"}
-- ignore: {name: "Use fromMaybe"}
-- ignore: {name: "Fix pragma markup"}
-- ignore: {name: "Use span"}
-- ignore: {name: "Use catMaybes"}
-- ignore: {name: "Use intercalate"}
 
 
 # Specify additional command line arguments
