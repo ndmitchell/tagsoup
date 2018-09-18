@@ -67,7 +67,7 @@ lookupNamedEntity = \x -> Map.lookup x mp
 -- > escapeXML "hello & world" == "hello &amp; world"
 escapeXML :: String -> String
 escapeXML = concatMap $ \x -> IntMap.findWithDefault [x] (ord x) mp
-    where mp = IntMap.fromList [(ord b, "&"++a++";") | (a,[b]) <- xmlEntities]
+    where mp = IntMap.fromList [(ord b, "&"++a++";") | (a,[b]) <- ("#39","\'"):xmlEntities]
 
 
 -- | A table mapping XML entity names to resolved strings. All strings are a single character long.
@@ -75,7 +75,6 @@ xmlEntities :: [(String, String)]
 xmlEntities = let a*b = (a,[b]) in
     ["quot" * '"'
     ,"amp"  * '&'
-    ,"#39"  * '\''
     ,"lt"   * '<'
     ,"gt"   * '>'
     ]
