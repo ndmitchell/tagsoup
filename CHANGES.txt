@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    #75, escape single quote (') characters as &#39;
     #72, update some dead URLs
 0.14.6, released 2018-02-27
     Fix up source positions on bogus <! markers
