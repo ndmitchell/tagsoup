@@ -71,12 +71,11 @@ escapeXML = concatMap $ \x -> IntMap.findWithDefault [x] (ord x) mp
 
 
 -- | A table mapping XML entity names to resolved strings. All strings are a single character long.
---   Does /not/ include @apos@ as Internet Explorer does not know about it.
 xmlEntities :: [(String, String)]
 xmlEntities = let a*b = (a,[b]) in
     ["quot" * '"'
     ,"amp"  * '&'
-    -- ,"apos" * '\''    -- Internet Explorer does not know that
+    ,"#39"  * '\''
     ,"lt"   * '<'
     ,"gt"   * '>'
     ]
