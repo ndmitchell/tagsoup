@@ -74,16 +74,6 @@ main = do
 
 Now open `temp.htm`, find the fragment of HTML containing the hit count, and examine it.
 
-#### Using the `tagsoup` Program
-
-TagSoup installs both as a library and a program. The program contains all the
-examples mentioned on this page, along with a few other useful functions. In
-order to download a URL to a file:
-
-```bash
-$ tagsoup grab http://wiki.haskell.org/Haskell > temp.htm
-```
-
 ### Finding the Information
 
 Now we examine both the fragment that contains our snippet of information, and
@@ -204,7 +194,7 @@ main = spjPapers
 
 ## Other Examples
 
-Several more examples are given in the Example file, including obtaining the (short) list of papers from my site, getting the current time and a basic XML validator. All can be invoked using the `tagsoup` executable program. All use very much the same style as presented here - writing screen scrapers follow a standard pattern. We present the code from two for enjoyment only.
+Several more examples are given in the [Sample.hs](https://github.com/ndmitchell/tagsoup/blob/master/test/TagSoup/Sample.hs) file, including obtaining the (short) list of papers from my site, getting the current time and a basic XML validator. All use very much the same style as presented here - writing screen scrapers follow a standard pattern. We present the code from two for enjoyment only.
 
 ### My Papers
 
@@ -252,6 +242,7 @@ main = currentTime
 ```
 
 ## Other Examples
+
 In [Sample.hs](https://github.com/ndmitchell/tagsoup/blob/master/test/TagSoup/Sample.hs)
 the following additional examples are listed:
 
@@ -259,7 +250,6 @@ the following additional examples are listed:
 - Package list form Hackage
 - Print names of story contributors on sequence.complete.org
 - Parse rows of a table
-
 
 ## Related Projects
 
