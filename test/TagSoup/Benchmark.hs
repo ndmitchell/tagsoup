@@ -66,7 +66,7 @@ benchWith (str,bs,lbs) bench = do
 
 disp xs = showUnit (floor xbar) ++ " (~" ++ rng ++ "%)"
     where xbar = mean xs
-          rng = if length xs <= 1 then "?" else show (ceiling $ (range conf xs) * 100 / xbar) 
+          rng = if length xs <= 1 then "?" else show (ceiling $ (range conf xs) * 100 / xbar)
 
 cons x = fmap (x:)
 
