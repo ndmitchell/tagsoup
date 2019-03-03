@@ -62,7 +62,7 @@ reduceArity :: Prog -> Prog
 reduceArity prog = deleteArgs (Map.keys $ reduce mp) prog
     where
         mn = minArity prog
-        mp = Map.fromList [((a,i), nub v) | (a,b) <- Map.toList mn, i <- [0..b-1], let fun = getFunc prog a,
+        mp = Map.fromList [((a,i), nub v) | (a,b) <- Map.toList mn, let fun = getFunc prog a, i <- [0..b-1],
                            i < length (funcArgs fun), Just v <- [callers (funcArgs fun !! i) (funcBody fun)]]
 
         reduce x = if Map.size x == Map.size x2 then x else reduce x2
