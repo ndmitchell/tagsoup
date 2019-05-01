@@ -37,7 +37,7 @@ class (Typeable a, Eq a, IsString a) => StringLike a where
     strNull :: a -> Bool
     -- | > append = (++)
     append :: a -> a -> a
-
+    -- | > strMap = map
     strMap :: (Char -> Char) -> a -> a
 
 
