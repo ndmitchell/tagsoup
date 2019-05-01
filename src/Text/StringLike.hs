@@ -38,6 +38,8 @@ class (Typeable a, Eq a, IsString a) => StringLike a where
     -- | > append = (++)
     append :: a -> a -> a
 
+    strMap :: (Char -> Char) -> a -> a
+
 
 -- | Convert a String from one type to another.
 castString :: (StringLike a, StringLike b) => a -> b
@@ -54,6 +56,7 @@ instance StringLike String where
     strNull = null
     cons c = (c:)
     append = (++)
+    strMap = fmap
 
 instance StringLike BS.ByteString where
     uncons = BS.uncons
@@ -64,6 +67,7 @@ instance StringLike BS.ByteString where
     strNull = BS.null
     cons = BS.cons
     append = BS.append
+    strMap = BS.map
 
 instance StringLike LBS.ByteString where
     uncons = LBS.uncons
@@ -74,6 +78,7 @@ instance StringLike LBS.ByteString where
     strNull = LBS.null
     cons = LBS.cons
     append = LBS.append
+    strMap = LBS.map
 
 instance StringLike T.Text where
     uncons = T.uncons
@@ -84,6 +89,7 @@ instance StringLike T.Text where
     strNull = T.null
     cons = T.cons
     append = T.append
+    strMap = T.map
 
 instance StringLike LT.Text where
     uncons = LT.uncons
@@ -94,3 +100,4 @@ instance StringLike LT.Text where
     strNull = LT.null
     cons = LT.cons
     append = LT.append
+    strMap = LT.map

@@ -1,3 +1,7 @@
 /.stack-work/
 /dist/
 /stack.yaml
+.ghc*
+dist-newstyle
+*.swp
+*.swo
