@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+0.14.8, released 2019-05-01
     #78, add strMap
 0.14.7, released 2018-09-18
     #75, escape single quote (') characters as &#39;
