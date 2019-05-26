@@ -57,7 +57,7 @@ haskellLastModifiedDateTime = do
     src <- openItem "http://wiki.haskell.org/Haskell"
     let lastModifiedDateTime = fromFooter $ parseTags src
     putStrLn $ "wiki.haskell.org was last modified on " ++ lastModifiedDateTime
-    where fromFooter = unwords . drop 6 . words . innerText . take 2 . dropWhile (~/= "<li id=lastmod>")
+    where fromFooter = unwords . drop 6 . words . innerText . take 2 . dropWhile (~/= "<li id=\"footer-info-lastmod\">")
 
 
 googleTechNews :: IO ()
