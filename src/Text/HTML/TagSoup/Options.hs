@@ -77,4 +77,3 @@ fmapParseOptions (ParseOptions a b c d e) = ParseOptions a b c2 d2 e
         c2 ~(x,y) = map (fmap castString) $ c (castString x, y)
         d2 ~(x,y) = (castString r, map (fmap castString) s)
             where (r,s) = d (castString x, y)
-

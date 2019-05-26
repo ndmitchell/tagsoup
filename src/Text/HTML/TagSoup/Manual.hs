@@ -10,4 +10,3 @@ import Text.StringLike
 
 parseTagsOptions :: StringLike str => ParseOptions str -> str -> [Tag str]
 parseTagsOptions opts = output opts . parse . toString
-

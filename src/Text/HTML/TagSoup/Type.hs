@@ -4,7 +4,7 @@
 module Text.HTML.TagSoup.Type(
     -- * Data structures and parsing
     StringLike, Tag(..), Attribute, Row, Column,
-    
+
     -- * Position manipulation
     Position(..), tagPosition, nullPosition, positionChar, positionString,
 

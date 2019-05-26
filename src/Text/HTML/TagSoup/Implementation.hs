@@ -97,7 +97,7 @@ output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ go 
                   (z,b) = atts y
         go x | isComment x = pos x $ TagComment a : go (skip isCommentEnd y)
             where (y,a) = charsStr $ next x
-        go x | isEntityName x = poss x ((if optTagWarning then id else filter (not . isTagWarning)) $ optEntityData (a, getEntityEnd y)) ++ go (skip isEntityEnd y) 
+        go x | isEntityName x = poss x ((if optTagWarning then id else filter (not . isTagWarning)) $ optEntityData (a, getEntityEnd y)) ++ go (skip isEntityEnd y)
             where (y,a) = charsStr $ next x
         go x | isEntityNumHex x = pos x $ TagText (fromChar $ entityChr x a) : go (skip isEntityEnd y)
             where (y,a) = chars $ next x
@@ -139,7 +139,7 @@ output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ go 
         addWarns ws x@((p,w),y) = ((p, reverse (poss x ws) ++ w), y)
         pos ((p,_),_) rest = if optTagPosition then tagPosition p : rest else rest
         warn x s rest = if optTagWarning then pos x $ TagWarning (fromString s) : rest else rest
-        poss x = concatMap (\w -> pos x [w]) 
+        poss x = concatMap (\w -> pos x [w])
 
 
 entityChr x s | isEntityNum x = chr_ $ read s

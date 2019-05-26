@@ -33,7 +33,7 @@ module Text.HTML.TagSoup(
 
     -- * Utility
     sections, partitions,
-    
+
     -- * Combinators
     TagRep(..), (~==),(~/=)
     ) where
