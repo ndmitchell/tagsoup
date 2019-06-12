@@ -27,6 +27,7 @@
 - ignore: {name: "Use second"}
 - ignore: {name: "Redundant guard"}
 - ignore: {name: "Use Just"}
+- ignore: {name: "Replace case with fromMaybe"}
 - ignore: {name: "Redundant bracket"}
 - ignore: {name: "Redundant lambda"}
 - ignore: {name: "Avoid reverse"}
