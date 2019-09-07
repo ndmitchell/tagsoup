@@ -35,7 +35,7 @@ parseTagsOptions opts x = mergeTexts $ runParser tags $ S x nullPosition [] opts
 --
 --   Note: this function leaks stack on Hugs.
 mergeTexts :: StringLike str => [Tag str] -> [Tag str]
-mergeTexts (TagText x:xs) = (TagText $ Str.concat $ x:texts) : warns ++ mergeTexts rest
+mergeTexts (TagText x:xs) = TagText (Str.concat $ x:texts) : warns ++ mergeTexts rest
     where
         (texts,warns,rest) = f xs
 

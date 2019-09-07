@@ -104,7 +104,7 @@ parseTagsOptions opts x = mergeTexts $ evalState (parse opts) $ Value x nullPosi
 --
 --   Note: this function leaks stack on Hugs.
 mergeTexts :: [Tag String] -> [Tag String]
-mergeTexts (TagText x:xs) = (TagText $ concat $ x:texts) : warns ++ mergeTexts rest
+mergeTexts (TagText x:xs) = TagText (concat $ x:texts) : warns ++ mergeTexts rest
     where
         (texts,warns,rest) = f xs
 

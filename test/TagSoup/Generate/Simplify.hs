@@ -95,7 +95,7 @@ minArity prog = Map.filterWithKey (\k v -> v /= 0 && k `elem` map funcName prog)
 -- which functions get given this argument, Nothing if it's used directly
 callers :: Var -> Expr -> Maybe [(Fun,Int)]
 callers v x | (EFun y, z) <- fromEApps x = comb $
-    (Just $ map ((,) y) $ findIndices (== EVar v) z) :
+    Just (map ((,) y) $ findIndices (== EVar v) z) :
     map (callers v) (concatMap children z)
 
 callers v (EVar y) = if v == y then Nothing else Just []
