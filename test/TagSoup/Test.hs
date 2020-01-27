@@ -169,8 +169,8 @@ optionsTests = check $ \(HTML x) -> all (f x) $ replicateM 3 [False,True]
     where
         f str [pos,warn,merge] =
                 bool "merge" (not merge || adjacentTagText tags) &&
-                bool "warn" (warn || all (not . isTagWarning) tags) &&
-                bool "pos" (if pos then alternatePos tags else all (not . isTagPosition) tags)
+                bool "warn" (warn || not (any isTagWarning tags)) &&
+                bool "pos" (if pos then alternatePos tags else not (any isTagPosition tags))
             where tags = parseTagsOptions parseOptions{optTagPosition=pos,optTagWarning=warn,optTagTextMerge=merge} str
                   bool x b = b || error ("optionsTests failed with " ++ x ++ " on " ++ show (pos,warn,merge,str,tags))
 
