@@ -46,7 +46,12 @@
 - ignore: {name: "Use map once"}
 - ignore: {name: "Use camelCase"}
 - ignore: {name: "Use list literal"}
-
+- ignore: {name: "Use upper"}
+- ignore: {name: "Use lower"}
+- ignore: {name: "Use alternative"}
+- ignore: {name: "Use drop1"}
+- ignore: {name: "Use headDef"}
+- ignore: {name: "Use zipFrom"}
 
 # Specify additional command line arguments
 #
