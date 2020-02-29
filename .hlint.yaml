@@ -52,6 +52,7 @@
 - ignore: {name: "Use drop1"}
 - ignore: {name: "Use headDef"}
 - ignore: {name: "Use zipFrom"}
+- ignore: {name: "Use zipWithFrom"}
 
 # Specify additional command line arguments
 #
