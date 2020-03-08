@@ -53,6 +53,7 @@
 - ignore: {name: "Use headDef"}
 - ignore: {name: "Use zipFrom"}
 - ignore: {name: "Use zipWithFrom"}
+- ignore: {name: "Avoid lambda using `infix`"}
 
 # Specify additional command line arguments
 #
