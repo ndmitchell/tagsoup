@@ -47,7 +47,7 @@ tagTree = g
                 (inner,[]) -> (TagLeaf (TagOpen name atts):inner, [])
                 (inner,TagClose x:xs)
                     | x == name -> let (a,b) = f xs in (TagBranch name atts inner:a, b)
-                    | otherwise -> (TagLeaf (TagOpen name atts):inner, TagClose x:xs)
+                    | otherwise -> let (a,b) = f xs in (TagBranch name atts inner:TagLeaf (TagOpen x []):a, b)
                 _ -> error "TagSoup.Tree.tagTree: safe as - forall x . isTagClose (snd (f x))"
 
         f (TagClose x:xs) = ([], TagClose x:xs)
