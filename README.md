@@ -260,3 +260,4 @@ the following additional examples are listed:
 * [tagsoup-parsec](https://hackage.haskell.org/package/tagsoup-parsec) - a library for easily using TagSoup as a token type in Parsec.
 * [tagsoup-megaparsec](https://hackage.haskell.org/package/tagsoup-megaparsec) - a library for easily using TagSoup as a token type in Megaparsec.
 * [WraXML](https://hackage.haskell.org/packages/archive/wraxml/latest/doc/html/Text-XML-WraXML-Tree-TagSoup.html) - construct a lazy tree from TagSoup lexemes.
+* [html-conduit](https://hackage.haskell.org/package/html-conduit) - parse malformed HTML into a tree and extract data with convenient combinators (from the Yesod project). 
