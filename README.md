@@ -1,4 +1,4 @@
-# TagSoup [![Hackage version](https://img.shields.io/hackage/v/tagsoup.svg?label=Hackage)](https://hackage.haskell.org/package/tagsoup) [![Stackage version](https://www.stackage.org/package/tagsoup/badge/nightly?label=Stackage)](https://www.stackage.org/package/tagsoup) [![Build status](https://img.shields.io/github/workflow/status/ndmitchell/tagsoup/ci.svg)](https://github.com/ndmitchell/tagsoup/actions)
+# TagSoup [![Hackage version](https://img.shields.io/hackage/v/tagsoup.svg?label=Hackage)](https://hackage.haskell.org/package/tagsoup) [![Stackage version](https://www.stackage.org/package/tagsoup/badge/nightly?label=Stackage)](https://www.stackage.org/package/tagsoup) [![Build status](https://img.shields.io/github/workflow/status/ndmitchell/tagsoup/ci/master.svg)](https://github.com/ndmitchell/tagsoup/actions)
 
 TagSoup is a library for parsing HTML/XML. It supports the HTML 5 specification, and can be used to parse either well-formed XML, or unstructured and malformed HTML from the web. The library also provides useful functions to extract information from an HTML document, making it ideal for screen-scraping.
 
