@@ -39,12 +39,9 @@ Taking a look at the [front web page](http://wiki.haskell.org/Haskell), when
 not logged in, we see:
 
 ```html
-<ul id="f-list">
-  <li id="lastmod"> This page was last modified on 9 September 2013, at 22:38.</li>
-  <li id="copyright">Recent content is available under <a href="/HaskellWiki:Copyrights" title="HaskellWiki:Copyrights">a simple permissive license</a>.</li>
-  <li id="privacy"><a href="/HaskellWiki:Privacy_policy" title="HaskellWiki:Privacy policy">Privacy policy</a></li>
-  <li id="about"><a href="/HaskellWiki:About" title="HaskellWiki:About">About HaskellWiki</a></li>
-  <li id="disclaimer"><a href="/HaskellWiki:General_disclaimer" title="HaskellWiki:General disclaimer">Disclaimers</a></li>
+<ul id="footer-info">
+  <li id="footer-info-lastmod"> This page was last modified on 9 September 2013, at 22:38.</li>
+  <li id="footer-info-copyright">Recent content is available under <a href="/HaskellWiki:Copyrights" title="HaskellWiki:Copyrights">simple permissive license</a>.</li>
 </ul>
 ```
 
@@ -89,7 +86,7 @@ If the user changes their website, they will do so in unpredictable ways. They m
 So now, let's consider the fragment from above. It is useful to find a tag
 which is unique just above your snippet - something with a nice `id` or `class`
 attribute - something which is unlikely to occur multiple times. In the above
-example, an `id` with value  `lastmod` seems perfect.
+example, an `id` with value  `footer-info-lastmod` seems perfect.
 
 ```haskell
 module Main where
@@ -106,7 +103,7 @@ haskellLastModifiedDateTime = do
     src <- openURL "http://wiki.haskell.org/Haskell"
     let lastModifiedDateTime = fromFooter $ parseTags src
     putStrLn $ "wiki.haskell.org was last modified on " ++ lastModifiedDateTime
-    where fromFooter = unwords . drop 6 . words . innerText . take 2 . dropWhile (~/= "<li id=lastmod>")
+    where fromFooter = unwords . drop 6 . words . innerText . take 2 . dropWhile (~/= "<li id=footer-info-lastmod>")
 
 main :: IO ()
 main = haskellLastModifiedDateTime
@@ -115,17 +112,18 @@ main = haskellLastModifiedDateTime
 Now we start writing the code! The first thing to do is open the required URL, then we parse the code into a list of `Tag`s with `parseTags`. The `fromFooter` function does the interesting thing, and can be read right to left:
 
 * First we throw away everything (`dropWhile`) until we get to an `li` tag
-  containing `id=lastmod`. The `(~==)` and `(~/=)` operators are different from
-standard equality and inequality since they allow additional attributes to be
-present. We write `"<li id=lastmod>"` as syntactic sugar for `TagOpen "li"
-[("id","lastmod")]`. If we just wanted any open tag with the given `id`
-attribute we could have written `(~== TagOpen "" [("id","lastmod")])` and this
-would have matched.  Any empty strings in the second element of the match are
-considered as wildcards.
+  containing `id=footer-info-lastmod`. The `(~==)` and `(~/=)` operators are
+different from standard equality and inequality since they allow additional
+attributes to be present. We write `"<li id=lastmod>"` as syntactic sugar for
+`TagOpen "li" [("id","footer-info-lastmod")]`. If we just wanted any open tag
+with the given `id` attribute we could have written
+`(~== TagOpen "" [("id","footer-info-lastmod")])` and this would have matched.
+Any empty strings in the second element of the match are considered as
+wildcards.
 * Next we take two elements: the `<li>` tag and the text node immediately
   following.
 * We call the `innerText` function to get all the text values from inside,
-  which will just be the text node following the `lastmod`.
+  which will just be the text node following the `footer-info-lastmod`.
 * We split the string into a series of words and drop the first six, i.e. the
   words `This`, `page`, `was`, `last`, `modified` and `on`
 * We reassemble the remaining words into the resulting string `9 September
