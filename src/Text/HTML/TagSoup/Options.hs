@@ -24,8 +24,9 @@ import Text.StringLike
 --   component is @[]@). As an example, to not decode any entities, pass:
 --
 -- > parseOptions
--- >     {optEntityData=\(str,b) -> [TagText $ "&" ++ str ++ [';' | b]]
--- >     ,optEntityAttrib\(str,b) -> ("&" ++ str ++ [';' | b], [])
+-- >     {optEntityData = \(str,b) -> [TagText $ "&" ++ str ++ [';' | b]]
+-- >     ,optEntityAttrib = \(str,b) -> ("&" ++ str ++ [';' | b], [])
+-- >     }
 
 --   The 'optTagTextMerge' value specifies if you always want adjacent 'TagText' values to be merged.
 --   Merging adjacent pieces of text has a small performance penalty, but will usually make subsequent analysis
