@@ -27,6 +27,8 @@ import Text.StringLike
 -- >     {optEntityData = \(str,b) -> [TagText $ "&" ++ str ++ [';' | b]]
 -- >     ,optEntityAttrib = \(str,b) -> ("&" ++ str ++ [';' | b], [])
 -- >     }
+--
+--   (But this is just an example.  If you really want to not decode any entities then see 'parseOptionsEntities'.)
 
 --   The 'optTagTextMerge' value specifies if you always want adjacent 'TagText' values to be merged.
 --   Merging adjacent pieces of text has a small performance penalty, but will usually make subsequent analysis
