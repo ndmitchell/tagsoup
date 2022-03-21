@@ -1,4 +1,4 @@
-:set -fno-warn-overlapping-patterns -w -fwarn-unused-binds -fwarn-unused-imports -fwarn-orphans
+:set -Wno-overlapping-patterns -w -Wunused-binds -Wunused-imports -Worphans
 :set -isrc;test
 :load Main
 :module +Text.HTML.TagSoup
