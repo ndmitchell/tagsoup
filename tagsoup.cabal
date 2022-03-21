@@ -1,7 +1,7 @@
 cabal-version:  1.18
 name:           tagsoup
 version:        0.14.8
-copyright:      Neil Mitchell 2006-2021
+copyright:      Neil Mitchell 2006-2022
 author:         Neil Mitchell <ndmitchell@gmail.com>
 maintainer:     Neil Mitchell <ndmitchell@gmail.com>
 homepage:       https://github.com/ndmitchell/tagsoup#readme
