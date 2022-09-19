@@ -18,6 +18,9 @@ import qualified Data.Text.Lazy as LT
 
 -- | A class to generalise TagSoup parsing over many types of string-like types.
 --   Examples are given for the String type.
+--
+--   Note that for types which don't represent the full range of characters (e.g. ByteString)
+--   entities like @"&#128512;"@ will result in incorrect output.
 class (Typeable a, Eq a, IsString a) => StringLike a where
     -- | > empty = ""
     empty :: a
