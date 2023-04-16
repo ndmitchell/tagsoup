@@ -142,7 +142,7 @@ grid xs = unlines $ map (concat . zipWith f cols) xs
 -- when a grid gets to [] keep its value at that
 -- when all grids get to [] return []
 delay2 :: [[[String]]] -> [[[String]]]
-delay2 xs = map (map head) xs : (if all (null . tail) (concat xs) then [] else delay2 $ map (map tl) xs)
+delay2 xs = map (map head) xs : (if all (all (null . tail)) xs then [] else delay2 $ map (map tl) xs)
     where tl (x:xs) = if null xs then x:xs else xs
 
 
