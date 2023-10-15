@@ -136,6 +136,8 @@ This code may seem slightly messy, and indeed it is - often that is the nature o
 
 ## Simon's Papers
 
+_Unfortunately this example no longer works since Simon left Microsoft._
+
 Our next very important task is to extract a list of all Simon Peyton Jones' recent research papers off his [home page](http://research.microsoft.com/en-us/people/simonpj/). The largest change to the previous example is that now we desire a list of papers, rather than just a single result.
 
 As before we first start by writing a simple program that downloads the appropriate page, and look for common patterns. This time we want to look for all patterns which occur every time a paper is mentioned, but no where else. The other difference from last time is that previous we grabbed an automatically generated piece of information - this time the information is entered in a more freeform way by a human.
