@@ -4,9 +4,11 @@ module Text.HTML.TagSoup.Implementation where
 
 import Text.HTML.TagSoup.Type
 import Text.HTML.TagSoup.Options
+import {-# SOURCE #-} Text.HTML.TagSoup.Tree
 import Text.StringLike as Str
 import Numeric (readHex)
 import Data.Char (chr, ord)
+import Data.List (isInfixOf)
 import Data.Ix
 import Control.Exception(assert)
 import Control.Arrow
@@ -77,8 +79,11 @@ state s = expand nullPosition s
 
 
 output :: forall str . StringLike str => ParseOptions str -> [Out] -> [Tag str]
-output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ go ((nullPosition,[]),x)
+output ParseOptions{..} x = seq err $ (if optTagTextMerge then tagTextMerge else id) $ (if optTagStrictXML then wellFormed else id) $ go ((nullPosition,[]),x)
     where
+        err = if optTagStrictXML && not optTagWarning
+                then error "optTagStrictXML implies optTagWarning"
+                else ()
         -- main choice loop
         go :: ((Position,[Tag str]),[Out]) -> [Tag str]
         go ((p,ws),xs) | p `seq` False = [] -- otherwise p is a space leak when optTagPosition == False
@@ -191,3 +196,18 @@ tagTextMerge (TagText x:xs) = TagText (strConcat (x:a)) : tagTextMerge b
 
 tagTextMerge (x:xs) = x : tagTextMerge xs
 tagTextMerge [] = []
+
+wellFormed xs = case tagTree xs of
+    [tree] -> case go tree of
+        [] -> xs
+        ws -> map TagWarning ws
+        where
+            go (TagLeaf (TagOpen str _)) = [fromString $ "<" ++ (toString str) ++ "> has no closing tag"]
+            go (TagLeaf (TagClose str)) = [fromString $ "</" ++ (toString str) ++ "> has no opening tag"]
+            go (TagLeaf (TagWarning str)) = [str]
+            go (TagLeaf (TagComment str)) | "--" `isInfixOf` toString str = [fromString "\"--\" is not allowed in comments"]
+            go (TagLeaf (TagText str)) | '<' `elem` toString str = [fromString "'<' is not an allowed XML elements"]
+            go (TagLeaf (TagText str)) | '&' `elem` toString str = [fromString "'&' is not an allowed XML elements"]
+            go (TagBranch _ _ t) = t >>= go
+            go _ = []
+    _ -> [TagWarning $ fromString "XML documents must contain exactly one root element"]
