@@ -58,7 +58,7 @@ benchWith (str,bs,lbs) bench = do
             c3 <- f lbs
             return [[header],c1,c2,c3]
 
-        strict = reverse . reverse
+        strict x = length x `seq` x
 
 
 ---------------------------------------------------------------------
