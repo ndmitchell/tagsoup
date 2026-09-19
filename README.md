@@ -8,7 +8,7 @@ The library provides a basic data type for a list of unstructured tags, a parser
 * Obtaining a list of Simon Peyton Jones' latest papers
 * A brief overview of some other examples
 
-The intial version of this library was written in Javascript and has been used for various commercial projects involving screen scraping. In the examples general hints on screen scraping are included, learnt from bitter experience. It should be noted that if you depend on data which someone else may change at any given time, you may be in for a shock!
+The initial version of this library was written in Javascript and has been used for various commercial projects involving screen scraping. In the examples general hints on screen scraping are included, learnt from bitter experience. It should be noted that if you depend on data which someone else may change at any given time, you may be in for a shock!
 
 This library was written without knowledge of the Java version of [TagSoup](https://github.com/jukka/tagsoup). They have made a very different design decision: to ensure default attributes are present and to properly nest parsed tags. We do not do this - tags are merely a list devoid of nesting information.
 
