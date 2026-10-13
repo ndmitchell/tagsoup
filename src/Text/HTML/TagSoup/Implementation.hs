@@ -136,8 +136,12 @@ output ParseOptions{..} x = (if optTagTextMerge then tagTextMerge else id) $ go 
         -- utility functions
         next x = second (drop 1) x
         skip f x = assert (isEof x || f x) (next x)
-        addWarns ws x@((p,w),y) = ((p, reverse (poss x ws) ++ w), y)
-        pos ((p,_),_) rest = if optTagPosition then tagPosition p : rest else rest
+        -- the warnings must not refer to x, as that retains all the input that follows it (a space leak)
+        addWarns ws x@((p,w),y)
+            | not optTagWarning || null ws = x
+            | otherwise = ((p, reverse (concatMap (\v -> posAt p [v]) ws) ++ w), y)
+        pos ((p,_),_) = posAt p
+        posAt p rest = if optTagPosition then tagPosition p : rest else rest
         warn x s rest = if optTagWarning then pos x $ TagWarning (fromString s) : rest else rest
         poss x = concatMap (\w -> pos x [w])
 

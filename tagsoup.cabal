@@ -1,7 +1,7 @@
 cabal-version:  1.18
 name:           tagsoup
 version:        0.14.8
-copyright:      Neil Mitchell 2006-2024
+copyright:      Neil Mitchell 2006-2026
 author:         Neil Mitchell <ndmitchell@gmail.com>
 maintainer:     Neil Mitchell <ndmitchell@gmail.com>
 homepage:       https://github.com/ndmitchell/tagsoup#readme
@@ -58,6 +58,8 @@ test-suite test-tagsoup
         tagsoup,
         time, directory, process
 
+    -- the space tests measure the memory that is live, which requires -T
+    ghc-options: -with-rtsopts=-T
     main-is: Main.hs
     hs-source-dirs: test
     other-modules:

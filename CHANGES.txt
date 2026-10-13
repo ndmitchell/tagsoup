@@ -1,5 +1,6 @@
 Changelog for TagSoup
 
+    Fix a space leak when an attribute value contains an entity
     #79, update the Haskell wiki sample
 0.14.8, released 2019-05-01
     #78, add strMap

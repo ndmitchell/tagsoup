@@ -6,8 +6,11 @@ import Text.HTML.TagSoup
 import Text.HTML.TagSoup.Entity
 import Text.HTML.TagSoup.Match
 
+import Control.Exception(evaluate)
 import Control.Monad
 import Data.List
+import GHC.Stats(getRTSStats, getRTSStatsEnabled, RTSStats(..), GCDetails(..))
+import System.Mem(performMajorGC)
 import Test.QuickCheck(Arbitrary(..), Testable(..), quickCheckWithResult, stdArgs,
                        Args(..), listOf, elements, Result(..))
 
@@ -50,6 +53,7 @@ test = runTest $ do
     positionTests
     entityTests
     lazyTags == lazyTags `seq` pass
+    spaceTests
     matchCombinators
 
 
@@ -89,6 +93,53 @@ lazyTags = map ((!!1000) . show . parseTags)
     -- ,("</html "++cycle "junk") :
     ]
 
+
+
+{- |
+This routine tests that the TagSoup parser does not retain what it has already parsed.
+Each test input ends with an attribute value of infinite size,
+so the corresponding output is infinite too.
+We consume a prefix of that value, keep only the remainder,
+and then measure how much memory is live.
+A parser that streams the value retains a small constant amount.
+If more than one byte is retained per character consumed,
+you have found a space leak.
+-}
+spaceTests :: Test ()
+spaceTests = do
+    enabled <- getRTSStatsEnabled
+    if not enabled then putStrLn "Skipping the space tests, as they require +RTS -T" else do
+        -- evaluate anything shared between the tests, e.g. the table of entities
+        _ <- evaluate $ length $ show $ parseTags "<a b=\"&amp;&unknown;&#65;&#x41;\">"
+        forM_ [parseOptions, parseOptions{optTagWarning=True}, parseOptions{optTagWarning=True,optTagPosition=True}] $ \opts ->
+            forM_ ["<a b=\"", "<a b='", "<a b="] $ \tag ->
+                -- how the value starts: plainly, with entities, or with something that gives a warning
+                forM_ ["", "&amp;", "&amp,", "&unknown;", "?x=1&y=2", "&;", "&#65;", "&#x41;"] $ \start -> do
+                    let n = 50000
+                    bytes <- retained n $ attribute $ parseTagsOptions opts $ tag ++ start ++ cycle "x"
+                    when (bytes > n) $ fail $
+                        "Space leak: " ++ show bytes ++ " bytes retained after consuming " ++ show n ++
+                        " characters of the attribute value in " ++ show (tag ++ start)
+    where
+        -- the value of the first attribute, without retaining anything else
+        attribute :: [Tag String] -> String
+        attribute (TagOpen _ ((_,v):_):_) = v
+        attribute (_:xs) = attribute xs
+        attribute [] = []
+
+-- | The number of bytes that are retained after consuming the first @n@ elements of a list,
+--   when only the remainder of that list is kept. The list must have more than @n@ elements.
+retained :: Int -> [a] -> IO Int
+retained n xs = do
+    before <- liveBytes
+    let rest = drop n xs
+    short <- evaluate $ null rest
+    when short $ fail $ "Expected a list of more than " ++ show n ++ " elements"
+    after <- liveBytes
+    -- use rest again, so it was still required while we measured
+    _ <- evaluate $ null $ drop 1 rest
+    return $ after - before
+    where liveBytes = performMajorGC >> fmap (fromIntegral . gcdetails_live_bytes . gc) getRTSStats
 
 
 matchCombinators :: Test ()
